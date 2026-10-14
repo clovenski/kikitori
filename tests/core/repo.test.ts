@@ -24,11 +24,26 @@ beforeEach(() => {
 describe('migrate', () => {
   it('is idempotent and sets user_version', () => {
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(2);
+    expect(db.pragma('user_version', { simple: true })).toBe(3);
   });
 });
 
 describe('jobs', () => {
+  it('stores a title and video id, lists newest first, and defaults both to null', () => {
+    const a = repo.createJob({ source: 'a', rangeStartMs: 0, rangeEndMs: 1000, settings });
+    const b = repo.createJob({
+      source: 'b',
+      rangeStartMs: 0,
+      rangeEndMs: 1000,
+      settings,
+      title: 'My video',
+      videoId: 'abcdefghijk',
+    });
+    expect(a).toMatchObject({ title: null, videoId: null });
+    expect(b).toMatchObject({ title: 'My video', videoId: 'abcdefghijk' });
+    expect(repo.listJobs().map((j) => j.id)).toEqual([b.id, a.id]);
+  });
+
   it('creates and reads back a job', () => {
     const job = repo.createJob({ source: 'https://y/1', rangeStartMs: 0, rangeEndMs: 1000, settings });
     expect(job).toMatchObject({ source: 'https://y/1', rangeEndMs: 1000, status: 'pending', settings });

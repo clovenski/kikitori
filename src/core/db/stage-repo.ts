@@ -56,6 +56,18 @@ export class StageRepo {
     return new Map(rows.map((r) => [r.segment_id, r.text]));
   }
 
+  countTranslations(jobId: number): number {
+    const row = this.db
+      .prepare("SELECT COUNT(*) AS c FROM translations WHERE job_id = ? AND text <> ''")
+      .get(jobId) as { c: number };
+    return row.c;
+  }
+
+  countSummaries(jobId: number): number {
+    const row = this.db.prepare('SELECT COUNT(*) AS c FROM summaries WHERE job_id = ?').get(jobId) as { c: number };
+    return row.c;
+  }
+
   saveSummary(jobId: number, row: SummaryRow): void {
     this.db
       .prepare(

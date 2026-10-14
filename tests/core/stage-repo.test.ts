@@ -65,6 +65,15 @@ describe('translations', () => {
 });
 
 describe('summaries and stages', () => {
+  it('counts non-empty translations and summaries', () => {
+    repo.completeChunk(jobId, 0, [seg('a', 0, 1000), seg('b', 1000, 2000)]);
+    const [a, b] = repo.listSegmentsWithId(jobId);
+    stages.saveTranslations(jobId, 0, [{ segmentId: a.id, text: 'A' }, { segmentId: b.id, text: '' }]);
+    stages.saveSummary(jobId, { level: 'overview', idx: 0, startMs: 0, endMs: 9, text: 'O' });
+    expect(stages.countTranslations(jobId)).toBe(1);
+    expect(stages.countSummaries(jobId)).toBe(1);
+  });
+
   it('lists summaries ordered by level then index and replaces on re-save', () => {
     stages.saveSummary(jobId, { level: 'overview', idx: 0, startMs: 0, endMs: 9, text: 'O' });
     stages.saveSummary(jobId, { level: 'window', idx: 1, startMs: 5, endMs: 9, text: 'W1' });

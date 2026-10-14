@@ -66,6 +66,22 @@ const MIGRATIONS: string[] = [
     PRIMARY KEY (job_id, stage)
   );
   `,
+  `
+  ALTER TABLE jobs ADD COLUMN title TEXT;
+  ALTER TABLE jobs ADD COLUMN video_id TEXT;
+  CREATE TABLE submissions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source TEXT NOT NULL,
+    start_ms INTEGER NOT NULL DEFAULT 0,
+    end_ms INTEGER,
+    options_json TEXT NOT NULL,
+    state TEXT NOT NULL,
+    job_id INTEGER REFERENCES jobs(id),
+    error TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+  `,
 ];
 
 export function migrate(db: Database): void {

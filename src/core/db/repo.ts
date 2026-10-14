@@ -19,6 +19,8 @@ export interface JobRow {
   settings: JobSettings;
   status: JobStatus;
   createdAt: string;
+  title: string | null;
+  videoId: string | null;
 }
 
 export interface ChunkRow {
@@ -40,6 +42,8 @@ interface JobDb {
   settings_json: string;
   status: JobStatus;
   created_at: string;
+  title: string | null;
+  video_id: string | null;
 }
 
 interface ChunkDb {
@@ -69,6 +73,8 @@ const toJob = (r: JobDb): JobRow => ({
   settings: JSON.parse(r.settings_json) as JobSettings,
   status: r.status,
   createdAt: r.created_at,
+  title: r.title,
+  videoId: r.video_id,
 });
 
 const toChunk = (r: ChunkDb): ChunkRow => ({
@@ -86,21 +92,41 @@ export class Repo {
   constructor(private readonly db: Database) {}
 
   createJob(
-    input: { source: string; rangeStartMs: number; rangeEndMs: number; settings: JobSettings },
+    input: {
+      source: string;
+      rangeStartMs: number;
+      rangeEndMs: number;
+      settings: JobSettings;
+      title?: string | null;
+      videoId?: string | null;
+    },
     createdAt: string = new Date().toISOString(),
   ): JobRow {
     const info = this.db
       .prepare(
-        `INSERT INTO jobs (source, range_start_ms, range_end_ms, settings_json, status, created_at)
-         VALUES (?, ?, ?, ?, 'pending', ?)`,
+        `INSERT INTO jobs (source, range_start_ms, range_end_ms, settings_json, status, created_at, title, video_id)
+         VALUES (?, ?, ?, ?, 'pending', ?, ?, ?)`,
       )
-      .run(input.source, input.rangeStartMs, input.rangeEndMs, JSON.stringify(input.settings), createdAt);
+      .run(
+        input.source,
+        input.rangeStartMs,
+        input.rangeEndMs,
+        JSON.stringify(input.settings),
+        createdAt,
+        input.title ?? null,
+        input.videoId ?? null,
+      );
     return this.getJob(Number(info.lastInsertRowid)) as JobRow;
   }
 
   getJob(id: number): JobRow | undefined {
     const row = this.db.prepare('SELECT * FROM jobs WHERE id = ?').get(id) as JobDb | undefined;
     return row ? toJob(row) : undefined;
+  }
+
+  listJobs(): JobRow[] {
+    const rows = this.db.prepare('SELECT * FROM jobs ORDER BY id DESC').all() as JobDb[];
+    return rows.map(toJob);
   }
 
   findResumableJob(
