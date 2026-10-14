@@ -179,6 +179,12 @@ export class Repo {
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
     );
     this.db.transaction(() => {
+      this.db
+        .prepare(
+          `DELETE FROM translations WHERE job_id = ? AND segment_id IN
+             (SELECT id FROM segments WHERE job_id = ? AND chunk_idx = ?)`,
+        )
+        .run(jobId, jobId, idx);
       this.db.prepare('DELETE FROM segments WHERE job_id = ? AND chunk_idx = ?').run(jobId, idx);
       for (const s of segments) {
         insert.run(jobId, idx, s.startMs, s.endMs, s.text, s.lang, s.avgLogprob ?? null);
@@ -189,6 +195,12 @@ export class Repo {
       // Earlier chunk wins: if a later chunk finished first, drop its copy of the overlap.
       const end = segments.reduce((max, s) => Math.max(max, s.endMs), -1);
       if (end >= 0) {
+        this.db
+          .prepare(
+            `DELETE FROM translations WHERE job_id = ? AND segment_id IN
+               (SELECT id FROM segments WHERE job_id = ? AND chunk_idx > ? AND start_ms < ?)`,
+          )
+          .run(jobId, jobId, idx, end);
         this.db
           .prepare('DELETE FROM segments WHERE job_id = ? AND chunk_idx > ? AND start_ms < ?')
           .run(jobId, idx, end);
@@ -201,6 +213,20 @@ export class Repo {
       .prepare('SELECT * FROM segments WHERE job_id = ? ORDER BY start_ms, id')
       .all(jobId) as SegmentDb[];
     return rows.map((r) => ({
+      startMs: r.start_ms,
+      endMs: r.end_ms,
+      text: r.text,
+      lang: r.lang,
+      avgLogprob: r.avg_logprob,
+    }));
+  }
+
+  listSegmentsWithId(jobId: number): (Segment & { id: number })[] {
+    const rows = this.db
+      .prepare('SELECT * FROM segments WHERE job_id = ? ORDER BY start_ms, id')
+      .all(jobId) as (SegmentDb & { id: number })[];
+    return rows.map((r) => ({
+      id: r.id,
       startMs: r.start_ms,
       endMs: r.end_ms,
       text: r.text,

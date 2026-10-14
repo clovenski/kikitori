@@ -35,6 +35,37 @@ const MIGRATIONS: string[] = [
   );
   CREATE INDEX idx_segments_job ON segments(job_id, start_ms);
   `,
+  `
+  CREATE TABLE glossary (
+    job_id INTEGER NOT NULL REFERENCES jobs(id),
+    ja TEXT NOT NULL,
+    en TEXT NOT NULL,
+    source TEXT NOT NULL,
+    PRIMARY KEY (job_id, ja)
+  );
+  CREATE TABLE translations (
+    job_id INTEGER NOT NULL REFERENCES jobs(id),
+    segment_id INTEGER NOT NULL REFERENCES segments(id),
+    text TEXT NOT NULL,
+    batch_idx INTEGER NOT NULL,
+    PRIMARY KEY (job_id, segment_id)
+  );
+  CREATE TABLE summaries (
+    job_id INTEGER NOT NULL REFERENCES jobs(id),
+    level TEXT NOT NULL,
+    idx INTEGER NOT NULL,
+    start_ms INTEGER NOT NULL,
+    end_ms INTEGER NOT NULL,
+    text TEXT NOT NULL,
+    PRIMARY KEY (job_id, level, idx)
+  );
+  CREATE TABLE stages (
+    job_id INTEGER NOT NULL REFERENCES jobs(id),
+    stage TEXT NOT NULL,
+    status TEXT NOT NULL,
+    PRIMARY KEY (job_id, stage)
+  );
+  `,
 ];
 
 export function migrate(db: Database.Database): void {

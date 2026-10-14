@@ -24,7 +24,7 @@ beforeEach(() => {
 describe('migrate', () => {
   it('is idempotent and sets user_version', () => {
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(1);
+    expect(db.pragma('user_version', { simple: true })).toBe(2);
   });
 });
 
@@ -78,6 +78,15 @@ describe('chunks', () => {
 });
 
 describe('segments', () => {
+  it('listSegmentsWithId returns ids in time order', () => {
+    const job = repo.createJob({ source: 's', rangeStartMs: 0, rangeEndMs: 1000, settings });
+    repo.insertChunks(job.id, [{ idx: 0, startMs: 0, endMs: 1000 }]);
+    repo.completeChunk(job.id, 0, [seg('b', 500, 600), seg('a', 100, 200)]);
+    const rows = repo.listSegmentsWithId(job.id);
+    expect(rows.map((r) => r.text)).toEqual(['a', 'b']);
+    expect(rows.every((r) => Number.isInteger(r.id))).toBe(true);
+  });
+
   it('completeChunk stores segments and marks the chunk done', () => {
     const job = repo.createJob({ source: 's', rangeStartMs: 0, rangeEndMs: 1000, settings });
     repo.insertChunks(job.id, [{ idx: 0, startMs: 0, endMs: 1000 }]);
