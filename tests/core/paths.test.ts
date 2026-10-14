@@ -36,6 +36,11 @@ describe('resolveTool', () => {
     expect(resolveTool('whisper-cli', { resourcesDir: path.join(root, 'res'), pathEnv: '' })).toBe(nested);
   });
 
+  it('finds llama-server in a nested folder of the extracted archive', () => {
+    const nested = touch('res', 'llama', 'build', exeName('llama-server'));
+    expect(resolveTool('llama-server', { resourcesDir: path.join(root, 'res'), pathEnv: '' })).toBe(nested);
+  });
+
   it('throws ToolMissing with a helpful message', () => {
     expect(() => resolveTool('yt-dlp', { resourcesDir: path.join(root, 'res'), pathEnv: '' })).toThrow(
       expect.objectContaining({ code: 'ToolMissing', message: expect.stringContaining('setup:tools') }),

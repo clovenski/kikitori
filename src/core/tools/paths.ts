@@ -15,7 +15,7 @@ export function dataDir(): string {
   return process.env.BGT_DATA_DIR ?? path.join(projectRoot(), 'data');
 }
 
-export type ToolName = 'yt-dlp' | 'ffmpeg' | 'whisper-cli';
+export type ToolName = 'yt-dlp' | 'ffmpeg' | 'whisper-cli' | 'llama-server';
 
 export function exeName(name: string): string {
   return process.platform === 'win32' ? `${name}.exe` : name;
@@ -47,6 +47,7 @@ const BUNDLED_DIR: Record<ToolName, string> = {
   'yt-dlp': 'bin',
   ffmpeg: 'bin',
   'whisper-cli': 'whisper',
+  'llama-server': 'llama',
 };
 
 export interface ResolveOptions {
@@ -59,7 +60,7 @@ export function resolveTool(name: ToolName, opts: ResolveOptions = {}): string {
   const exe = exeName(name);
   const dir = path.join(opts.resourcesDir ?? resourcesDir(), BUNDLED_DIR[name]);
   const bundled =
-    name === 'whisper-cli'
+    name === 'whisper-cli' || name === 'llama-server'
       ? findFileRecursive(dir, exe)
       : existsSync(path.join(dir, exe))
         ? path.join(dir, exe)

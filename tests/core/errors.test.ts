@@ -14,4 +14,9 @@ describe('BgtError', () => {
     const cause = new Error('root');
     expect(new BgtError('ToolMissing', 'x', { cause }).cause).toBe(cause);
   });
+
+  it('supports the LLM error codes', () => {
+    expect(new BgtError('LlmServerFailed', 'x').code).toBe('LlmServerFailed');
+    expect(new BgtError('LlmFailed', 'x').name).toBe('LlmFailed');
+  });
 });

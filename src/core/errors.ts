@@ -3,7 +3,9 @@ export type ErrorCode =
   | 'DownloadFailed'
   | 'TranscribeFailed'
   | 'OverCap'
-  | 'InvalidInput';
+  | 'InvalidInput'
+  | 'LlmServerFailed'
+  | 'LlmFailed';
 
 export class BgtError extends Error {
   readonly code: ErrorCode;
