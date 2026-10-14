@@ -13,7 +13,7 @@ export interface RunOptions {
   onStderr?: (chunk: string) => void;
 }
 
-function killTree(child: ChildProcess): void {
+export function killTree(child: ChildProcess): void {
   if (child.pid === undefined) return;
   if (process.platform === 'win32') {
     // PyInstaller-style exes (yt-dlp) spawn a child; /T takes the whole tree.
