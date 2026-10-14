@@ -3,6 +3,7 @@ import { updateYtDlp } from '../core/tools/ytdlp';
 import { resolveTool } from '../core/tools/paths';
 import { BgtError } from '../core/errors';
 import { doctorCommand } from './doctor';
+import { llmCommand } from './llm';
 import { runCommand } from './run';
 
 const program = new Command();
@@ -17,7 +18,25 @@ program
   .option('--out <dir>', 'output directory', 'output')
   .option('--max-minutes <n>', 'maximum minutes of audio per job', '30')
   .option('--keep-work', 'keep intermediate files in data/work')
+  .option('--translate', 'translate to English (Hy-MT2) after transcribing')
+  .option('--summarize', 'write a timestamped English summary')
+  .option('--skim', 'summarize without a full translation (cannot be combined with --translate)')
+  .option('--glossary <file>', 'JSON file mapping Japanese terms to English')
   .action(runCommand);
+
+program
+  .command('translate')
+  .argument('<jobId>', 'id of a finished job')
+  .option('--glossary <file>', 'JSON file mapping Japanese terms to English')
+  .option('--summarize', 'also write a summary')
+  .option('--out <dir>', 'output directory', 'output')
+  .action((jobId, o) => llmCommand(jobId, o, 'translate'));
+
+program
+  .command('summarize')
+  .argument('<jobId>', 'id of a finished job')
+  .option('--out <dir>', 'output directory', 'output')
+  .action((jobId, o) => llmCommand(jobId, o, 'summarize'));
 
 program.command('doctor').description('Check that all required tools and models are available').action(doctorCommand);
 

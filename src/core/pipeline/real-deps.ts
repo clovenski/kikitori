@@ -3,6 +3,7 @@ import path from 'node:path';
 import { WhisperCppTranscriber } from '../backends/transcribe/whispercpp';
 import { openDb } from '../db';
 import { Repo } from '../db/repo';
+import { StageRepo } from '../db/stage-repo';
 import { BgtError } from '../errors';
 import { cutWav, detectSilences, probeDurationMs, toWav16kMono } from '../tools/ffmpeg';
 import { findVadModel, modelPath, resolveTool } from '../tools/paths';
@@ -18,7 +19,7 @@ export function createRealDeps(a: {
   dataDir: string;
   model: string;
   log: (message: string) => void;
-}): { deps: PipelineDeps; workRoot: string; close(): void } {
+}): { deps: PipelineDeps; stages: StageRepo; workRoot: string; close(): void } {
   if (!/^[a-z0-9][a-z0-9._-]*$/i.test(a.model)) {
     throw new BgtError('InvalidInput', `Invalid model name "${a.model}".`);
   }
@@ -76,5 +77,5 @@ export function createRealDeps(a: {
     cutWav: (c) => cutWav({ ffmpegPath, ...c }),
   };
 
-  return { deps, workRoot: path.join(a.dataDir, 'work'), close: () => db.close() };
+  return { deps, stages: new StageRepo(db), workRoot: path.join(a.dataDir, 'work'), close: () => db.close() };
 }

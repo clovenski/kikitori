@@ -4,6 +4,7 @@ import { createRealDeps } from '../core/pipeline/real-deps';
 import { runJob } from '../core/pipeline/run';
 import { dataDir } from '../core/tools/paths';
 import { parseTimestamp } from '../core/time';
+import { runStagesForJob, validateLlmOptions, wantsLlm } from './llm';
 
 export interface RunCliOptions {
   start?: string;
@@ -12,6 +13,10 @@ export interface RunCliOptions {
   out: string;
   maxMinutes: string;
   keepWork?: boolean;
+  translate?: boolean;
+  summarize?: boolean;
+  skim?: boolean;
+  glossary?: string;
 }
 
 export async function runCommand(source: string, opts: RunCliOptions): Promise<void> {
@@ -28,14 +33,17 @@ export async function runCommand(source: string, opts: RunCliOptions): Promise<v
     if (!Number.isFinite(maxMinutes) || maxMinutes <= 0) {
       throw new BgtError('InvalidInput', `--max-minutes must be a positive number, got "${opts.maxMinutes}".`);
     }
+    validateLlmOptions(opts);
+    const llmWanted = wantsLlm(opts);
     const startMs = opts.start ? parseTimestamp(opts.start) : 0;
     const endMs = opts.end ? parseTimestamp(opts.end) : null;
 
-    const { deps, workRoot, close } = createRealDeps({
+    const handle = createRealDeps({
       dataDir: dataDir(),
       model: opts.model,
       log: (m) => console.log(m),
     });
+    const { deps, workRoot, close } = handle;
     closeDeps = close;
 
     const result = await runJob(deps, {
@@ -53,6 +61,11 @@ export async function runCommand(source: string, opts: RunCliOptions): Promise<v
 
     console.log(`\nSubtitles: ${result.srtPath}`);
     console.log(`Raw data:  ${result.jsonPath}`);
+    if (result.status === 'done' && llmWanted) {
+      await runStagesForJob(result.jobId, { ...opts, out: opts.out }, controller.signal, handle);
+    } else if (result.status !== 'done' && llmWanted) {
+      console.log('Skipping translation/summary because some chunks failed. Re-run the command to retry them.');
+    }
     if (result.status !== 'done') process.exitCode = 2;
   } catch (err) {
     if (controller.signal.aborted) {
