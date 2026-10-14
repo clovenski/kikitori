@@ -1,0 +1,142 @@
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { runSubmission, type RunSubmissionEnv } from '../../src/app/main/run-submission';
+import type { RunContext } from '../../src/app/main/queue';
+import type { Submission } from '../../src/core/db/submission-repo';
+import type { LlmChat } from '../../src/core/llm/client';
+import type { ModelPool, ModelRole } from '../../src/core/pipeline/stages';
+import type { Segment } from '../../src/core/types';
+import { echoTranslate, scriptedChat } from '../helpers/llm-fakes';
+import { makeFakeDeps, memoryRepos } from '../helpers/fakes';
+
+const seg = (text: string, startMs: number, endMs: number): Segment => ({ startMs, endMs, text, lang: 'ja', avgLogprob: -0.3 });
+
+let root: string;
+beforeEach(() => {
+  root = mkdtempSync(path.join(os.tmpdir(), 'bgt-runsub-'));
+});
+afterEach(() => rmSync(root, { recursive: true, force: true }));
+
+function fakePool(chats: Record<ModelRole, LlmChat>) {
+  const used: ModelRole[] = [];
+  const pool: ModelPool & { used: ModelRole[]; stopped: number } = {
+    used,
+    stopped: 0,
+    async use(role) {
+      used.push(role);
+      return chats[role];
+    },
+    async stopAll() {
+      pool.stopped++;
+    },
+  };
+  return pool;
+}
+
+const generalAnswer = (m: { content: string }[]) => {
+  const c = m[m.length - 1].content;
+  if (c.includes('JSON array')) return '[]';
+  if (c.includes('overview in English')) return 'Overview';
+  return '- [0:00:00] Something';
+};
+
+function setup(over: { truth?: Segment[]; onTranscribe?: (f: string) => void } = {}) {
+  const { repo, stages } = memoryRepos();
+  const fakes = makeFakeDeps(repo, {
+    durationMs: 600_000,
+    truth: over.truth ?? [seg('あ', 1000, 2000), seg('い', 3000, 4000)],
+    onTranscribe: over.onTranscribe,
+  });
+  const translate = scriptedChat(echoTranslate());
+  const pool = fakePool({ general: scriptedChat(generalAnswer), translate });
+  const env: RunSubmissionEnv = {
+    repo,
+    stages,
+    makeDeps: () => fakes.deps,
+    workRoot: path.join(root, 'work'),
+    outDir: path.join(root, 'out'),
+    pool,
+    log: () => {},
+  };
+  const events: string[] = [];
+  const jobs: number[] = [];
+  const ctx: RunContext = {
+    signal: new AbortController().signal,
+    progress: (e) => events.push(e.stage),
+    onJob: (id) => jobs.push(id),
+  };
+  return { env, ctx, repo, stages, pool, translate, events, jobs };
+}
+
+const sub = (options: Partial<Submission['options']> = {}): Submission => ({
+  id: 1,
+  source: '/tmp/clip.wav',
+  startMs: 0,
+  endMs: null,
+  options: { translate: false, summarize: false, skim: false, maxMinutes: 30, model: 'large-v3', ...options },
+  state: 'running',
+  jobId: null,
+  error: null,
+  createdAt: '',
+  updatedAt: '',
+});
+
+describe('runSubmission', () => {
+  it('transcribes only when no LLM option is set, reporting the job and progress, without using models', async () => {
+    const t = setup();
+    await runSubmission(t.env, sub(), t.ctx);
+    expect(t.jobs).toEqual([1]);
+    expect(t.events).toContain('fetch');
+    expect(t.events).toContain('transcribe');
+    expect(t.pool.used).toEqual([]);
+    expect(t.repo.listSegments(1).map((s) => s.text)).toEqual(['あ', 'い']);
+  });
+
+  it('runs translate and summarize stages and always stops the model pool', async () => {
+    const t = setup();
+    await runSubmission(t.env, sub({ translate: true, summarize: true }), t.ctx);
+    expect(t.pool.used).toEqual(['general', 'translate', 'general']);
+    expect(t.pool.stopped).toBe(1);
+    expect(t.stages.getStage(1, 'translate')).toBe('done');
+    expect(t.stages.getStage(1, 'summarize')).toBe('done');
+    expect(t.events).toEqual(expect.arrayContaining(['glossary', 'translate', 'summarize']));
+  });
+
+  it('skim summarizes without translating', async () => {
+    const t = setup();
+    await runSubmission(t.env, sub({ skim: true }), t.ctx);
+    expect(t.pool.used).toEqual(['general', 'general']);
+    expect(t.stages.getStage(1, 'translate')).toBeUndefined();
+    expect(t.stages.getStage(1, 'summarize')).toBe('done');
+  });
+
+  it('fails with TranscribeFailed when a chunk fails and skips the LLM stages', async () => {
+    const t = setup({
+      onTranscribe: () => {
+        throw new Error('whisper crashed');
+      },
+    });
+    await expect(runSubmission(t.env, sub({ translate: true }), t.ctx)).rejects.toMatchObject({ code: 'TranscribeFailed' });
+    expect(t.pool.used).toEqual([]);
+  });
+
+  it('loads the glossary file before doing any work and rejects a bad one', async () => {
+    const t = setup();
+    const file = path.join(root, 'g.json');
+    writeFileSync(file, '{oops');
+    await expect(runSubmission(t.env, sub({ translate: true, glossaryPath: file }), t.ctx)).rejects.toMatchObject({
+      code: 'InvalidInput',
+    });
+    expect(t.jobs).toEqual([]);
+  });
+
+  it('passes a user glossary into the translation prompt', async () => {
+    const t = setup({ truth: [seg('ゆりまるです', 1000, 2000)] });
+    const file = path.join(root, 'g.json');
+    writeFileSync(file, '{"ゆりまる":"Yurimaru"}');
+    await runSubmission(t.env, sub({ translate: true, glossaryPath: file }), t.ctx);
+    expect(t.translate.calls[0][0].content).toContain('ゆりまる translates to Yurimaru');
+  });
+});
