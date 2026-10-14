@@ -3,6 +3,7 @@ resources/
 data/
 output/
 dist/
+out/
 .env
 .superpowers/
 *.wav

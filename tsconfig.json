@@ -11,5 +11,6 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["src", "scripts", "tests", "*.config.ts", "*.config.js"]
+  "include": ["src", "scripts", "tests", "*.config.ts", "*.config.js"],
+  "exclude": ["src/app/renderer", "tests/renderer", "node_modules", "out"]
 }
