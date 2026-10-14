@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { JobScreen } from './components/JobScreen';
 import { LibraryScreen } from './components/LibraryScreen';
 import { NewJobDialog } from './components/NewJobDialog';
 import { QueueStrip } from './components/QueueStrip';
@@ -28,7 +29,7 @@ export function App() {
         {route.name === 'library' ? (
           <LibraryScreen items={items} submissions={submissions} onOpen={(jobId) => setRoute({ name: 'job', jobId })} onNew={() => setNewJobOpen(true)} />
         ) : (
-          <div>{`Job ${route.jobId}`}</div>
+          <JobScreen jobId={route.jobId} onBack={() => setRoute({ name: 'library' })} />
         )}
       </main>
       <QueueStrip
