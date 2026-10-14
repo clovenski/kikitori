@@ -2,6 +2,8 @@ export interface YTPlayer {
   getCurrentTime(): number;
   seekTo(seconds: number, allowSeekAhead: boolean): void;
   destroy(): void;
+  /** Not in every player build; used to switch the caption module off. */
+  unloadModule?(name: string): void;
 }
 
 export interface YTNamespace {
@@ -11,7 +13,11 @@ export interface YTNamespace {
       videoId: string;
       host?: string;
       playerVars: Record<string, unknown>;
-      events: { onReady?: () => void; onError?: (e: { data: number }) => void };
+      events: {
+        onReady?: () => void;
+        onError?: (e: { data: number }) => void;
+        onStateChange?: (e: { data: number }) => void;
+      };
     },
   ) => YTPlayer;
 }

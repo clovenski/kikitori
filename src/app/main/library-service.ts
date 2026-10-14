@@ -1,6 +1,7 @@
 import type { JobRow, Repo } from '../../core/db/repo';
 import type { StageRepo } from '../../core/db/stage-repo';
 import { isUrl } from '../../core/pipeline/real-deps';
+import { parseYoutubeId } from '../../core/youtube';
 import type { JobDetail, LibraryItem } from '../shared/ipc';
 
 function toItem(job: JobRow, stages: StageRepo): LibraryItem {
@@ -8,7 +9,8 @@ function toItem(job: JobRow, stages: StageRepo): LibraryItem {
     jobId: job.id,
     title: job.title,
     source: job.source,
-    videoId: job.videoId,
+    // Jobs created before video ids were stored have none; the URL still has it.
+    videoId: job.videoId ?? parseYoutubeId(job.source),
     status: job.status,
     rangeStartMs: job.rangeStartMs,
     rangeEndMs: job.rangeEndMs,

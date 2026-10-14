@@ -30,6 +30,21 @@ describe('listLibrary', () => {
   });
 });
 
+describe('legacy jobs', () => {
+  it('derives the video id from the URL for jobs created before video ids were stored', () => {
+    const { repo, stages } = memoryRepos();
+    const job = repo.createJob({
+      source: 'https://www.youtube.com/watch?v=7SHNxjFuw10&list=PLx',
+      rangeStartMs: 0,
+      rangeEndMs: 1000,
+      settings: { model: 'large-v3', language: 'ja', maxMinutes: 30 },
+    });
+    expect(job.videoId).toBeNull();
+    expect(listLibrary(repo, stages)[0].videoId).toBe('7SHNxjFuw10');
+    expect(getJobDetail(repo, stages, job.id)?.item.videoId).toBe('7SHNxjFuw10');
+  });
+});
+
 describe('getJobDetail', () => {
   it('returns lines with absolute video times, English when present, and summaries', () => {
     const { repo, stages } = memoryRepos();

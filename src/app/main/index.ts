@@ -85,7 +85,8 @@ function configureSession(): void {
       "media-src 'self' bgt-media:",
       "connect-src 'self'",
     ].join('; ');
-    ses.webRequest.onHeadersReceived((details, cb) => {
+    // Only our own pages get this policy; YouTube's embed page must keep its own.
+    ses.webRequest.onHeadersReceived({ urls: ['file://*/*', 'bgt-media://*/*'] }, (details, cb) => {
       cb({ responseHeaders: { ...details.responseHeaders, 'Content-Security-Policy': [csp] } });
     });
   }

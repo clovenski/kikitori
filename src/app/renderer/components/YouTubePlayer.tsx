@@ -40,16 +40,24 @@ export function YouTubePlayer({ videoId, startSeconds, onReady, onFail }: Props)
             enablejsapi: 1,
             fs: 0,
             rel: 0,
+            cc_load_policy: 0,
             playsinline: 1,
             start: Math.max(0, Math.floor(startSeconds)),
-            origin: 'https://bgt.local',
           },
           events: {
-            onReady: () =>
+            onReady: () => {
+              // Our overlay is the only subtitle track; YouTube's own captions would overlap it.
+              created.unloadModule?.('captions');
+              created.unloadModule?.('cc');
               callbacks.current.onReady({
                 getTimeMs: () => created.getCurrentTime() * 1000,
                 seek: (ms) => created.seekTo(ms / 1000, true),
-              }),
+              });
+            },
+            // The caption module loads lazily when playback starts, so switch it off again then.
+            onStateChange: (e) => {
+              if (e.data === 1) created.unloadModule?.('captions');
+            },
             onError: (e) => callbacks.current.onFail(ERRORS[e.data] ?? `The YouTube player reported error ${e.data}.`),
           },
         });

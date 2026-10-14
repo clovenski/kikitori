@@ -67,7 +67,7 @@ function setup(over: { truth?: Segment[]; onTranscribe?: (f: string) => void } =
     progress: (e) => events.push(e.stage),
     onJob: (id) => jobs.push(id),
   };
-  return { env, ctx, repo, stages, pool, translate, events, jobs };
+  return { env, ctx, repo, stages, pool, translate, events, jobs, fakes };
 }
 
 const sub = (options: Partial<Submission['options']> = {}): Submission => ({
@@ -130,6 +130,35 @@ describe('runSubmission', () => {
       code: 'InvalidInput',
     });
     expect(t.jobs).toEqual([]);
+  });
+
+  it('continues an already transcribed job instead of transcribing it again', async () => {
+    const t = setup();
+    await runSubmission(t.env, sub(), t.ctx); // transcription only: job 1 is done
+    expect(t.fakes.fetchCalls).toHaveLength(1);
+
+    t.jobs.length = 0;
+    await runSubmission(t.env, { ...sub({ translate: true, summarize: true }), jobId: 1 }, t.ctx);
+    expect(t.fakes.fetchCalls).toHaveLength(1); // no second download
+    expect(t.fakes.transcribed).toEqual(['chunk-000.wav']); // no second transcription
+    expect(t.repo.listJobs()).toHaveLength(1); // no second job
+    expect(t.jobs).toEqual([1]); // the queue is told which job this is
+    expect(t.stages.getStage(1, 'translate')).toBe('done');
+    expect(t.stages.getStage(1, 'summarize')).toBe('done');
+  });
+
+  it('still transcribes when the linked job is not finished', async () => {
+    const t = setup();
+    t.repo.createJob({
+      source: '/tmp/clip.wav',
+      rangeStartMs: 0,
+      rangeEndMs: 600_000,
+      settings: { model: 'large-v3', language: 'ja', maxMinutes: 30 },
+    }); // pending, never finished
+    await runSubmission(t.env, { ...sub(), jobId: 1 }, t.ctx);
+    expect(t.fakes.fetchCalls).toHaveLength(1);
+    expect(t.repo.getJob(1)?.status).toBe('done');
+    expect(t.repo.listJobs()).toHaveLength(1); // resumed the same job, did not create another
   });
 
   it('passes a user glossary into the translation prompt', async () => {

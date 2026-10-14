@@ -23,6 +23,38 @@ export async function runSubmission(env: RunSubmissionEnv, sub: Submission, ctx:
   // A bad glossary file should fail now, not after the transcription.
   const userGlossary = options.glossaryPath ? loadGlossaryFile(options.glossaryPath) : {};
 
+  // A resumed submission whose transcription already finished continues that job; running runJob again
+  // would start a new job (finished jobs are never "resumable") and transcribe everything twice.
+  const linked = sub.jobId === null ? undefined : env.repo.getJob(sub.jobId);
+  let jobId: number;
+  if (linked?.status === 'done') {
+    jobId = linked.id;
+    ctx.onJob(linked.id);
+    env.log(`Job ${linked.id} is already transcribed; continuing with the remaining steps.`);
+  } else {
+    jobId = await transcribe(env, sub, ctx);
+  }
+
+  if (!options.translate && !options.summarize && !options.skim) return;
+  const job = env.repo.getJob(jobId);
+  if (!job) throw new BgtError('InvalidInput', `Job ${jobId} disappeared.`);
+  await runLlmStages(
+    {
+      repo: env.repo,
+      stages: env.stages,
+      job,
+      outDir: env.outDir,
+      pool: env.pool,
+      log: env.log,
+      signal: ctx.signal,
+      progress: ctx.progress,
+    },
+    { translate: options.translate, summarize: options.summarize, skim: options.skim, userGlossary },
+  );
+}
+
+async function transcribe(env: RunSubmissionEnv, sub: Submission, ctx: RunContext): Promise<number> {
+  const { options } = sub;
   const deps: PipelineDeps = { ...env.makeDeps(sub), log: env.log, progress: ctx.progress };
   const result = await runJob(deps, {
     source: sub.source,
@@ -43,21 +75,5 @@ export async function runSubmission(env: RunSubmissionEnv, sub: Submission, ctx:
       `${result.failedChunks.length} chunk(s) could not be transcribed. Resume the job to retry them.`,
     );
   }
-
-  if (!options.translate && !options.summarize && !options.skim) return;
-  const job = env.repo.getJob(result.jobId);
-  if (!job) throw new BgtError('InvalidInput', `Job ${result.jobId} disappeared.`);
-  await runLlmStages(
-    {
-      repo: env.repo,
-      stages: env.stages,
-      job,
-      outDir: env.outDir,
-      pool: env.pool,
-      log: env.log,
-      signal: ctx.signal,
-      progress: ctx.progress,
-    },
-    { translate: options.translate, summarize: options.summarize, skim: options.skim, userGlossary },
-  );
+  return result.jobId;
 }
