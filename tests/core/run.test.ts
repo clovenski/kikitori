@@ -190,6 +190,19 @@ describe('runJob', () => {
     expect(existsSync(done.srtPath)).toBe(true);
   });
 
+  it('stores the video title and, for YouTube URLs, the video id on the job', async () => {
+    const repo = memoryRepo();
+    const { deps } = makeFakeDeps(repo, { durationMs: 600_000, title: 'My stream' });
+    const result = await runJob(
+      deps,
+      params({ source: 'https://www.youtube.com/watch?v=7SHNxjFuw10&list=PLx', endMs: null }),
+    );
+    expect(repo.getJob(result.jobId)).toMatchObject({ title: 'My stream', videoId: '7SHNxjFuw10' });
+
+    const local = await runJob(deps, params({ source: 'C:/clips/a.wav', endMs: null }));
+    expect(repo.getJob(local.jobId)).toMatchObject({ title: 'My stream', videoId: null });
+  });
+
   it('records the measured speed factor', async () => {
     const repo = memoryRepo();
     const { deps } = makeFakeDeps(repo, { durationMs: 600_000 });

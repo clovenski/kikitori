@@ -4,11 +4,13 @@ import { buildDownloadArgs, buildProbeArgs } from '../../src/core/tools/ytdlp';
 const url = 'https://www.youtube.com/watch?v=abc123&list=PLxyz&index=4';
 
 describe('buildProbeArgs', () => {
-  it('never expands a playlist and only prints the duration', () => {
+  it('never expands a playlist and prints the duration then the title as UTF-8', () => {
     const args = buildProbeArgs(url);
     expect(args).toContain('--no-playlist');
     expect(args).toContain('--skip-download');
-    expect(args.slice(args.indexOf('--print'), args.indexOf('--print') + 2)).toEqual(['--print', 'duration']);
+    expect(args[args.indexOf('--encoding') + 1]).toBe('utf-8');
+    const prints = args.flatMap((a, i) => (a === '--print' ? [args[i + 1]] : []));
+    expect(prints).toEqual(['duration', 'title']);
     expect(args[args.length - 1]).toBe(url);
   });
 });

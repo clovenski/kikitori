@@ -3,6 +3,7 @@ import path from 'node:path';
 import type { JobRow, Repo } from '../db/repo';
 import type { Transcriber } from '../interfaces';
 import { formatClock, resolveRange } from '../time';
+import { parseYoutubeId } from '../youtube';
 import { CHUNK_DEFAULTS, planChunks, type SilenceInterval } from './chunker';
 import { estimateSeconds, formatDuration, type PerfStore } from './estimate';
 import { writeOutputs } from './outputs';
@@ -26,7 +27,7 @@ export interface PipelineDeps {
   transcriber: Transcriber;
   perf: PerfStore;
   log(message: string): void;
-  probeDurationMs(source: string, signal?: AbortSignal): Promise<number>;
+  probe(source: string, signal?: AbortSignal): Promise<{ durationMs: number; title: string | null }>;
   fetchAudio(a: FetchAudioArgs): Promise<void>;
   detectSilences(wavPath: string, totalMs: number, signal?: AbortSignal): Promise<SilenceInterval[]>;
   cutWav(a: {
@@ -111,7 +112,8 @@ export async function runJob(deps: PipelineDeps, params: RunParams): Promise<Run
   const { repo, log } = deps;
   const { signal } = params;
 
-  const durationMs = await deps.probeDurationMs(params.source, signal);
+  const info = await deps.probe(params.source, signal);
+  const durationMs = info.durationMs;
   const range = resolveRange({
     startMs: params.startMs,
     endMs: params.endMs,
@@ -128,6 +130,8 @@ export async function runJob(deps: PipelineDeps, params: RunParams): Promise<Run
       rangeStartMs: range.startMs,
       rangeEndMs: range.endMs,
       settings: { model: params.model, language: params.language, maxMinutes: params.maxMinutes },
+      title: info.title,
+      videoId: parseYoutubeId(params.source),
     });
   }
   repo.setJobStatus(job.id, 'running');

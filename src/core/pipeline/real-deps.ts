@@ -7,7 +7,7 @@ import { StageRepo } from '../db/stage-repo';
 import { BgtError } from '../errors';
 import { cutWav, detectSilences, probeDurationMs, toWav16kMono } from '../tools/ffmpeg';
 import { findVadModel, modelPath, resolveTool } from '../tools/paths';
-import { downloadAudio, getDurationMs } from '../tools/ytdlp';
+import { downloadAudio, probeVideo } from '../tools/ytdlp';
 import { createPerfStore } from './estimate';
 import type { PipelineDeps } from './run';
 
@@ -36,14 +36,15 @@ export function createRealDeps(a: {
       vadModelPath: findVadModel(),
     }),
 
-    async probeDurationMs(source, signal) {
+    async probe(source, signal) {
       if (isUrl(source)) {
-        return getDurationMs({ ytdlpPath: resolveTool('yt-dlp'), url: source, signal });
+        return probeVideo({ ytdlpPath: resolveTool('yt-dlp'), url: source, signal });
       }
       if (!existsSync(source) || !statSync(source).isFile()) {
         throw new BgtError('InvalidInput', `File not found: ${source}`);
       }
-      return probeDurationMs({ ffmpegPath, file: source, signal });
+      const durationMs = await probeDurationMs({ ffmpegPath, file: source, signal });
+      return { durationMs, title: path.basename(source, path.extname(source)) };
     },
 
     async fetchAudio(f) {

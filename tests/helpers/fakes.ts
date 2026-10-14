@@ -16,6 +16,7 @@ export function memoryRepo(): Repo {
 
 export interface FakeOptions {
   durationMs: number;
+  title?: string | null;
   silences?: SilenceInterval[];
   /** Ground-truth segments in audio-relative ms; chunks return the ones fully inside their range. */
   truth?: Segment[];
@@ -38,7 +39,7 @@ export function makeFakeDeps(repo: Repo, opts: FakeOptions): Fakes {
     repo,
     log: () => {},
     perf: { read: () => null, write: () => {} },
-    probeDurationMs: async () => opts.durationMs,
+    probe: async () => ({ durationMs: opts.durationMs, title: opts.title ?? null }),
     fetchAudio: async (a) => {
       fetchCalls.push(a);
       writeFileSync(a.outWavPath, 'fake-audio');

@@ -12,7 +12,18 @@ export interface Section {
 const lastLine = (text: string) => text.trim().split(/\r?\n/).filter(Boolean).pop() ?? '';
 
 export function buildProbeArgs(url: string): string[] {
-  return ['--no-playlist', '--skip-download', '--no-warnings', '--print', 'duration', url];
+  return [
+    '--no-playlist',
+    '--skip-download',
+    '--no-warnings',
+    '--encoding',
+    'utf-8',
+    '--print',
+    'duration',
+    '--print',
+    'title',
+    url,
+  ];
 }
 
 export function buildDownloadArgs(a: {
@@ -49,23 +60,25 @@ export function buildDownloadArgs(a: {
 const HINT =
   'YouTube changes often: try "pnpm bgt update-ytdlp", or download the audio yourself and pass the file path instead.';
 
-export async function getDurationMs(a: {
+export async function probeVideo(a: {
   ytdlpPath: string;
   url: string;
   signal?: AbortSignal;
-}): Promise<number> {
+}): Promise<{ durationMs: number; title: string | null }> {
   const r = await runProcess(a.ytdlpPath, buildProbeArgs(a.url), { signal: a.signal });
   if (r.code !== 0) {
     throw new BgtError('DownloadFailed', `yt-dlp could not read the video: ${lastLine(r.stderr)}. ${HINT}`);
   }
-  const seconds = Number.parseFloat(lastLine(r.stdout));
+  const lines = r.stdout.split(/\r?\n/).map((l) => l.trim());
+  const seconds = Number.parseFloat(lines[0] ?? '');
   if (!Number.isFinite(seconds) || seconds <= 0) {
     throw new BgtError(
       'InvalidInput',
       'The video has no known duration (live streams are not supported yet).',
     );
   }
-  return Math.round(seconds * 1000);
+  const title = lines.slice(1).join(' ').trim();
+  return { durationMs: Math.round(seconds * 1000), title: title === '' || title === 'NA' ? null : title };
 }
 
 export async function downloadAudio(a: {
