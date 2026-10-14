@@ -75,3 +75,14 @@ export function parseGlossaryJson(reply: string): GlossaryItem[] {
   }
   return out;
 }
+
+/** For a line translated on its own: the model sometimes drops the `[1]` marker. Accepts one non-empty line. */
+export function parseSingleReply(reply: string): string | null {
+  const lines = stripFences(stripThinking(reply))
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l !== '');
+  if (lines.length !== 1) return null;
+  const text = lines[0].replace(/^\[\d+\]\s*/, '').trim();
+  return text === '' ? null : text;
+}

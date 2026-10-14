@@ -2,7 +2,7 @@ import type { GlossaryEntry } from '../../db/stage-repo';
 import type { Translator } from '../../interfaces';
 import { BgtError } from '../../errors';
 import type { LlmChat } from '../../llm/client';
-import { parseNumberedLines } from '../../llm/parse';
+import { parseNumberedLines, parseSingleReply } from '../../llm/parse';
 import { translationMessages } from '../../llm/prompts';
 import type { Segment } from '../../types';
 
@@ -52,7 +52,7 @@ export class HyMtTranslator implements Translator, BatchTranslator {
       signal?.throwIfAborted();
       try {
         const reply = await this.llm.chat(translationMessages({ lines: [line], glossary, context }), { signal });
-        out.push(parseNumberedLines(reply, 1)?.[0] ?? '');
+        out.push(parseNumberedLines(reply, 1)?.[0] ?? parseSingleReply(reply) ?? '');
       } catch (err) {
         if (signal?.aborted) throw signal.reason;
         if (!(err instanceof BgtError)) throw err;

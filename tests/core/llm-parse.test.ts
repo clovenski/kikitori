@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseGlossaryJson, parseNumberedLines, stripThinking } from '../../src/core/llm/parse';
+import { parseGlossaryJson, parseNumberedLines, parseSingleReply, stripThinking } from '../../src/core/llm/parse';
 
 describe('stripThinking', () => {
   it('removes think blocks and an orphan closing tag', () => {
@@ -71,5 +71,21 @@ describe('parseGlossaryJson', () => {
     expect(parseGlossaryJson('no json here')).toEqual([]);
     expect(parseGlossaryJson('[{"ja": "broken"')).toEqual([]);
     expect(parseGlossaryJson('<think>[1]</think>nothing')).toEqual([]);
+  });
+});
+
+describe('parseSingleReply', () => {
+  it('accepts a plain one-line reply or one with a leading marker', () => {
+    expect(parseSingleReply('Thank you, Hige-me-chan.')).toBe('Thank you, Hige-me-chan.');
+    expect(parseSingleReply('[1] Hello there')).toBe('Hello there');
+    expect(parseSingleReply('<think>x</think>\n  Hi  ')).toBe('Hi');
+    expect(parseSingleReply('```\n[1] In a fence\n```')).toBe('In a fence');
+  });
+
+  it('rejects empty replies and replies with several lines', () => {
+    expect(parseSingleReply('')).toBeNull();
+    expect(parseSingleReply('   ')).toBeNull();
+    expect(parseSingleReply('[1] One\n[2] Two')).toBeNull();
+    expect(parseSingleReply('First sentence.\nSecond sentence.')).toBeNull();
   });
 });

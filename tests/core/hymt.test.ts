@@ -42,6 +42,15 @@ describe('HyMtTranslator.translateBatch', () => {
     expect(out).toEqual(['EN:一行目', '', 'EN:三行目']);
   });
 
+  it('accepts an unmarked one-line reply when translating a line on its own', async () => {
+    const llm = scriptedChat((m) => {
+      const content = m[m.length - 1].content;
+      return [...content.matchAll(/^\[(\d+)\] /gm)].length > 1 ? 'garbage' : 'Plain reply without a marker.';
+    });
+    const out = await new HyMtTranslator(llm).translateBatch(lines, [], []);
+    expect(out).toEqual(Array(3).fill('Plain reply without a marker.'));
+  });
+
   it('puts only relevant glossary terms and the context into the prompt', async () => {
     const llm = scriptedChat(echoTranslate());
     await new HyMtTranslator(llm).translateBatch(
