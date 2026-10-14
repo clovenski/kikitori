@@ -203,6 +203,25 @@ describe('runJob', () => {
     expect(repo.getJob(local.jobId)).toMatchObject({ title: 'My stream', videoId: null });
   });
 
+  it('reports the job as soon as it exists and emits fetch and per-chunk progress', async () => {
+    const repo = memoryRepo();
+    const { deps } = makeFakeDeps(repo, { ...LONG, durationMs: 1_800_000 });
+    const events: { stage: string; done: number; total: number }[] = [];
+    deps.progress = (e) => events.push({ stage: e.stage, done: e.done, total: e.total });
+    const seenJobs: number[] = [];
+    await runJob(deps, params({ onJob: (job) => seenJobs.push(job.id) }));
+    expect(seenJobs).toEqual([1]);
+    expect(events.filter((e) => e.stage === 'fetch')).toEqual([
+      { stage: 'fetch', done: 0, total: 1 },
+      { stage: 'fetch', done: 1, total: 1 },
+    ]);
+    expect(events.filter((e) => e.stage === 'transcribe')).toEqual([
+      { stage: 'transcribe', done: 0, total: 2 },
+      { stage: 'transcribe', done: 1, total: 2 },
+      { stage: 'transcribe', done: 2, total: 2 },
+    ]);
+  });
+
   it('records the measured speed factor', async () => {
     const repo = memoryRepo();
     const { deps } = makeFakeDeps(repo, { durationMs: 600_000 });

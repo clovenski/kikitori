@@ -2,6 +2,7 @@ import { existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { WhisperCppTranscriber } from '../backends/transcribe/whispercpp';
 import { openDb } from '../db';
+import type { Database } from '../db/sqlite';
 import { Repo } from '../db/repo';
 import { StageRepo } from '../db/stage-repo';
 import { BgtError } from '../errors';
@@ -19,11 +20,14 @@ export function createRealDeps(a: {
   dataDir: string;
   model: string;
   log: (message: string) => void;
+  /** Reuse an open database (its owner closes it). */
+  db?: Database;
 }): { deps: PipelineDeps; stages: StageRepo; workRoot: string; close(): void } {
   if (!/^[a-z0-9][a-z0-9._-]*$/i.test(a.model)) {
     throw new BgtError('InvalidInput', `Invalid model name "${a.model}".`);
   }
-  const db = openDb(path.join(a.dataDir, 'bgt.sqlite'));
+  const ownsDb = !a.db;
+  const db = a.db ?? openDb(path.join(a.dataDir, 'bgt.sqlite'));
   const ffmpegPath = resolveTool('ffmpeg');
 
   const deps: PipelineDeps = {
@@ -78,5 +82,8 @@ export function createRealDeps(a: {
     cutWav: (c) => cutWav({ ffmpegPath, ...c }),
   };
 
-  return { deps, stages: new StageRepo(db), workRoot: path.join(a.dataDir, 'work'), close: () => db.close() };
+  return { deps, stages: new StageRepo(db), workRoot: path.join(a.dataDir, 'work'), close: () => {
+      if (ownsDb) db.close();
+    },
+  };
 }

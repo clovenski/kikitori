@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { BgtError } from '../errors';
 
 export function projectRoot(): string {
-  return fileURLToPath(new URL('../../../', import.meta.url));
+  return process.env.BGT_PROJECT_ROOT ?? fileURLToPath(new URL('../../../', import.meta.url));
 }
 
 export function resourcesDir(): string {

@@ -3,6 +3,7 @@ import path from 'node:path';
 import type { JobRow, Repo } from '../db/repo';
 import type { Transcriber } from '../interfaces';
 import { formatClock, resolveRange } from '../time';
+import type { ProgressEvent } from '../progress';
 import { parseYoutubeId } from '../youtube';
 import { CHUNK_DEFAULTS, planChunks, type SilenceInterval } from './chunker';
 import { estimateSeconds, formatDuration, type PerfStore } from './estimate';
@@ -27,6 +28,7 @@ export interface PipelineDeps {
   transcriber: Transcriber;
   perf: PerfStore;
   log(message: string): void;
+  progress?(e: ProgressEvent): void;
   probe(source: string, signal?: AbortSignal): Promise<{ durationMs: number; title: string | null }>;
   fetchAudio(a: FetchAudioArgs): Promise<void>;
   detectSilences(wavPath: string, totalMs: number, signal?: AbortSignal): Promise<SilenceInterval[]>;
@@ -50,6 +52,8 @@ export interface RunParams {
   outDir: string;
   keepWork: boolean;
   signal?: AbortSignal;
+  /** Called once the job row exists (created or resumed), before any work starts. */
+  onJob?(job: JobRow): void;
 }
 
 export interface RunResult {
@@ -135,6 +139,7 @@ export async function runJob(deps: PipelineDeps, params: RunParams): Promise<Run
     });
   }
   repo.setJobStatus(job.id, 'running');
+  params.onJob?.(job);
 
   const rangeMs = range.endMs - range.startMs;
   const eta = estimateSeconds(rangeMs, deps.perf.read());
@@ -155,6 +160,7 @@ export async function runJob(deps: PipelineDeps, params: RunParams): Promise<Run
     const partial = path.join(workDir, 'audio.partial.wav');
     rmSync(partial, { force: true });
     log('Fetching audio...');
+    deps.progress?.({ stage: 'fetch', done: 0, total: 1, message: 'Fetching audio' });
     await deps.fetchAudio({
       source: params.source,
       startMs: range.startMs,
@@ -165,6 +171,7 @@ export async function runJob(deps: PipelineDeps, params: RunParams): Promise<Run
       signal,
     });
     renameSync(partial, wavPath);
+    deps.progress?.({ stage: 'fetch', done: 1, total: 1, message: 'Audio ready' });
   }
 
   if (repo.listChunks(job.id).length === 0) {
@@ -175,6 +182,8 @@ export async function runJob(deps: PipelineDeps, params: RunParams): Promise<Run
   repo.resetUnfinishedChunks(job.id);
 
   const chunks = repo.listChunks(job.id);
+  let finished = chunks.filter((c) => c.status === 'done').length;
+  deps.progress?.({ stage: 'transcribe', done: finished, total: chunks.length, message: 'Transcribing' });
   const failedChunks: number[] = [];
   let transcribedMs = 0;
   let wallMs = 0;
@@ -188,6 +197,13 @@ export async function runJob(deps: PipelineDeps, params: RunParams): Promise<Run
       transcribedMs += chunk.endMs - chunk.startMs;
       wallMs += performance.now() - started;
       writeOutputs(repo, job, params.outDir);
+      finished++;
+      deps.progress?.({
+        stage: 'transcribe',
+        done: finished,
+        total: chunks.length,
+        message: `Chunk ${finished}/${chunks.length}`,
+      });
     } else {
       failedChunks.push(chunk.idx);
     }

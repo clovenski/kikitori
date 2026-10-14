@@ -2,6 +2,7 @@ import { HyMtTranslator } from '../backends/translate/hymt';
 import type { JobRow, Repo } from '../db/repo';
 import type { StageName, StageRepo } from '../db/stage-repo';
 import type { LlmChat } from '../llm/client';
+import type { ProgressEvent } from '../progress';
 import { runGlossaryStage } from './glossary-job';
 import { writeLlmOutputs } from './llm-outputs';
 import { runSummarizeStage } from './summarize-job';
@@ -31,6 +32,7 @@ export interface StageContext {
   pool: ModelPool;
   log: (message: string) => void;
   signal?: AbortSignal;
+  progress?: (e: ProgressEvent) => void;
 }
 
 export async function runLlmStages(ctx: StageContext, opts: StageOptions): Promise<string[]> {
@@ -57,7 +59,7 @@ export async function runLlmStages(ctx: StageContext, opts: StageOptions): Promi
       await guard('glossary', async () => {
         log('Extracting names and terms...');
         const llm = await pool.use('general', signal);
-        await runGlossaryStage({ repo, stages, llm, jobId: job.id, userGlossary: opts.userGlossary, signal, log });
+        await runGlossaryStage({ repo, stages, llm, jobId: job.id, userGlossary: opts.userGlossary, signal, log, progress: ctx.progress });
       });
     }
     if (opts.translate) {
@@ -72,6 +74,7 @@ export async function runLlmStages(ctx: StageContext, opts: StageOptions): Promi
           batchSize: opts.batchSize,
           signal,
           log,
+          progress: ctx.progress,
           onBatch: () => writeLlmOutputs(repo, stages, job, ctx.outDir),
         });
       });
@@ -80,7 +83,7 @@ export async function runLlmStages(ctx: StageContext, opts: StageOptions): Promi
       await guard('summarize', async () => {
         log('Summarizing...');
         const llm = await pool.use('general', signal);
-        await runSummarizeStage({ repo, stages, llm, jobId: job.id, rangeStartMs: job.rangeStartMs, signal, log });
+        await runSummarizeStage({ repo, stages, llm, jobId: job.id, rangeStartMs: job.rangeStartMs, signal, log, progress: ctx.progress });
       });
     }
   } finally {

@@ -3,6 +3,7 @@ import type { StageRepo, SummaryRow } from '../db/stage-repo';
 import type { LlmChat } from '../llm/client';
 import { rollupMessages, windowSummaryMessages } from '../llm/prompts';
 import { renderWindow, splitWindows } from '../llm/windows';
+import type { ProgressEvent } from '../progress';
 
 const SECTION_THRESHOLD = 12;
 const SECTION_SIZE = 6;
@@ -15,6 +16,7 @@ export async function runSummarizeStage(a: {
   rangeStartMs: number;
   signal?: AbortSignal;
   log: (message: string) => void;
+  progress?: (e: ProgressEvent) => void;
 }): Promise<void> {
   const { repo, stages, llm, jobId, rangeStartMs, signal, log } = a;
   if (stages.getStage(jobId, 'summarize') === 'done') return;
@@ -36,7 +38,10 @@ export async function runSummarizeStage(a: {
 
   for (const window of windows) {
     signal?.throwIfAborted();
-    if (windowRows.has(window.idx)) continue;
+    if (windowRows.has(window.idx)) {
+      a.progress?.({ stage: 'summarize', done: window.idx + 1, total: windows.length, message: 'Summarizing' });
+      continue;
+    }
     log(`Summarizing window ${window.idx + 1}/${windows.length}`);
     try {
       const text = await llm.chat(
@@ -58,6 +63,7 @@ export async function runSummarizeStage(a: {
       log(`Summary: skipped window ${window.idx + 1}: ${err instanceof Error ? err.message : err}`);
       incomplete = true;
     }
+    a.progress?.({ stage: 'summarize', done: window.idx + 1, total: windows.length, message: 'Summarizing' });
   }
   if (incomplete) {
     // Do not build sections or the overview from a partial set; the next run fills the gaps first.

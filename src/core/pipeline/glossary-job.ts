@@ -4,6 +4,7 @@ import type { LlmChat } from '../llm/client';
 import { selectGlossaryItems } from '../llm/glossary-filter';
 import { parseGlossaryJson, type GlossaryItem } from '../llm/parse';
 import { glossaryMessages } from '../llm/prompts';
+import type { ProgressEvent } from '../progress';
 import { splitWindows } from '../llm/windows';
 
 export async function runGlossaryStage(a: {
@@ -14,6 +15,7 @@ export async function runGlossaryStage(a: {
   userGlossary: Record<string, string>;
   signal?: AbortSignal;
   log: (message: string) => void;
+  progress?: (e: ProgressEvent) => void;
 }): Promise<void> {
   const { repo, stages, llm, jobId, signal, log } = a;
   // User entries always apply, even when the model pass already ran earlier.
@@ -40,6 +42,7 @@ export async function runGlossaryStage(a: {
       if (signal?.aborted) throw signal.reason;
       log(`Glossary: skipped window ${window.idx + 1}/${windows.length}: ${err instanceof Error ? err.message : err}`);
     }
+    a.progress?.({ stage: 'glossary', done: window.idx + 1, total: windows.length, message: 'Finding names' });
   }
 
   // Recurrence is judged against the whole transcript, so filtering waits until every window has answered.

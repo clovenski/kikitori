@@ -103,6 +103,29 @@ describe('runTranslateStage', () => {
     expect(stages.getStage(job.id, 'translate')).toBe('done');
   });
 
+  it('reports progress per batch', async () => {
+    const { repo, stages } = memoryRepos();
+    const job = seedJob(repo, texts);
+    const events: [number, number][] = [];
+    await runTranslateStage({
+      repo,
+      stages,
+      translator: new HyMtTranslator(scriptedChat(echoTranslate())),
+      jobId: job.id,
+      batchSize: 2,
+      log: () => {},
+      progress: (e) => {
+        expect(e.stage).toBe('translate');
+        events.push([e.done, e.total]);
+      },
+    });
+    expect(events).toEqual([
+      [1, 3],
+      [2, 3],
+      [3, 3],
+    ]);
+  });
+
   it('does nothing for a job without segments', async () => {
     const { repo, stages } = memoryRepos();
     const job = seedJob(repo, []);

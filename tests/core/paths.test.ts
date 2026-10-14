@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { exeName, findVadModel, modelPath, resolveTool } from '../../src/core/tools/paths';
+import { exeName, findVadModel, modelPath, projectRoot, resolveTool } from '../../src/core/tools/paths';
 
 let root: string;
 beforeEach(() => {
@@ -48,6 +48,17 @@ describe('resolveTool', () => {
     expect(() => resolveTool('ffmpeg', { resourcesDir: path.join(root, 'res'), pathEnv: '' })).toThrow(
       /PATH/,
     );
+  });
+});
+
+describe('projectRoot', () => {
+  it('honors BGT_PROJECT_ROOT', () => {
+    process.env.BGT_PROJECT_ROOT = path.join(os.tmpdir(), 'somewhere');
+    try {
+      expect(projectRoot()).toBe(path.join(os.tmpdir(), 'somewhere'));
+    } finally {
+      delete process.env.BGT_PROJECT_ROOT;
+    }
   });
 });
 

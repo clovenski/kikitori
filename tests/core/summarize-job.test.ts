@@ -43,6 +43,15 @@ describe('runSummarizeStage', () => {
     expect(stages.listSummaries(job.id, 'overview')).toHaveLength(1);
   });
 
+  it('reports progress per window', async () => {
+    const events: [number, number][] = [];
+    await run(['a', 'b', 'c', 'd', 'e', 'f'], { progress: (e) => events.push([e.done, e.total]) });
+    expect(events).toEqual([
+      [1, 2],
+      [2, 2],
+    ]);
+  });
+
   it('summarizes the English translation when the translate stage is done, else the Japanese text', async () => {
     const { repo, stages } = memoryRepos();
     const job = seedJob(repo, ['こんにちは']);

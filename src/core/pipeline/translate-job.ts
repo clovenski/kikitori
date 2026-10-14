@@ -1,6 +1,7 @@
 import type { BatchTranslator } from '../backends/translate/hymt';
 import type { Repo } from '../db/repo';
 import type { StageRepo } from '../db/stage-repo';
+import type { ProgressEvent } from '../progress';
 
 export async function runTranslateStage(a: {
   repo: Repo;
@@ -11,6 +12,7 @@ export async function runTranslateStage(a: {
   signal?: AbortSignal;
   log: (message: string) => void;
   onBatch?: () => void;
+  progress?: (e: ProgressEvent) => void;
 }): Promise<void> {
   const { repo, stages, translator, jobId, signal, log } = a;
   if (stages.getStage(jobId, 'translate') === 'done') return;
@@ -45,6 +47,7 @@ export async function runTranslateStage(a: {
     const blank = items.filter((item) => item.text === '').length;
     if (blank > 0) log(`Translation: ${blank} line${blank === 1 ? '' : 's'} in this batch could not be translated and were left blank.`);
     a.onBatch?.();
+    a.progress?.({ stage: 'translate', done: batchIdx + 1, total: totalBatches, message: 'Translating' });
   }
   const stillBlank = segments.filter((s) => (translated.get(s.id) ?? '') === '').length;
   if (stillBlank > 0) {

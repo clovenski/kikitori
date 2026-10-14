@@ -47,6 +47,22 @@ describe('runGlossaryStage', () => {
     expect(ctx.stages.listGlossary(ctx.job.id)).toEqual([{ ja: 'ゆりまる', en: 'Yurimaru', source: 'auto' }]);
   });
 
+  it('reports one progress event per window', async () => {
+    const llm = scriptedChat(() => '[]');
+    const ctx = base(llm);
+    const events: [number, number][] = [];
+    await runGlossaryStage({
+      repo: ctx.repo,
+      stages: ctx.stages,
+      llm,
+      jobId: ctx.job.id,
+      userGlossary: {},
+      log: ctx.log,
+      progress: (e) => events.push([e.done, e.total]),
+    });
+    expect(events).toEqual([[1, 1]]);
+  });
+
   it('skips a window whose reply is unusable and still finishes', async () => {
     const llm = scriptedChat(() => 'I cannot help with that.');
     const ctx = base(llm);
