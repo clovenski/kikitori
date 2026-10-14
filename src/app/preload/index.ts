@@ -1,9 +1,38 @@
-import { contextBridge, ipcRenderer } from 'electron';
-import type { BgtApi } from '../shared/ipc';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
+import { CHANNELS, type BgtApi, type QueueProgressEvent, type Submission } from '../shared/ipc';
 
-// Temporary narrow type: the full API is exposed in the lifecycle task.
-const api: Pick<BgtApi, 'ping'> = {
-  ping: () => ipcRenderer.invoke('app:ping'),
+const invoke = <T>(channel: string, arg?: unknown) => ipcRenderer.invoke(channel, arg) as Promise<T>;
+
+function subscribe<T>(channel: string, cb: (payload: T) => void): () => void {
+  const listener = (_e: unknown, payload: T) => cb(payload);
+  ipcRenderer.on(channel, listener);
+  return () => ipcRenderer.removeListener(channel, listener);
+}
+
+const api: BgtApi = {
+  ping: () => invoke(CHANNELS.ping),
+  library: { list: () => invoke(CHANNELS.libraryList) },
+  job: {
+    get: (jobId) => invoke(CHANNELS.jobGet, jobId),
+    openOutputFolder: (jobId) => invoke(CHANNELS.jobOpenOutputFolder, jobId),
+  },
+  queue: {
+    list: () => invoke(CHANNELS.queueList),
+    submit: (request) => invoke(CHANNELS.queueSubmit, request),
+    cancel: (id) => invoke(CHANNELS.queueCancel, id),
+    resume: (id) => invoke(CHANNELS.queueResume, id),
+    onChanged: (cb) => subscribe<Submission[]>(CHANNELS.queueChanged, cb),
+    onProgress: (cb) => subscribe<QueueProgressEvent>(CHANNELS.queueProgress, cb),
+  },
+  source: {
+    probe: (source) => invoke(CHANNELS.sourceProbe, source),
+    estimate: (a) => invoke(CHANNELS.sourceEstimate, a),
+  },
+  dialog: {
+    pickMedia: () => invoke(CHANNELS.dialogPickMedia),
+    pickGlossary: () => invoke(CHANNELS.dialogPickGlossary),
+    pathForFile: (file) => webUtils.getPathForFile(file),
+  },
 };
 
 contextBridge.exposeInMainWorld('bgt', api);
