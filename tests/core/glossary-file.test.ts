@@ -21,6 +21,10 @@ describe('loadGlossaryFile', () => {
     expect(loadGlossaryFile(write('{"ゆりまる":"Yurimaru"}'))).toEqual({ ゆりまる: 'Yurimaru' });
   });
 
+  it('reads a file saved with a UTF-8 byte-order mark (Notepad, PowerShell 5.1)', () => {
+    expect(loadGlossaryFile(write('﻿{"ゆりまる":"Yurimaru"}'))).toEqual({ ゆりまる: 'Yurimaru' });
+  });
+
   it.each([
     ['not json', '{oops'],
     ['an array', '["a"]'],

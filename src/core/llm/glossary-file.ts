@@ -11,7 +11,8 @@ export function loadGlossaryFile(file: string): Record<string, string> {
   }
   let data: unknown;
   try {
-    data = JSON.parse(raw);
+    // Notepad and PowerShell 5.1 save UTF-8 files with a byte-order mark; JSON.parse rejects it.
+    data = JSON.parse(raw.charCodeAt(0) === 0xfeff ? raw.slice(1) : raw);
   } catch {
     throw bad('is not valid JSON.');
   }

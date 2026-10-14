@@ -117,4 +117,21 @@ describe('runSummarizeStage', () => {
     expect(llm.calls).toHaveLength(0);
     expect(empty.stages.getStage(job2.id, 'summarize')).toBe('done');
   });
+
+  it('leaves the stage failed when a window fails, then fills the gap and writes the overview on re-run', async () => {
+    const { repo, stages } = memoryRepos();
+    const job = seedJob(repo, ['a', 'b', 'c', 'd', 'e', 'f'], { stepMs: STEP });
+    const first = scriptedChat((m, call) => (call === 2 ? new BgtError('LlmFailed', 'down') : answer(m)));
+    await runSummarizeStage({ repo, stages, llm: first, jobId: job.id, rangeStartMs: 0, log: () => {} });
+    expect(stages.listSummaries(job.id, 'window')).toHaveLength(1);
+    expect(stages.listSummaries(job.id, 'overview')).toHaveLength(0); // not built from a partial set
+    expect(stages.getStage(job.id, 'summarize')).toBe('failed');
+
+    const second = scriptedChat(answer);
+    await runSummarizeStage({ repo, stages, llm: second, jobId: job.id, rangeStartMs: 0, log: () => {} });
+    expect(second.calls).toHaveLength(2); // the missing window + the overview
+    expect(stages.listSummaries(job.id, 'window')).toHaveLength(2);
+    expect(stages.listSummaries(job.id, 'overview')).toHaveLength(1);
+    expect(stages.getStage(job.id, 'summarize')).toBe('done');
+  });
 });

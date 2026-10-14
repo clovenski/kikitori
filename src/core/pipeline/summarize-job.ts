@@ -32,6 +32,7 @@ export async function runSummarizeStage(a: {
 
   const have = (level: SummaryRow['level']) => new Map(stages.listSummaries(jobId, level).map((r) => [r.idx, r]));
   const windowRows = have('window');
+  let incomplete = false;
 
   for (const window of windows) {
     signal?.throwIfAborted();
@@ -55,7 +56,14 @@ export async function runSummarizeStage(a: {
     } catch (err) {
       if (signal?.aborted) throw signal.reason;
       log(`Summary: skipped window ${window.idx + 1}: ${err instanceof Error ? err.message : err}`);
+      incomplete = true;
     }
+  }
+  if (incomplete) {
+    // Do not build sections or the overview from a partial set; the next run fills the gaps first.
+    log('Summary: some windows failed. Re-run "bgt summarize" to retry them.');
+    stages.setStage(jobId, 'summarize', 'failed');
+    return;
   }
 
   const windowList = [...windowRows.values()].sort((x, y) => x.idx - y.idx);
@@ -84,13 +92,14 @@ export async function runSummarizeStage(a: {
         } catch (err) {
           if (signal?.aborted) throw signal.reason;
           log(`Summary: skipped section ${g + 1}: ${err instanceof Error ? err.message : err}`);
+          incomplete = true;
         }
       }
     }
     rollupSource = [...sectionRows.values()].sort((x, y) => x.idx - y.idx);
   }
 
-  if (rollupSource.length > 0 && !have('overview').has(0)) {
+  if (!incomplete && rollupSource.length > 0 && !have('overview').has(0)) {
     signal?.throwIfAborted();
     try {
       const text = await llm.chat(rollupMessages({ kind: 'overview', items: rollupSource.map((r) => r.text).join('\n') }), {
@@ -108,7 +117,8 @@ export async function runSummarizeStage(a: {
     } catch (err) {
       if (signal?.aborted) throw signal.reason;
       log(`Summary: could not write the overview: ${err instanceof Error ? err.message : err}`);
+      incomplete = true;
     }
   }
-  stages.setStage(jobId, 'summarize', 'done');
+  stages.setStage(jobId, 'summarize', incomplete ? 'failed' : 'done');
 }

@@ -4,7 +4,7 @@ import { createRealDeps } from '../core/pipeline/real-deps';
 import { runJob } from '../core/pipeline/run';
 import { dataDir } from '../core/tools/paths';
 import { parseTimestamp } from '../core/time';
-import { runStagesForJob, validateLlmOptions, wantsLlm } from './llm';
+import { prepareLlmOptions, runStagesForJob, wantsLlm } from './llm';
 
 export interface RunCliOptions {
   start?: string;
@@ -21,8 +21,10 @@ export interface RunCliOptions {
 
 export async function runCommand(source: string, opts: RunCliOptions): Promise<void> {
   const controller = new AbortController();
+  // Once transcription has finished, re-running this command would start a new job; resume with translate instead.
+  let resumeHint = 'run the same command again to resume.';
   const onSigint = () => {
-    console.log('\nStopping... run the same command again to resume.');
+    console.log(`\nStopping... ${resumeHint}`);
     controller.abort();
   };
   process.once('SIGINT', onSigint);
@@ -33,7 +35,7 @@ export async function runCommand(source: string, opts: RunCliOptions): Promise<v
     if (!Number.isFinite(maxMinutes) || maxMinutes <= 0) {
       throw new BgtError('InvalidInput', `--max-minutes must be a positive number, got "${opts.maxMinutes}".`);
     }
-    validateLlmOptions(opts);
+    prepareLlmOptions(opts); // fail fast on a bad flag combination or glossary file, before any transcription
     const llmWanted = wantsLlm(opts);
     const startMs = opts.start ? parseTimestamp(opts.start) : 0;
     const endMs = opts.end ? parseTimestamp(opts.end) : null;
@@ -62,6 +64,7 @@ export async function runCommand(source: string, opts: RunCliOptions): Promise<v
     console.log(`\nSubtitles: ${result.srtPath}`);
     console.log(`Raw data:  ${result.jsonPath}`);
     if (result.status === 'done' && llmWanted) {
+      resumeHint = `to continue, run "bgt translate ${result.jobId}" (add --summarize, and --glossary if you used one).`;
       await runStagesForJob(result.jobId, { ...opts, out: opts.out }, controller.signal, handle);
     } else if (result.status !== 'done' && llmWanted) {
       console.log('Skipping translation/summary because some chunks failed. Re-run the command to retry them.');

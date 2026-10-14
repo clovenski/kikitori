@@ -20,7 +20,7 @@ export async function runTranslateStage(a: {
   const segments = repo.listSegmentsWithId(jobId);
   const translated = stages.listTranslations(jobId);
   const glossary = stages.listGlossary(jobId);
-  const pending = segments.filter((s) => !translated.has(s.id));
+  const pending = segments.filter((s) => (translated.get(s.id) ?? '') === '');
   const totalBatches = Math.ceil(pending.length / batchSize);
 
   for (let i = 0, batchIdx = 0; i < pending.length; i += batchSize, batchIdx++) {
@@ -46,5 +46,9 @@ export async function runTranslateStage(a: {
     if (blank > 0) log(`Translation: ${blank} line${blank === 1 ? '' : 's'} in this batch could not be translated and were left blank.`);
     a.onBatch?.();
   }
-  stages.setStage(jobId, 'translate', 'done');
+  const stillBlank = segments.filter((s) => (translated.get(s.id) ?? '') === '').length;
+  if (stillBlank > 0) {
+    log(`Translation: ${stillBlank} line${stillBlank === 1 ? '' : 's'} could not be translated. Re-run "bgt translate" to retry them.`);
+  }
+  stages.setStage(jobId, 'translate', stillBlank > 0 ? 'failed' : 'done');
 }

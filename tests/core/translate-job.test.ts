@@ -79,6 +79,27 @@ describe('runTranslateStage', () => {
     });
     expect([...stages.listTranslations(job.id).values()]).toEqual(['']);
     expect(logs.join('\n')).toMatch(/1 line/);
+    expect(stages.getStage(job.id, 'translate')).toBe('failed');
+  });
+
+  it('re-translates blank lines on the next run and then completes', async () => {
+    const { repo, stages } = memoryRepos();
+    const job = seedJob(repo, ['あ', 'い']);
+    await runTranslateStage({
+      repo,
+      stages,
+      translator: { translateBatch: async (lines) => lines.map((l) => (l === 'い' ? '' : 'EN:' + l)) },
+      jobId: job.id,
+      log: () => {},
+    });
+    expect(stages.getStage(job.id, 'translate')).toBe('failed');
+
+    const llm = scriptedChat(echoTranslate());
+    await runTranslateStage({ repo, stages, translator: new HyMtTranslator(llm), jobId: job.id, log: () => {} });
+    expect(llm.calls).toHaveLength(1); // only the blank line is sent again
+    expect(llm.calls[0][0].content).toContain('[1] い');
+    const byText = repo.listSegmentsWithId(job.id).map((s) => stages.listTranslations(job.id).get(s.id));
+    expect(byText).toEqual(['EN:あ', 'EN:い']);
     expect(stages.getStage(job.id, 'translate')).toBe('done');
   });
 

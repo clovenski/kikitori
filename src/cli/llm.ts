@@ -24,13 +24,19 @@ export function validateLlmOptions(o: LlmCliOptions): void {
   }
 }
 
-export function stageOptions(o: LlmCliOptions): StageOptions {
+function stageOptions(o: LlmCliOptions): StageOptions {
   return {
     translate: Boolean(o.translate),
     summarize: Boolean(o.summarize),
     skim: Boolean(o.skim),
     userGlossary: o.glossary ? loadGlossaryFile(o.glossary) : {},
   };
+}
+
+/** Validates the flags and loads the glossary file; call before any expensive work so mistakes fail fast. */
+export function prepareLlmOptions(o: LlmCliOptions): StageOptions {
+  validateLlmOptions(o);
+  return stageOptions(o);
 }
 
 /** Runs the LLM stages on an already transcribed job and prints the output paths. */
@@ -40,8 +46,7 @@ export async function runStagesForJob(
   signal?: AbortSignal,
   reuse?: ReturnType<typeof createRealDeps>,
 ): Promise<void> {
-  validateLlmOptions(o);
-  const opts = stageOptions(o);
+  const opts = prepareLlmOptions(o);
   const handle = reuse ?? createRealDeps({ dataDir: dataDir(), model: 'large-v3', log: console.log });
   try {
     const job = handle.deps.repo.getJob(jobId);
