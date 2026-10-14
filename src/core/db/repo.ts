@@ -186,6 +186,13 @@ export class Repo {
       this.db
         .prepare(`UPDATE chunks SET status = 'done', error = NULL WHERE job_id = ? AND idx = ?`)
         .run(jobId, idx);
+      // Earlier chunk wins: if a later chunk finished first, drop its copy of the overlap.
+      const end = segments.reduce((max, s) => Math.max(max, s.endMs), -1);
+      if (end >= 0) {
+        this.db
+          .prepare('DELETE FROM segments WHERE job_id = ? AND chunk_idx > ? AND start_ms < ?')
+          .run(jobId, idx, end);
+      }
     })();
   }
 

@@ -162,6 +162,26 @@ describe('runJob', () => {
     expect(second.transcribed).toEqual(['chunk-001.wav']);
   });
 
+  it('does not duplicate overlap speech when an earlier chunk is retried after a later one finished', async () => {
+    const repo = memoryRepo();
+    let broken = true;
+    const first = makeFakeDeps(repo, {
+      ...LONG,
+      durationMs: 1_800_000,
+      onTranscribe: (file) => {
+        if (broken && file === 'chunk-000.wav') throw new Error('whisper crashed');
+      },
+    });
+    const result = await runJob(first.deps, params());
+    expect(result.failedChunks).toEqual([0]);
+
+    broken = false;
+    const second = makeFakeDeps(repo, { ...LONG, durationMs: 1_800_000 });
+    const again = await runJob(second.deps, params());
+    expect(again.status).toBe('done');
+    expect(repo.listSegments(again.jobId).map((s) => s.text)).toEqual(['A', 'B', 'C']);
+  });
+
   it('removes the work dir on success unless keepWork is set', async () => {
     const repo = memoryRepo();
     const a = makeFakeDeps(repo, { durationMs: 600_000 });
