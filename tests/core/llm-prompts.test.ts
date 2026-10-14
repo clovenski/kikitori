@@ -47,6 +47,9 @@ describe('other prompts', () => {
     const [msg] = glossaryMessages('こんにちは');
     expect(msg.content).toContain('JSON array');
     expect(msg.content).toContain('こんにちは');
+    // names only, each labeled with a type the code filters on
+    for (const type of ['person', 'handle', 'place']) expect(msg.content).toContain(`"${type}"`);
+    expect(msg.content).toMatch(/Do NOT list ordinary words/);
   });
 
   it('window summary prompt states the source language and timestamp format', () => {

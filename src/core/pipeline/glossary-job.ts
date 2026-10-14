@@ -1,7 +1,8 @@
 import type { Repo } from '../db/repo';
 import type { StageRepo } from '../db/stage-repo';
 import type { LlmChat } from '../llm/client';
-import { parseGlossaryJson } from '../llm/parse';
+import { selectGlossaryItems } from '../llm/glossary-filter';
+import { parseGlossaryJson, type GlossaryItem } from '../llm/parse';
 import { glossaryMessages } from '../llm/prompts';
 import { splitWindows } from '../llm/windows';
 
@@ -23,7 +24,9 @@ export async function runGlossaryStage(a: {
   if (stages.getStage(jobId, 'glossary') === 'done') return;
 
   stages.setStage(jobId, 'glossary', 'running');
-  const windows = splitWindows(repo.listSegments(jobId));
+  const segments = repo.listSegments(jobId);
+  const windows = splitWindows(segments);
+  const proposals: GlossaryItem[] = [];
   for (const window of windows) {
     signal?.throwIfAborted();
     try {
@@ -32,14 +35,19 @@ export async function runGlossaryStage(a: {
         maxTokens: 1024,
       });
       signal?.throwIfAborted(); // never persist work finished after an abort
-      stages.upsertGlossary(
-        jobId,
-        parseGlossaryJson(reply).map((item) => ({ ...item, source: 'auto' as const })),
-      );
+      proposals.push(...parseGlossaryJson(reply));
     } catch (err) {
       if (signal?.aborted) throw signal.reason;
       log(`Glossary: skipped window ${window.idx + 1}/${windows.length}: ${err instanceof Error ? err.message : err}`);
     }
   }
+
+  // Recurrence is judged against the whole transcript, so filtering waits until every window has answered.
+  const chosen = selectGlossaryItems(proposals, segments.map((s) => s.text).join('\n'));
+  log(`Glossary: kept ${chosen.length} of ${proposals.length} proposed terms.`);
+  stages.upsertGlossary(
+    jobId,
+    chosen.map((item) => ({ ja: item.ja, en: item.en, source: 'auto' as const })),
+  );
   stages.setStage(jobId, 'glossary', 'done');
 }

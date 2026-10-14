@@ -89,3 +89,13 @@ describe('parseSingleReply', () => {
     expect(parseSingleReply('First sentence.\nSecond sentence.')).toBeNull();
   });
 });
+
+describe('parseGlossaryJson types', () => {
+  it('returns the type label when the model provides one', () => {
+    const reply = '[{"ja":"ゆりまる","en":"Yurimaru","type":"person"},{"ja":"東京","en":"Tokyo"}]';
+    expect(parseGlossaryJson(reply)).toEqual([
+      { ja: 'ゆりまる', en: 'Yurimaru', type: 'person' },
+      { ja: '東京', en: 'Tokyo' },
+    ]);
+  });
+});

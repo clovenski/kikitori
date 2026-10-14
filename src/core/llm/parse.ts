@@ -39,6 +39,8 @@ export function parseNumberedLines(reply: string, expected: number): string[] | 
 export interface GlossaryItem {
   ja: string;
   en: string;
+  /** What the model says the term is (person, handle, place, brand, ...); absent for plain maps. */
+  type?: string;
 }
 
 export function parseGlossaryJson(reply: string): GlossaryItem[] {
@@ -56,22 +58,26 @@ export function parseGlossaryJson(reply: string): GlossaryItem[] {
     return [];
   }
 
-  const pairs: [unknown, unknown][] = Array.isArray(data)
-    ? data.map((item) => [(item as { ja?: unknown })?.ja, (item as { en?: unknown })?.en])
+  const triples: [unknown, unknown, unknown][] = Array.isArray(data)
+    ? data.map((item) => [
+        (item as { ja?: unknown })?.ja,
+        (item as { en?: unknown })?.en,
+        (item as { type?: unknown })?.type,
+      ])
     : data && typeof data === 'object'
-      ? Object.entries(data as Record<string, unknown>)
+      ? Object.entries(data as Record<string, unknown>).map(([ja, en]) => [ja, en, undefined])
       : [];
 
   const seen = new Set<string>();
   const out: GlossaryItem[] = [];
-  for (const [rawJa, rawEn] of pairs) {
+  for (const [rawJa, rawEn, rawType] of triples) {
     if (typeof rawJa !== 'string' || typeof rawEn !== 'string') continue;
     const ja = rawJa.trim();
     const en = rawEn.trim();
     if (ja.length < 1 || ja.length > 30 || en.length < 1 || en.length > 80 || ja === en) continue;
     if (seen.has(ja)) continue;
     seen.add(ja);
-    out.push({ ja, en });
+    out.push(typeof rawType === 'string' ? { ja, en, type: rawType.trim().toLowerCase() } : { ja, en });
   }
   return out;
 }

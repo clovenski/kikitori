@@ -40,9 +40,14 @@ export function glossaryMessages(text: string): ChatMessage[] {
     {
       role: 'user',
       content:
-        'Below is a transcript of a Japanese YouTube video or livestream. List the recurring proper nouns and terms that need a consistent English rendering: ' +
-        'people and channel/handle names, game or place names, and distinctive slang. Use Hepburn romanization for personal names. ' +
-        'Reply with ONLY a JSON array of objects like {"ja": "ゆりまる", "en": "Yurimaru"}, at most 25 items, no commentary.\n\nTranscript:\n' +
+        'Below is a transcript of a Japanese YouTube video or livestream. Build a glossary of NAMES for a subtitle translator.\n' +
+        'List only: people and nicknames (type "person"), channel/account/group names (type "handle"), brand and product names (type "brand"), ' +
+        'game or show titles (type "game"), and place names (type "place").\n' +
+        'Do NOT list ordinary words, even if written in katakana (eyeshadow, glitter, spot, foundation, palette, subscribe, soy sauce), ' +
+        'numbers, shade or product numbers, or catchphrases. If a term is an ordinary word, leave it out.\n' +
+        'Each "ja" must appear exactly as written in the transcript. For "en" use the official English spelling only if you are sure; ' +
+        'otherwise use Hepburn romanization.\n' +
+        'Reply with ONLY a JSON array like [{"ja": "ゆりまる", "en": "Yurimaru", "type": "person"}], at most 15 items, no commentary.\n\nTranscript:\n' +
         text,
     },
   ];

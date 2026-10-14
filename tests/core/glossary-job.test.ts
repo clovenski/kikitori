@@ -6,13 +6,16 @@ import { memoryRepos, seedJob } from '../helpers/fakes';
 
 const base = (llm: ReturnType<typeof scriptedChat>) => {
   const { repo, stages } = memoryRepos();
-  const job = seedJob(repo, ['ゆりまるです', '運動会の話']);
+  const job = seedJob(repo, ['ゆりまるです', 'ゆりまるが運動会に出る', '運動会の話', 'ラメを塗る']);
   return { repo, stages, job, llm, log: () => {} };
 };
 
 describe('runGlossaryStage', () => {
   it('merges model proposals; user entries override and are applied first', async () => {
-    const llm = scriptedChat(() => '[{"ja":"ゆりまる","en":"Yurimaru"},{"ja":"運動会","en":"sports meet"}]');
+    const llm = scriptedChat(
+      () =>
+        '[{"ja":"ゆりまる","en":"Yurimaru","type":"person"},{"ja":"運動会","en":"sports meet","type":"place"}]',
+    );
     const ctx = base(llm);
     await runGlossaryStage({
       repo: ctx.repo,
@@ -25,6 +28,23 @@ describe('runGlossaryStage', () => {
     const glossary = Object.fromEntries(ctx.stages.listGlossary(ctx.job.id).map((g) => [g.ja, g.en]));
     expect(glossary).toEqual({ ゆりまる: 'Yurimaru', 運動会: 'sports day' });
     expect(ctx.stages.getStage(ctx.job.id, 'glossary')).toBe('done');
+  });
+
+  it('keeps only recurring names: drops brands, common nouns mislabeled as names, one-offs and untyped items', async () => {
+    const llm = scriptedChat(
+      () =>
+        JSON.stringify([
+          { ja: 'ゆりまる', en: 'Yurimaru', type: 'person' },
+          { ja: 'ラメ', en: 'Lame', type: 'brand' },
+          { ja: '運動会', en: 'Sports Day', type: 'other' },
+          { ja: 'ゆりまるです', en: 'It is Yurimaru', type: 'handle' },
+          { ja: '存在しない', en: 'Nothing', type: 'person' },
+          { ja: 'ラメを塗る', en: 'Apply glitter' },
+        ]),
+    );
+    const ctx = base(llm);
+    await runGlossaryStage({ repo: ctx.repo, stages: ctx.stages, llm, jobId: ctx.job.id, userGlossary: {}, log: ctx.log });
+    expect(ctx.stages.listGlossary(ctx.job.id)).toEqual([{ ja: 'ゆりまる', en: 'Yurimaru', source: 'auto' }]);
   });
 
   it('skips a window whose reply is unusable and still finishes', async () => {

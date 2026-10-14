@@ -34,7 +34,7 @@ function fakePool(chats: Record<ModelRole, LlmChat>) {
 
 const generalAnswer = (messages: { content: string }[]) => {
   const content = messages[messages.length - 1].content;
-  if (content.includes('JSON array')) return '[{"ja":"あ","en":"Ah"}]';
+  if (content.includes('JSON array')) return '[{"ja":"あ","en":"Ah","type":"person"}]';
   if (content.includes('overview in English')) return 'Overview text';
   return '- [0:00:00] Something happens';
 };
@@ -44,7 +44,7 @@ const opts = { translate: false, summarize: false, skim: false, userGlossary: {}
 describe('runLlmStages', () => {
   it('runs glossary, translate, summarize in order, swapping models between them', async () => {
     const { repo, stages } = memoryRepos();
-    const job = seedJob(repo, ['あ', 'い', 'う']);
+    const job = seedJob(repo, ['あ', 'い', 'あ']); // 'あ' recurs, so the glossary keeps it
     const translate = scriptedChat(echoTranslate());
     const pool = fakePool({ general: scriptedChat(generalAnswer), translate });
     const written = await runLlmStages(
