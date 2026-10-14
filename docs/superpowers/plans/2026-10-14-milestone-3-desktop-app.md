@@ -1015,12 +1015,12 @@ export default defineConfig({
     "skipLibCheck": true,
     "isolatedModules": true,
     "noEmit": true,
-    "types": []
+    "types": ["node"]
   },
   "include": ["src/app/renderer", "src/app/shared", "tests/renderer"]
 }
 ```
-Renderer files that import from `../../core/...` (types, and the pure modules) are pulled in transitively; `core/time.ts`, `core/errors.ts` and `core/youtube.ts` need no Node types. If `tsc` complains about `process`/`node:` types for a transitively imported core file, that file does not belong in the renderer allow-list (fix the import, do not add Node types).
+`types: ["node"]` is needed because `shared/ipc.ts` type-imports core files whose own imports (`node:sqlite`, `node:fs`) must resolve; it does not allow the renderer to use Node, since the ESLint rule above forbids `node:*` and runtime core imports in `src/app/renderer`.
 
 `vitest.config.ts`:
 ```ts
