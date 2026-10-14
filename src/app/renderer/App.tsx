@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { LibraryScreen } from './components/LibraryScreen';
+import { NewJobDialog } from './components/NewJobDialog';
 import { QueueStrip } from './components/QueueStrip';
 import { useApi, useLibrary, useProgress, useQueue } from './lib/api';
 
@@ -36,7 +37,15 @@ export function App() {
         onCancel={(id) => void api.queue.cancel(id)}
         onResume={(id) => void api.queue.resume(id)}
       />
-      {newJobOpen && <div>New job dialog placeholder</div>}
+      {newJobOpen && (
+        <NewJobDialog
+          onClose={() => setNewJobOpen(false)}
+          onSubmitted={() => {
+            setNewJobOpen(false);
+            setRoute({ name: 'library' });
+          }}
+        />
+      )}
     </div>
   );
 }
