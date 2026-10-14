@@ -1,4 +1,4 @@
-import Database from 'better-sqlite3';
+import { Database } from '../../src/core/db/sqlite';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { Repo } from '../../src/core/db/repo';
 import { migrate } from '../../src/core/db/schema';

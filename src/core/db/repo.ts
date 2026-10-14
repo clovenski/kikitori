@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3';
+import type { Database } from './sqlite';
 import type { Segment } from '../types';
 import type { PlannedChunk } from '../pipeline/chunker';
 
@@ -83,7 +83,7 @@ const toChunk = (r: ChunkDb): ChunkRow => ({
 });
 
 export class Repo {
-  constructor(private readonly db: Database.Database) {}
+  constructor(private readonly db: Database) {}
 
   createJob(
     input: { source: string; rangeStartMs: number; rangeEndMs: number; settings: JobSettings },

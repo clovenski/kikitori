@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3';
+import type { Database } from './sqlite';
 
 export type GlossarySource = 'auto' | 'user';
 export interface GlossaryEntry {
@@ -20,7 +20,7 @@ export interface SummaryRow {
 const LEVEL_ORDER = `CASE level WHEN 'window' THEN 0 WHEN 'section' THEN 1 ELSE 2 END`;
 
 export class StageRepo {
-  constructor(private readonly db: Database.Database) {}
+  constructor(private readonly db: Database) {}
 
   /** `user` entries overwrite anything; `auto` entries never overwrite an existing one. */
   upsertGlossary(jobId: number, entries: GlossaryEntry[]): void {

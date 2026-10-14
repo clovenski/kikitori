@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3';
+import type { Database } from './sqlite';
 
 /** Append-only. Index + 1 is the resulting PRAGMA user_version. */
 const MIGRATIONS: string[] = [
@@ -68,7 +68,7 @@ const MIGRATIONS: string[] = [
   `,
 ];
 
-export function migrate(db: Database.Database): void {
+export function migrate(db: Database): void {
   const current = db.pragma('user_version', { simple: true }) as number;
   for (let version = current; version < MIGRATIONS.length; version++) {
     db.transaction(() => {

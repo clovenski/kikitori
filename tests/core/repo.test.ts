@@ -1,4 +1,4 @@
-import Database from 'better-sqlite3';
+import { Database } from '../../src/core/db/sqlite';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { migrate } from '../../src/core/db/schema';
 import { Repo } from '../../src/core/db/repo';
@@ -13,7 +13,7 @@ const seg = (text: string, startMs: number, endMs: number): Segment => ({
   avgLogprob: -0.4,
 });
 
-let db: Database.Database;
+let db: Database;
 let repo: Repo;
 beforeEach(() => {
   db = new Database(':memory:');

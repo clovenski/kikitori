@@ -1,6 +1,6 @@
 import { writeFileSync } from 'node:fs';
 import path from 'node:path';
-import Database from 'better-sqlite3';
+import { Database } from '../../src/core/db/sqlite';
 import { Repo, type JobRow } from '../../src/core/db/repo';
 import { StageRepo } from '../../src/core/db/stage-repo';
 import { migrate } from '../../src/core/db/schema';
