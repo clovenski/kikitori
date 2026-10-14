@@ -78,19 +78,26 @@ async function main() {
     dest: 'bin/yt-dlp.exe',
   });
 
-  // whisper.cpp: prefer the CUDA build, fall back to CPU
-  const wh = await getJson<GhRelease>('https://api.github.com/repos/ggml-org/whisper.cpp/releases/latest');
-  const cuda = wh.assets
-    .filter((a) => /^whisper-cublas-.+-bin-x64\.zip$/.test(a.name))
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .at(-1);
-  const cpu = wh.assets.find((a) => a.name === 'whisper-bin-x64.zip');
-  const asset = cuda ?? cpu;
-  if (!asset) {
-    throw new Error(
-      `No Windows x64 whisper.cpp asset in ${wh.tag_name}: ${wh.assets.map((a) => a.name).join(', ')}`,
-    );
+  // whisper.cpp: binaries live on separate "bNNNN" releases; prefer the newest release with a CUDA build
+  const releases = await getJson<GhRelease[]>('https://api.github.com/repos/ggml-org/whisper.cpp/releases?per_page=15');
+  const cudaPatterns = [/^whisper-bin-win-cuda-([\d.]+)-x64\.zip$/, /^whisper-cublas-([\d.]+)-bin-x64\.zip$/];
+  const cudaVersion = (name: string) => cudaPatterns.map((p) => p.exec(name)?.[1]).find(Boolean) ?? '0';
+  const byVersion = (x: GhAsset, y: GhAsset) =>
+    cudaVersion(x.name).localeCompare(cudaVersion(y.name), undefined, { numeric: true });
+  let wh: GhRelease | undefined;
+  let asset: GhAsset | undefined;
+  let cuda = false;
+  for (const release of releases) {
+    const cudaAsset = release.assets.filter((a) => cudaPatterns.some((p) => p.test(a.name))).sort(byVersion).at(-1);
+    const cpuAsset = release.assets.find((a) => a.name === 'whisper-bin-x64.zip');
+    if (cudaAsset || cpuAsset) {
+      wh = release;
+      asset = cudaAsset ?? cpuAsset;
+      cuda = Boolean(cudaAsset);
+      break;
+    }
   }
+  if (!wh || !asset) throw new Error('No Windows x64 whisper.cpp asset found in the 15 most recent releases.');
   if (!cuda) console.warn('WARNING: no CUDA build in this whisper.cpp release; pinning the CPU build.');
   const whSha = asset.digest?.startsWith('sha256:')
     ? asset.digest.slice(7)

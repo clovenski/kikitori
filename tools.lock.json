@@ -1,0 +1,37 @@
+{
+  "platform": "win32-x64",
+  "tools": [
+    {
+      "id": "yt-dlp",
+      "version": "2026.08.19",
+      "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp.exe",
+      "sha256": "66674953fe251b89f4d08c5f0e35e0728679bd67ab3d7d05c0562af101dd3e7a",
+      "kind": "file",
+      "dest": "bin/yt-dlp.exe"
+    },
+    {
+      "id": "whisper.cpp",
+      "version": "b5454 (whisper-bin-win-cuda-12.4.0-x64.zip)",
+      "url": "https://github.com/ggml-org/whisper.cpp/releases/download/b5454/whisper-bin-win-cuda-12.4.0-x64.zip",
+      "sha256": "afef0b881c500958921c3f5523b50e59ee2ec9b6f5cbd25b324c51ed308a957a",
+      "kind": "zip",
+      "dest": "whisper"
+    },
+    {
+      "id": "model-large-v3",
+      "version": "5359861",
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-large-v3.bin",
+      "sha256": "64d182b440b98d5203c4f9bd541544d84c605196c4f7b845dfa11fb23594d1e2",
+      "kind": "file",
+      "dest": "models/ggml-large-v3.bin"
+    },
+    {
+      "id": "vad-silero",
+      "version": "9ffd54a",
+      "url": "https://huggingface.co/ggml-org/whisper-vad/resolve/9ffd54a1e1ee413ddf265af9913beaf518d1639b/ggml-silero-v6.2.0.bin",
+      "sha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+      "kind": "file",
+      "dest": "models/ggml-silero-v6.2.0.bin"
+    }
+  ]
+}
