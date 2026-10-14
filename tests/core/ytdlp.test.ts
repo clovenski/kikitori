@@ -20,7 +20,10 @@ describe('buildDownloadArgs', () => {
     const args = buildDownloadArgs({ ...base, section: null });
     expect(args).toContain('--no-playlist');
     expect(args).toContain('-f');
-    expect(args[args.indexOf('-f') + 1]).toBe('bestaudio/best');
+    // Prefer the Japanese track: some videos carry an auto-dubbed English track as well.
+    expect(args[args.indexOf('-f') + 1]).toBe('ba[language^=ja]/ba/b');
+    expect(args[args.indexOf('--js-runtimes') + 1]).toBe('node');
+    expect(args[args.indexOf('--extractor-args') + 1]).toBe('youtube:player_client=default,-ios');
     expect(args[args.indexOf('--ffmpeg-location') + 1]).toBe('C:/tools/ffmpeg.exe');
     expect(args[args.indexOf('-o') + 1]).toBe('work/1/source.%(ext)s');
     expect(args[args.length - 1]).toBe(url);

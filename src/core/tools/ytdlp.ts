@@ -25,7 +25,13 @@ export function buildDownloadArgs(a: {
     '--no-playlist',
     '--no-progress',
     '-f',
-    'bestaudio/best',
+    'ba[language^=ja]/ba/b',
+    // YouTube extraction needs a JS runtime; node is already required to run this tool.
+    '--js-runtimes',
+    'node',
+    // The default iOS client's audio URLs answer 403.
+    '--extractor-args',
+    'youtube:player_client=default,-ios',
     '--ffmpeg-location',
     a.ffmpegPath,
   ];
