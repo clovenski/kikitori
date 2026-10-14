@@ -81,7 +81,7 @@ export async function fetchEntry(
     return;
   }
 
-  const marker = path.join(dest, '.sha256');
+  const marker = path.join(dest, entry.merge ? `.${entry.id}.sha256` : '.sha256');
   if (existsSync(marker) && readFileSync(marker, 'utf8').trim() === entry.sha256) {
     log(`${entry.id}: up to date`);
     return;
@@ -90,7 +90,7 @@ export async function fetchEntry(
   const zip = path.join(resources, `${entry.id}.zip`);
   await downloadFile(entry.url, zip, onProgress);
   await verified(zip, entry);
-  rmSync(dest, { recursive: true, force: true });
+  if (!entry.merge) rmSync(dest, { recursive: true, force: true });
   mkdirSync(dest, { recursive: true });
   await extract(zip, { dir: path.resolve(dest) });
   writeFileSync(marker, entry.sha256);
