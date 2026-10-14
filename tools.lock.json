@@ -32,6 +32,40 @@
       "sha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
       "kind": "file",
       "dest": "models/ggml-silero-v6.2.0.bin"
+    },
+    {
+      "id": "llama.cpp",
+      "version": "b11624 (llama-b11624-bin-win-cuda-12.4-x64.zip)",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11624/llama-b11624-bin-win-cuda-12.4-x64.zip",
+      "sha256": "712096c39d31946410b152356753856b31164cf2653c3ab51b836b3f4e7f9e44",
+      "kind": "zip",
+      "dest": "llama",
+      "merge": true
+    },
+    {
+      "id": "llama-cudart",
+      "version": "b11624 (cudart-llama-bin-win-cuda-12.4-x64.zip)",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11624/cudart-llama-bin-win-cuda-12.4-x64.zip",
+      "sha256": "8c79a9b226de4b3cacfd1f83d24f962d0773be79f1e7b75c6af4ded7e32ae1d6",
+      "kind": "zip",
+      "dest": "llama",
+      "merge": true
+    },
+    {
+      "id": "model-translate",
+      "version": "ab84726",
+      "url": "https://huggingface.co/tencent/Hy-MT2-7B-GGUF/resolve/ab8472660ac61fac25f1af43fac2599d52a8a775/Hy-MT2-7B-Q4_K_M.gguf",
+      "sha256": "9f96256500f3fc1ab4d64336b58f52a949a95ad7516b0c229476eef782f9f77b",
+      "kind": "file",
+      "dest": "models/Hy-MT2-7B-Q4_K_M.gguf"
+    },
+    {
+      "id": "model-general",
+      "version": "7c41481",
+      "url": "https://huggingface.co/Qwen/Qwen3-8B-GGUF/resolve/7c41481f57cb95916b40956ab2f0b139b296d974/Qwen3-8B-Q4_K_M.gguf",
+      "sha256": "d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785",
+      "kind": "file",
+      "dest": "models/Qwen3-8B-Q4_K_M.gguf"
     }
   ]
 }
