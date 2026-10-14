@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import type { BgtApi } from '../shared/ipc';
 
 declare global {
