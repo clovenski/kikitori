@@ -1,0 +1,17 @@
+node_modules/
+resources/
+data/
+output/
+dist/
+.env
+.superpowers/
+*.wav
+*.mp3
+*.m4a
+*.opus
+*.mp4
+*.webm
+*.srt
+*.vtt
+*.bin
+*.part
