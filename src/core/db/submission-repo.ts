@@ -86,6 +86,10 @@ export class SubmissionStore {
     this.db.prepare('UPDATE submissions SET job_id = ?, updated_at = ? WHERE id = ?').run(jobId, this.now(), id);
   }
 
+  deleteForJob(jobId: number): void {
+    this.db.prepare('DELETE FROM submissions WHERE job_id = ?').run(jobId);
+  }
+
   nextQueued(): Submission | undefined {
     const row = this.db
       .prepare("SELECT * FROM submissions WHERE state = 'queued' ORDER BY id LIMIT 1")

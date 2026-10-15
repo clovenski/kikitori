@@ -27,6 +27,10 @@ export function App() {
     setNewJobSource(source);
     setNewJobOpen(true);
   };
+  const deleteJob = async (jobId: number) => {
+    const r = await api.job.delete(jobId);
+    if (!r.ok) setNote(r.error.message);
+  };
   const updateYtDlp = async () => {
     setNote('Updating yt-dlp...');
     const r = await api.setup.updateYtDlp();
@@ -78,7 +82,7 @@ export function App() {
           </div>
         )}
         {route.name === 'library' && (
-          <LibraryScreen items={items} submissions={submissions} onOpen={(jobId) => setRoute({ name: 'job', jobId })} onNew={() => openNewJob()} />
+          <LibraryScreen items={items} submissions={submissions} onOpen={(jobId) => setRoute({ name: 'job', jobId })} onNew={() => openNewJob()} onDelete={(jobId) => void deleteJob(jobId)} />
         )}
         {route.name === 'job' && <JobScreen jobId={route.jobId} onBack={() => setRoute({ name: 'library' })} />}
         {route.name === 'channels' && (

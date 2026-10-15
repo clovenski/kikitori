@@ -28,13 +28,27 @@ describe('PlayerShell', () => {
     expect(screen.getByText('えっと')).toBeTruthy(); // no translation: falls back to Japanese
   });
 
-  it('requests fullscreen on its own container so the overlay stays visible', () => {
+  it('fills the app window instead of using the Fullscreen API, which Electron denies', () => {
     const request = vi.fn();
-    render(<PlayerShell lines={lines} mode="en" size="medium" timeMs={0}><div /></PlayerShell>);
+    render(<PlayerShell lines={lines} mode="en" size="medium" timeMs={1500}><div /></PlayerShell>);
     const container = screen.getByTestId('player-container');
     container.requestFullscreen = request;
-    fireEvent.click(screen.getByText('Fullscreen'));
-    expect(request).toHaveBeenCalled();
+    expect(container.classList.contains('expanded')).toBe(false);
+    fireEvent.click(screen.getByText('Fill window'));
+    expect(container.classList.contains('expanded')).toBe(true);
+    expect(screen.getByText('Hello')).toBeTruthy(); // the overlay is inside the expanded container
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it('leaves the expanded view with the exit button or Escape', () => {
+    render(<PlayerShell lines={lines} mode="en" size="medium" timeMs={0}><div /></PlayerShell>);
+    const container = screen.getByTestId('player-container');
+    fireEvent.click(screen.getByText('Fill window'));
+    fireEvent.click(screen.getByText('Exit (Esc)'));
+    expect(container.classList.contains('expanded')).toBe(false);
+    fireEvent.click(screen.getByText('Fill window'));
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(container.classList.contains('expanded')).toBe(false);
   });
 
   it('applies the chosen subtitle size', () => {

@@ -41,19 +41,28 @@ const detail = (over: Partial<JobDetail['item']> = {}, withEnglish = true): JobD
   summaries: [{ level: 'overview', idx: 0, startMs: 0, endMs: 1, text: 'Overview text' }],
 });
 
-function mount(d: JobDetail | null, openFolder = vi.fn(async () => ({ ok: true as const, value: null }))) {
+type Removal = { ok: true; value: null } | { ok: false; error: { code: string; message: string } };
+
+function mount(
+  d: JobDetail | null,
+  openFolder = vi.fn(async () => ({ ok: true as const, value: null })),
+  remove: () => Promise<Removal> = async () => ({ ok: true, value: null }),
+) {
+  const onBack = vi.fn();
+  const del = vi.fn(remove);
   const api = {
     job: {
       get: async () => (d ? { ok: true as const, value: d } : { ok: false as const, error: { code: 'InvalidInput', message: 'There is no job 1.' } }),
       openOutputFolder: openFolder,
+      delete: del,
     },
   } as unknown as BgtApi;
   render(
     <ApiProvider api={api}>
-      <JobScreen jobId={1} onBack={() => {}} />
+      <JobScreen jobId={1} onBack={onBack} />
     </ApiProvider>,
   );
-  return { openFolder };
+  return { openFolder, onBack, del };
 }
 
 describe('JobScreen', () => {
@@ -113,5 +122,28 @@ describe('JobScreen', () => {
     mount(null);
     await act(async () => {});
     expect(screen.getByText('There is no job 1.')).toBeTruthy();
+  });
+
+  it('deletes the job after confirmation and goes back to the library', async () => {
+    const t = mount(detail());
+    await act(async () => {});
+    fireEvent.click(screen.getByText('Delete'));
+    expect(t.del).not.toHaveBeenCalled();
+    await act(async () => {
+      fireEvent.click(screen.getByText('Delete job'));
+    });
+    expect(t.del).toHaveBeenCalledWith(1);
+    expect(t.onBack).toHaveBeenCalled();
+  });
+
+  it('stays on the job and shows the reason when deleting fails', async () => {
+    const t = mount(detail(), undefined, async () => ({ ok: false, error: { code: 'InvalidInput', message: 'Cancel it first.' } }));
+    await act(async () => {});
+    fireEvent.click(screen.getByText('Delete'));
+    await act(async () => {
+      fireEvent.click(screen.getByText('Delete job'));
+    });
+    expect(screen.getByText('Cancel it first.')).toBeTruthy();
+    expect(t.onBack).not.toHaveBeenCalled();
   });
 });

@@ -129,6 +129,16 @@ export class Repo {
     return rows.map(toJob);
   }
 
+  /** Removes the job and everything stored for it. Children go first; the submissions that point at it are the caller's to drop. */
+  deleteJob(id: number): void {
+    this.db.transaction(() => {
+      for (const table of ['translations', 'summaries', 'glossary', 'stages', 'segments', 'chunks']) {
+        this.db.prepare(`DELETE FROM ${table} WHERE job_id = ?`).run(id);
+      }
+      this.db.prepare('DELETE FROM jobs WHERE id = ?').run(id);
+    })();
+  }
+
   findResumableJob(
     source: string,
     rangeStartMs: number,

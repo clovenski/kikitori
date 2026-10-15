@@ -2,6 +2,7 @@ import { Database } from '../../src/core/db/sqlite';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { migrate } from '../../src/core/db/schema';
 import { Repo } from '../../src/core/db/repo';
+import { StageRepo } from '../../src/core/db/stage-repo';
 import type { Segment } from '../../src/core/types';
 
 const settings = { model: 'large-v3', language: 'ja', maxMinutes: 30 };
@@ -143,4 +144,30 @@ describe('segments', () => {
     expect(repo.maxSegmentEndBefore(job.id, 1)).toBe(400);
     expect(repo.maxSegmentEndBefore(job.id, 2)).toBe(400);
   });
+
+describe('deleteJob', () => {
+  it('removes the job with everything that belongs to it and leaves other jobs alone', () => {
+    const stages = new StageRepo(db);
+    const a = repo.createJob({ source: 'a', rangeStartMs: 0, rangeEndMs: 1000, settings });
+    const b = repo.createJob({ source: 'b', rangeStartMs: 0, rangeEndMs: 1000, settings });
+    for (const job of [a, b]) {
+      repo.insertChunks(job.id, [{ idx: 0, startMs: 0, endMs: 1000 }]);
+      repo.completeChunk(job.id, 0, [seg('こんにちは', 0, 500)]);
+      const [segment] = repo.listSegmentsWithId(job.id);
+      stages.saveTranslations(job.id, 0, [{ segmentId: segment.id, text: 'Hello' }]);
+      stages.upsertGlossary(job.id, [{ ja: '名前', en: 'Name', source: 'auto' }]);
+      stages.setStage(job.id, 'translate', 'done');
+    }
+    repo.deleteJob(a.id);
+    expect(repo.getJob(a.id)).toBeUndefined();
+    expect(repo.listChunks(a.id)).toEqual([]);
+    expect(repo.listSegments(a.id)).toEqual([]);
+    expect(stages.countTranslations(a.id)).toBe(0);
+    expect(stages.listGlossary(a.id)).toEqual([]);
+    expect(stages.getStage(a.id, 'translate')).toBeUndefined();
+    expect(repo.getJob(b.id)).toBeDefined();
+    expect(repo.listSegments(b.id)).toHaveLength(1);
+    expect(stages.countTranslations(b.id)).toBe(1);
+  });
+});
 });

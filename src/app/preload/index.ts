@@ -15,6 +15,7 @@ const api: BgtApi = {
   job: {
     get: (jobId) => invoke(CHANNELS.jobGet, jobId),
     openOutputFolder: (jobId) => invoke(CHANNELS.jobOpenOutputFolder, jobId),
+    delete: (jobId) => invoke(CHANNELS.jobDelete, jobId),
   },
   queue: {
     list: () => invoke(CHANNELS.queueList),

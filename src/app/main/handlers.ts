@@ -34,6 +34,8 @@ export interface HandlerDeps {
   pickFile(kind: 'media' | 'glossary'): Promise<string | null>;
   openFolder(dir: string): Promise<void>;
   outDir: string;
+  /** Removes the output and work files of a deleted job. */
+  deleteJobFiles(jobId: number): void;
   /** Injectable for tests; defaults to the real file system. */
   fileExists?(path: string): boolean;
   setup: Pick<SetupService, 'state' | 'detect' | 'plan' | 'missingFor' | 'start' | 'cancel' | 'repair' | 'updateYtDlp'>;
@@ -76,6 +78,15 @@ export function createHandlers(d: HandlerDeps) {
         const id = parseId(arg, 'job id');
         if (!d.repo.getJob(id)) throw new BgtError('InvalidInput', `There is no job ${id}.`);
         await d.openFolder(d.outDir);
+        return null;
+      }),
+    [CHANNELS.jobDelete]: (arg?: unknown) =>
+      wrap(() => {
+        const id = parseId(arg, 'job id');
+        if (!d.repo.getJob(id)) throw new BgtError('InvalidInput', `There is no job ${id}.`);
+        d.queue.removeJob(id); // throws while the job runs, before anything is lost
+        d.repo.deleteJob(id);
+        d.deleteJobFiles(id);
         return null;
       }),
     [CHANNELS.queueList]: () => wrap(() => d.queue.list()),

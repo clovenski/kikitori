@@ -3,6 +3,7 @@ import type { JobDetail } from '../../shared/ipc';
 import { useApi } from '../lib/api';
 import { findActiveIndex, type SubtitleMode } from '../lib/subtitles';
 import { useCurrentTime, type TimeSource } from '../lib/timesource';
+import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
 import { LocalPlayer } from './LocalPlayer';
 import { PlayerShell, type SubtitleSize } from './PlayerShell';
 import { SummaryPanel } from './SummaryPanel';
@@ -24,6 +25,8 @@ export function JobScreen({ jobId, onBack }: Props) {
   const [tab, setTab] = useState<'transcript' | 'summary'>('transcript');
   const [source, setSource] = useState<TimeSource | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -51,6 +54,13 @@ export function JobScreen({ jobId, onBack }: Props) {
   const onReady = useCallback((s: TimeSource) => setSource(s), []);
   const onFail = useCallback((message: string) => setFailure(message), []);
 
+  const deleteJob = async () => {
+    setConfirmDelete(false);
+    const r = await api.job.delete(jobId);
+    if (r.ok) onBack();
+    else setDeleteError(r.error.message);
+  };
+
   if (load.kind === 'loading') return <div>Loading...</div>;
   if (load.kind === 'error') {
     return (
@@ -72,6 +82,7 @@ export function JobScreen({ jobId, onBack }: Props) {
           <button onClick={onBack}>Back</button>
           <strong>{item.title ?? item.source}</strong>
         </div>
+        {deleteError && <div className="notice">{deleteError}</div>}
         {failure ? (
           <div className="notice">
             <div>{failure}</div>
@@ -110,6 +121,9 @@ export function JobScreen({ jobId, onBack }: Props) {
           </label>
           <button onClick={() => void api.job.openOutputFolder(item.jobId)}>Open output folder</button>
           {youtubeUrl && !failure && <button onClick={() => window.open(youtubeUrl)}>Open on YouTube</button>}
+          <button className="danger-outline" onClick={() => setConfirmDelete(true)}>
+            Delete
+          </button>
         </div>
       </div>
       <div className="job-right">
@@ -127,6 +141,7 @@ export function JobScreen({ jobId, onBack }: Props) {
           <SummaryPanel summaries={summaries} onSeek={seek} />
         )}
       </div>
+      {confirmDelete && <ConfirmDeleteDialog title={item.title ?? item.source} onCancel={() => setConfirmDelete(false)} onConfirm={() => void deleteJob()} />}
     </div>
   );
 }

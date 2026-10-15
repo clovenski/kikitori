@@ -56,4 +56,15 @@ describe('SubmissionStore', () => {
     expect(store.recoverInterrupted()).toBe(1);
     expect(store.list().map((s) => s.state)).toEqual(['interrupted', 'queued']);
   });
+
+  it('deletes the submissions of one job and keeps the rest', () => {
+    const repo = new Repo(db);
+    const job = repo.createJob({ source: 'a', rangeStartMs: 0, rangeEndMs: 1, settings: { model: 'm', language: 'ja', maxMinutes: 30 } });
+    const a = store.create({ source: 'a', startMs: 0, endMs: null, options });
+    const b = store.create({ source: 'b', startMs: 0, endMs: null, options });
+    store.setJob(a.id, job.id);
+    store.deleteForJob(job.id);
+    expect(store.get(a.id)).toBeUndefined();
+    expect(store.get(b.id)).toBeDefined();
+  });
 });

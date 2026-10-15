@@ -38,14 +38,14 @@ const sub = (over: Partial<Submission> = {}): Submission => ({
 describe('LibraryScreen', () => {
   it('shows an empty state with a New job button', () => {
     const onNew = vi.fn();
-    render(<LibraryScreen items={[]} submissions={[]} onOpen={() => {}} onNew={onNew} />);
+    render(<LibraryScreen items={[]} submissions={[]} onOpen={() => {}} onNew={onNew} onDelete={() => {}} />);
     fireEvent.click(screen.getByText('New job'));
     expect(onNew).toHaveBeenCalled();
   });
 
   it('lists jobs with title, range, and badges, and opens one on click', () => {
     const onOpen = vi.fn();
-    render(<LibraryScreen items={[item(), item({ jobId: 2, title: null, source: 'C:/clips/a.wav', isLocalFile: true, hasTranslation: false, hasSummary: false })]} submissions={[]} onOpen={onOpen} onNew={() => {}} />);
+    render(<LibraryScreen items={[item(), item({ jobId: 2, title: null, source: 'C:/clips/a.wav', isLocalFile: true, hasTranslation: false, hasSummary: false })]} submissions={[]} onOpen={onOpen} onNew={() => {}} onDelete={() => {}} />);
     expect(screen.getByText('GRWM')).toBeTruthy();
     expect(screen.getAllByText('0:00:00 to 0:09:17')).toHaveLength(2);
     expect(screen.getAllByText('EN')).toHaveLength(1);
@@ -56,7 +56,7 @@ describe('LibraryScreen', () => {
   });
 
   it('labels a job that was stopped before finishing as "Not finished"', () => {
-    render(<LibraryScreen items={[item({ status: 'pending' })]} submissions={[]} onOpen={() => {}} onNew={() => {}} />);
+    render(<LibraryScreen items={[item({ status: 'pending' })]} submissions={[]} onOpen={() => {}} onNew={() => {}} onDelete={() => {}} />);
     expect(screen.getByText('Not finished')).toBeTruthy();
     expect(screen.queryByText('pending')).toBeNull();
   });
@@ -68,10 +68,24 @@ describe('LibraryScreen', () => {
         submissions={[sub(), sub({ id: 2, state: 'running' }), sub({ id: 3, state: 'done', jobId: 9 })]}
         onOpen={() => {}}
         onNew={() => {}}
+        onDelete={() => {}}
       />,
     );
     expect(screen.getAllByText('https://www.youtube.com/watch?v=QGWaK-UF5QU')).toHaveLength(2);
     expect(screen.getByText('Queued')).toBeTruthy();
     expect(screen.getByText('Running')).toBeTruthy();
+  });
+
+  it('deletes a job only after the user confirms', () => {
+    const onDelete = vi.fn();
+    render(<LibraryScreen items={[item()]} submissions={[]} onOpen={() => {}} onNew={() => {}} onDelete={onDelete} />);
+    fireEvent.click(screen.getByLabelText('Delete GRWM'));
+    expect(onDelete).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText('Cancel'));
+    expect(screen.queryByText('Delete job')).toBeNull();
+    fireEvent.click(screen.getByLabelText('Delete GRWM'));
+    fireEvent.click(screen.getByText('Delete job'));
+    expect(onDelete).toHaveBeenCalledWith(1);
+    expect(screen.queryByText('Delete job')).toBeNull();
   });
 });

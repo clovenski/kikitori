@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { TranscriptLine } from '../../shared/ipc';
 import { findActiveIndex, subtitleText, type SubtitleMode } from '../lib/subtitles';
@@ -15,21 +15,30 @@ interface Props {
 }
 
 export function PlayerShell({ lines, mode, size, timeMs, children }: Props) {
-  const container = useRef<HTMLDivElement>(null);
+  // The Fullscreen API is not used: Electron asks the permission handler for it and we deny every permission.
+  // Filling the app window keeps the overlay visible and leaves true fullscreen to the window's own maximize.
+  const [expanded, setExpanded] = useState(false);
   const active = findActiveIndex(lines, timeMs);
   const text = active >= 0 ? subtitleText(lines[active], mode) : [];
 
-  const toggleFullscreen = () => {
-    const el = container.current;
-    if (!el) return;
-    if (document.fullscreenElement) void document.exitFullscreen();
-    else void el.requestFullscreen();
-  };
+  useEffect(() => {
+    if (!expanded) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setExpanded(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [expanded]);
 
   return (
     <div>
-      <div ref={container} className="player" data-testid="player-container" style={{ ['--sub-size' as string]: SIZES[size] }}>
+      <div className={expanded ? 'player expanded' : 'player'} data-testid="player-container" style={{ ['--sub-size' as string]: SIZES[size] }}>
         {children}
+        {expanded && (
+          <button className="exit-expanded" onClick={() => setExpanded(false)}>
+            Exit (Esc)
+          </button>
+        )}
         <div className="overlay" aria-live="off">
           {text.map((t, i) => (
             <div key={i}>
@@ -39,7 +48,7 @@ export function PlayerShell({ lines, mode, size, timeMs, children }: Props) {
         </div>
       </div>
       <div className="toolbar">
-        <button onClick={toggleFullscreen}>Fullscreen</button>
+        <button onClick={() => setExpanded(true)}>Fill window</button>
       </div>
     </div>
   );

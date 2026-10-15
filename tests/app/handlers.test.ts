@@ -15,6 +15,7 @@ function setup(
     fileExists?: (p: string) => boolean;
     ensureReady?: (o: unknown) => void;
     model?: string;
+    deleteFiles?: (jobId: number) => void;
   } = {},
 ) {
   const { repo, stages } = memoryRepos();
@@ -28,6 +29,7 @@ function setup(
   const refreshChannels = vi.fn<(id?: number) => Promise<void>>(async () => {});
   const queue = new JobQueue({ store, run: async () => {}, emitChanged: () => {}, emitProgress: () => {} });
   const opened: string[] = [];
+  const deleteFiles = vi.fn(over.deleteFiles ?? (() => {}));
   const service = {
     state: vi.fn(() => ({ needsWizard: false })),
     detect: vi.fn(async () => ({ recommendedTier: 'cpu' })),
@@ -55,6 +57,7 @@ function setup(
       opened.push(dir);
     },
     outDir: 'C:/out',
+    deleteJobFiles: deleteFiles,
     fileExists: over.fileExists ?? (() => true),
     setup: service as unknown as HandlerDeps['setup'],
     openNotices: async () => {},
@@ -63,7 +66,7 @@ function setup(
     channels: { store: channelStore, add: addChannel, refresh: refreshChannels },
     updates: updates as unknown as HandlerDeps['updates'],
   });
-  return { updates, handlers, repo, stages, queue, opened, service, channelStore, addChannel, refreshChannels };
+  return { deleteFiles, updates, handlers, repo, stages, queue, opened, service, channelStore, addChannel, refreshChannels };
 }
 
 const options = { translate: false, summarize: false, skim: false, maxMinutes: 30, model: 'large-v3' };
@@ -246,5 +249,33 @@ describe('handlers', () => {
     expect(t.channelStore.listFeed().map((f) => f.videoId)).toEqual(['aaaaaaaaaaa']);
     expect(await t.handlers['feed:dismissAll']()).toEqual({ ok: true, value: null });
     expect(t.channelStore.listFeed()).toEqual([]);
+  });
+
+  it('job:delete removes the job, its submissions and its files', async () => {
+    const t = setup();
+    const job = seedJob(t.repo, ['あ']);
+    const kept = seedJob(t.repo, ['い']);
+    expect(await t.handlers['job:delete'](job.id)).toEqual({ ok: true, value: null });
+    expect(t.repo.getJob(job.id)).toBeUndefined();
+    expect(t.repo.getJob(kept.id)).toBeDefined();
+    expect(t.deleteFiles).toHaveBeenCalledWith(job.id);
+  });
+
+  it('job:delete rejects bad ids and unknown jobs without touching any files', async () => {
+    const t = setup();
+    expect(await t.handlers['job:delete']('x')).toMatchObject({ ok: false, error: { code: 'InvalidInput' } });
+    expect(await t.handlers['job:delete'](999)).toMatchObject({ ok: false, error: { code: 'InvalidInput' } });
+    expect(t.deleteFiles).not.toHaveBeenCalled();
+  });
+
+  it('job:delete refuses a job that is still being processed and keeps everything', async () => {
+    const t = setup();
+    const job = seedJob(t.repo, ['あ']);
+    t.queue.removeJob = () => {
+      throw new BgtError('InvalidInput', 'Cancel it first.');
+    };
+    expect(await t.handlers['job:delete'](job.id)).toMatchObject({ ok: false, error: { message: 'Cancel it first.' } });
+    expect(t.repo.getJob(job.id)).toBeDefined();
+    expect(t.deleteFiles).not.toHaveBeenCalled();
   });
 });

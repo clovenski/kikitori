@@ -145,6 +145,8 @@ export interface BgtApi {
   job: {
     get(jobId: number): Promise<Result<JobDetail>>;
     openOutputFolder(jobId: number): Promise<Result<null>>;
+    /** Deletes the job, its transcript, translation and summary, and the files written for it. Refused while it runs. */
+    delete(jobId: number): Promise<Result<null>>;
   };
   queue: {
     list(): Promise<Result<Submission[]>>;
@@ -207,6 +209,7 @@ export const CHANNELS = {
   libraryList: 'library:list',
   jobGet: 'job:get',
   jobOpenOutputFolder: 'job:openOutputFolder',
+  jobDelete: 'job:delete',
   queueList: 'queue:list',
   queueSubmit: 'queue:submit',
   queueCancel: 'queue:cancel',

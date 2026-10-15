@@ -73,6 +73,15 @@ export class JobQueue {
     this.pump();
   }
 
+  /** Forgets the submissions of a job that is being deleted. A job that is being processed cannot go. */
+  removeJob(jobId: number): void {
+    if (this.d.store.list().some((s) => s.jobId === jobId && s.state === 'running')) {
+      throw new BgtError('InvalidInput', 'This job is still running. Cancel it first, then delete it.');
+    }
+    this.d.store.deleteForJob(jobId);
+    this.changed();
+  }
+
   async whenIdle(): Promise<void> {
     while (this.current) await this.current.done;
   }

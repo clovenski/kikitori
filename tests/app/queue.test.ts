@@ -170,3 +170,29 @@ describe('JobQueue', () => {
     await h.queue.whenIdle();
   });
 });
+
+describe('removeJob', () => {
+  it('drops the submissions linked to a job and announces the change', () => {
+    const h = harness();
+    const repo = new Repo(h.db);
+    const job = repo.createJob({ source: 'a', rangeStartMs: 0, rangeEndMs: 1, settings: { model: 'm', language: 'ja', maxMinutes: 30 } });
+    const sub = h.store.create(req('a'));
+    h.store.setJob(sub.id, job.id);
+    h.store.setState(sub.id, 'failed', 'x');
+    const before = h.changed;
+    h.queue.removeJob(job.id);
+    expect(h.store.get(sub.id)).toBeUndefined();
+    expect(h.changed).toBeGreaterThan(before);
+  });
+
+  it('refuses while the job is being processed', () => {
+    const h = harness();
+    const repo = new Repo(h.db);
+    const job = repo.createJob({ source: 'a', rangeStartMs: 0, rangeEndMs: 1, settings: { model: 'm', language: 'ja', maxMinutes: 30 } });
+    const sub = h.store.create(req('a'));
+    h.store.setJob(sub.id, job.id);
+    h.store.setState(sub.id, 'running');
+    expect(() => h.queue.removeJob(job.id)).toThrow(BgtError);
+    expect(h.store.get(sub.id)).toBeDefined();
+  });
+});

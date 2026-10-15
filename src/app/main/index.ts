@@ -31,6 +31,7 @@ import { createUpdaterPort } from './updater';
 import { buildMediaResponse, parseMediaUrl, resolveMediaPath } from './media';
 import { denyAllPermissions, runShutdown, runStartup, shouldConfirmQuit } from './lifecycle';
 import { isAllowedNavigation } from './navigation';
+import { deleteJobFiles } from './job-files';
 import { JobQueue } from './queue';
 import { runSubmission } from './run-submission';
 
@@ -243,6 +244,7 @@ void app.whenReady().then(() => runStartup(async () => {
         await shell.openPath(folder);
       },
       outDir,
+      deleteJobFiles: (jobId) => deleteJobFiles({ outDir, workRoot: path.join(dir, 'work') }, jobId),
       fileExists: existsSync,
       setup,
       openNotices: async () => {
