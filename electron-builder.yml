@@ -1,0 +1,31 @@
+appId: com.joeltengco.bgautotranslator
+productName: BG Auto Translator
+copyright: Copyright (c) 2026 Joel Tengco
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**
+  - package.json
+npmRebuild: false
+extraResources:
+  - from: tools.lock.json
+    to: tools.lock.json
+  - from: THIRD_PARTY_NOTICES.md
+    to: THIRD_PARTY_NOTICES.md
+  - from: LICENSE
+    to: LICENSE
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: build/icon.ico
+  artifactName: BG-Auto-Translator-Setup-${version}.exe
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: BG Auto Translator
+  deleteAppDataOnUninstall: false
