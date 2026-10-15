@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { formatBytes } from '../../../core/bytes';
-import type { SetupState, Tier } from '../../shared/ipc';
+import type { OutputDirInfo, SetupState, Tier } from '../../shared/ipc';
 import { useApi, useSetupProgress } from '../lib/api';
 import { closeOnBackdrop, useEscapeToClose } from '../lib/dismiss';
 import { InstallProgress } from './InstallProgress';
@@ -18,6 +18,8 @@ export function ToolsDialog({ state, onClose, onChanged }: Props) {
   useEscapeToClose(onClose);
   const [message, setMessage] = useState<string | null>(null);
   const [confirmSwitch, setConfirmSwitch] = useState(false);
+  const [output, setOutput] = useState<OutputDirInfo | null>(null);
+  const [outputError, setOutputError] = useState<string | null>(null);
   const busy = progress.phase === 'installing';
   const other: Tier = state.tier === 'gpu' ? 'cpu' : 'gpu';
   const visible = state.components.filter((c) => c.tier === 'all' || c.tier === state.tier);
@@ -27,6 +29,23 @@ export function ToolsDialog({ state, onClose, onChanged }: Props) {
   useEffect(() => {
     if (progress.phase === 'done') onChanged();
   }, [progress.phase, onChanged]);
+
+  useEffect(() => {
+    let current = true;
+    void api.output.get().then((r) => {
+      if (current && r.ok) setOutput(r.value);
+    });
+    return () => {
+      current = false;
+    };
+  }, [api]);
+
+  const changeOutput = async (call: () => Promise<{ ok: true; value: OutputDirInfo | null } | { ok: false; error: { message: string } }>) => {
+    setOutputError(null);
+    const r = await call();
+    if (!r.ok) return setOutputError(r.error.message);
+    if (r.value) setOutput(r.value); // null: the picker was cancelled
+  };
 
   const run = async (call: () => Promise<{ ok: boolean; error?: { message: string } }>) => {
     setMessage(null);
@@ -60,8 +79,8 @@ export function ToolsDialog({ state, onClose, onChanged }: Props) {
 
   return (
     <div className="dialog-backdrop" role="presentation" onMouseDown={closeOnBackdrop(onClose)}>
-      <div className="dialog" role="dialog" aria-label="Tools">
-        <h2>Tools</h2>
+      <div className="dialog" role="dialog" aria-label="Settings">
+        <h2>Settings</h2>
         <div className="hint">{`${state.tier === 'gpu' ? 'NVIDIA GPU' : 'CPU only'} setup - installed in ${state.resourcesDir}`}</div>
         <ul className="tools-list">
           {visible.map((c) => (
@@ -112,6 +131,24 @@ export function ToolsDialog({ state, onClose, onChanged }: Props) {
             </button>
             <button onClick={() => void checkForUpdates()}>Check for updates</button>
             <button onClick={() => void api.setup.openNotices()}>License notices</button>
+          </div>
+        )}
+        {output && (
+          <div className="output-dir">
+            <div>Subtitles and summaries are saved in</div>
+            <div className="path">{output.dir}</div>
+            <div className="hint">
+              {output.locked
+                ? 'This folder is fixed by the KTR_OUTPUT_DIR environment variable.'
+                : `${output.isDefault ? 'Default location' : 'Chosen folder'}. Applies to new jobs; files from earlier jobs stay where they were saved.`}
+            </div>
+            {outputError && <div className="error">{outputError}</div>}
+            <div className="inline">
+              <button disabled={output.locked} onClick={() => void changeOutput(() => api.output.choose())}>
+                Change folder...
+              </button>
+              {!output.locked && !output.isDefault && <button onClick={() => void changeOutput(() => api.output.reset())}>Use default folder</button>}
+            </div>
           </div>
         )}
         <div className="actions">

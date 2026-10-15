@@ -15,7 +15,7 @@ function setup(
     fileExists?: (p: string) => boolean;
     ensureReady?: (o: unknown) => void;
     model?: string;
-    deleteFiles?: (jobId: number) => void;
+    deleteFiles?: (jobId: number, outDir: string) => void;
   } = {},
 ) {
   const { repo, stages } = memoryRepos();
@@ -40,6 +40,12 @@ function setup(
     repair: vi.fn(),
     updateYtDlp: vi.fn(async () => 'updated'),
   };
+  const outputInfo = { dir: 'C:/out', isDefault: true, locked: false };
+  const output = {
+    info: vi.fn(() => outputInfo),
+    choose: vi.fn(async () => ({ ...outputInfo, dir: 'D:/subs', isDefault: false }) as typeof outputInfo | null),
+    reset: vi.fn(() => outputInfo),
+  };
   const updates = {
     state: vi.fn(() => ({ phase: 'idle' })),
     check: vi.fn(async () => ({ phase: 'available', version: '0.3.0' })),
@@ -56,7 +62,8 @@ function setup(
     openFolder: async (dir) => {
       opened.push(dir);
     },
-    outDir: 'C:/out',
+    defaultOutDir: 'C:/out',
+    output: output as unknown as HandlerDeps['output'],
     deleteJobFiles: deleteFiles,
     fileExists: over.fileExists ?? (() => true),
     setup: service as unknown as HandlerDeps['setup'],
@@ -66,7 +73,7 @@ function setup(
     channels: { store: channelStore, add: addChannel, refresh: refreshChannels },
     updates: updates as unknown as HandlerDeps['updates'],
   });
-  return { deleteFiles, updates, handlers, repo, stages, queue, opened, service, channelStore, addChannel, refreshChannels };
+  return { output, deleteFiles, updates, handlers, repo, stages, queue, opened, service, channelStore, addChannel, refreshChannels };
 }
 
 const options = { translate: false, summarize: false, skim: false, maxMinutes: 30, model: 'large-v3' };
@@ -204,7 +211,30 @@ describe('handlers', () => {
     expect(await t.handlers['dialog:pickGlossary']()).toEqual({ ok: true, value: null });
     seedJob(t.repo, ['あ']);
     expect(await t.handlers['job:openOutputFolder'](1)).toEqual({ ok: true, value: null });
-    expect(t.opened).toEqual(['C:/out']);
+    expect(t.opened).toEqual(['C:/out']); // a job with no recorded folder is in the default one
+  });
+
+  it('job:openOutputFolder opens the folder the job was written to, not the current setting', async () => {
+    const t = setup();
+    const job = seedJob(t.repo, ['あ']);
+    t.repo.setJobOutDir(job.id, 'D:/old subs');
+    expect(await t.handlers['job:openOutputFolder'](job.id)).toEqual({ ok: true, value: null });
+    expect(t.opened).toEqual(['D:/old subs']);
+  });
+
+  it('output:get, output:choose and output:reset delegate to the output folder service', async () => {
+    const t = setup();
+    expect(await t.handlers['output:get']()).toEqual({ ok: true, value: { dir: 'C:/out', isDefault: true, locked: false } });
+    expect(await t.handlers['output:choose']()).toEqual({ ok: true, value: { dir: 'D:/subs', isDefault: false, locked: false } });
+    t.output.choose.mockResolvedValueOnce(null);
+    expect(await t.handlers['output:choose']()).toEqual({ ok: true, value: null });
+    expect(await t.handlers['output:reset']()).toEqual({ ok: true, value: { dir: 'C:/out', isDefault: true, locked: false } });
+  });
+
+  it('output:choose passes a folder that cannot be written to back as an error result', async () => {
+    const t = setup();
+    t.output.choose.mockRejectedValueOnce(new BgtError('InvalidInput', "Can't write to Z:/nope"));
+    expect(await t.handlers['output:choose']()).toMatchObject({ ok: false, error: { code: 'InvalidInput', message: "Can't write to Z:/nope" } });
   });
 
   it('channels:add trims the text, follows the channel and returns it; empty text is refused', async () => {
@@ -258,7 +288,15 @@ describe('handlers', () => {
     expect(await t.handlers['job:delete'](job.id)).toEqual({ ok: true, value: null });
     expect(t.repo.getJob(job.id)).toBeUndefined();
     expect(t.repo.getJob(kept.id)).toBeDefined();
-    expect(t.deleteFiles).toHaveBeenCalledWith(job.id);
+    expect(t.deleteFiles).toHaveBeenCalledWith(job.id, 'C:/out');
+  });
+
+  it("job:delete removes the files from the folder the job was written to", async () => {
+    const t = setup();
+    const job = seedJob(t.repo, ['あ']);
+    t.repo.setJobOutDir(job.id, 'D:/old subs');
+    await t.handlers['job:delete'](job.id);
+    expect(t.deleteFiles).toHaveBeenCalledWith(job.id, 'D:/old subs');
   });
 
   it('job:delete rejects bad ids and unknown jobs without touching any files', async () => {

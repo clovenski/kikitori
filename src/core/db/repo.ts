@@ -21,6 +21,8 @@ export interface JobRow {
   createdAt: string;
   title: string | null;
   videoId: string | null;
+  /** Folder the job's subtitles and summaries were written to; null for a job that has not run since this was recorded. */
+  outDir: string | null;
 }
 
 export interface ChunkRow {
@@ -44,6 +46,7 @@ interface JobDb {
   created_at: string;
   title: string | null;
   video_id: string | null;
+  out_dir: string | null;
 }
 
 interface ChunkDb {
@@ -75,6 +78,7 @@ const toJob = (r: JobDb): JobRow => ({
   createdAt: r.created_at,
   title: r.title,
   videoId: r.video_id,
+  outDir: r.out_dir,
 });
 
 const toChunk = (r: ChunkDb): ChunkRow => ({
@@ -158,6 +162,10 @@ export class Repo {
   /** Startup recovery: a job still `running` was cut off by a crash or a hard kill. Returns how many. */
   resetRunningJobs(): number {
     return this.db.prepare("UPDATE jobs SET status = 'pending' WHERE status = 'running'").run().changes;
+  }
+
+  setJobOutDir(id: number, outDir: string): void {
+    this.db.prepare('UPDATE jobs SET out_dir = ? WHERE id = ?').run(outDir, id);
   }
 
   setJobStatus(id: number, status: JobStatus): void {

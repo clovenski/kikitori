@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -9,7 +9,7 @@ import type { LlmChat } from '../../src/core/llm/client';
 import type { ModelPool, ModelRole } from '../../src/core/pipeline/stages';
 import type { Segment } from '../../src/core/types';
 import { echoTranslate, scriptedChat } from '../helpers/llm-fakes';
-import { makeFakeDeps, memoryRepos } from '../helpers/fakes';
+import { makeFakeDeps, memoryRepos, seedJob } from '../helpers/fakes';
 
 const seg = (text: string, startMs: number, endMs: number): Segment => ({ startMs, endMs, text, lang: 'ja', avgLogprob: -0.3 });
 
@@ -56,7 +56,8 @@ function setup(over: { truth?: Segment[]; onTranscribe?: (f: string) => void } =
     stages,
     makeDeps: () => fakes.deps,
     workRoot: path.join(root, 'work'),
-    outDir: path.join(root, 'out'),
+    outDir: () => path.join(root, 'out'),
+    defaultOutDir: path.join(root, 'default'),
     pool,
     log: () => {},
   };
@@ -153,6 +154,30 @@ describe('runSubmission', () => {
     expect(t.jobs).toEqual([1]); // the queue is told which job this is
     expect(t.stages.getStage(1, 'translate')).toBe('done');
     expect(t.stages.getStage(1, 'summarize')).toBe('done');
+  });
+
+  it('writes into the current output folder and records it on the job', async () => {
+    const t = setup();
+    await runSubmission(t.env, sub(), t.ctx);
+    expect(t.repo.getJob(1)?.outDir).toBe(path.join(root, 'out'));
+    expect(existsSync(path.join(root, 'out', 'job-1.ja.srt'))).toBe(true);
+  });
+
+  it('keeps writing a job into the folder it started in, even after the output folder setting changed', async () => {
+    const t = setup();
+    await runSubmission(t.env, sub(), t.ctx);
+    t.env.outDir = () => path.join(root, 'moved');
+    await runSubmission(t.env, { ...sub({ translate: true }), jobId: 1 }, t.ctx);
+    expect(existsSync(path.join(root, 'out', 'job-1.en.srt'))).toBe(true);
+    expect(existsSync(path.join(root, 'moved'))).toBe(false);
+  });
+
+  it('a finished job from before folders were recorded continues in the default folder where its files are', async () => {
+    const t = setup();
+    const old = seedJob(t.repo, ['あ']); // done, with no recorded folder: what an older database looks like
+    t.env.outDir = () => path.join(root, 'moved');
+    await runSubmission(t.env, { ...sub({ translate: true }), jobId: old.id }, t.ctx);
+    expect(existsSync(path.join(root, 'default', 'job-1.en.srt'))).toBe(true);
   });
 
   it('still transcribes when the linked job is not finished', async () => {

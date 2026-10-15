@@ -25,7 +25,7 @@ beforeEach(() => {
 describe('migrate', () => {
   it('is idempotent and sets user_version', () => {
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(4);
+    expect(db.pragma('user_version', { simple: true })).toBe(5);
   });
 });
 
@@ -43,6 +43,13 @@ describe('jobs', () => {
     expect(a).toMatchObject({ title: null, videoId: null });
     expect(b).toMatchObject({ title: 'My video', videoId: 'abcdefghijk' });
     expect(repo.listJobs().map((j) => j.id)).toEqual([b.id, a.id]);
+  });
+
+  it('remembers the folder a job writes to, and has none until it is set', () => {
+    const job = repo.createJob({ source: 'a', rangeStartMs: 0, rangeEndMs: 1000, settings });
+    expect(job.outDir).toBeNull();
+    repo.setJobOutDir(job.id, 'D:/subs');
+    expect(repo.getJob(job.id)?.outDir).toBe('D:/subs');
   });
 
   it('creates and reads back a job', () => {

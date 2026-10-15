@@ -13,7 +13,10 @@ export interface RunSubmissionEnv {
   /** Builds pipeline dependencies for the submission's model (shares the app's database). */
   makeDeps(sub: Submission): PipelineDeps;
   workRoot: string;
-  outDir: string;
+  /** The folder new jobs write to; read each time a job starts, because the user can change it. */
+  outDir(): string;
+  /** Where jobs from before the folder was recorded wrote their files. */
+  defaultOutDir: string;
   pool: ModelPool;
   log(message: string): void;
   /** False when the general (summaries) model is not installed: the automatic name list is skipped. */
@@ -45,7 +48,7 @@ export async function runSubmission(env: RunSubmissionEnv, sub: Submission, ctx:
       repo: env.repo,
       stages: env.stages,
       job,
-      outDir: env.outDir,
+      outDir: job.outDir ?? env.defaultOutDir,
       pool: env.pool,
       log: env.log,
       signal: ctx.signal,
@@ -66,7 +69,7 @@ async function transcribe(env: RunSubmissionEnv, sub: Submission, ctx: RunContex
     model: options.model,
     language: 'ja',
     workRoot: env.workRoot,
-    outDir: env.outDir,
+    outDir: env.outDir(),
     keepWork: false,
     signal: ctx.signal,
     onJob: (job) => ctx.onJob(job.id),

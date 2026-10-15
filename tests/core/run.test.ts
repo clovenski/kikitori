@@ -73,6 +73,29 @@ describe('runJob', () => {
     expect(existsSync(result.jsonPath)).toBe(true);
   });
 
+  it('records the folder the job writes to, and a resumed job records the folder of its latest run', async () => {
+    const repo = memoryRepo();
+    const { deps } = makeFakeDeps(repo, { durationMs: 600_000, truth: [seg('hi', 1_000, 2_000)] });
+    const first = path.join(root, 'first');
+    const second = path.join(root, 'second');
+    let aborted = false;
+    const { deps: failing } = makeFakeDeps(repo, {
+      durationMs: 600_000,
+      onTranscribe: () => {
+        aborted = true;
+        throw new Error('stop');
+      },
+    });
+    await runJob(failing, params({ outDir: first })).catch(() => {});
+    expect(aborted).toBe(true);
+    const job = repo.listJobs()[0];
+    expect(job.outDir).toBe(first);
+
+    const result = await runJob(deps, params({ outDir: second }));
+    expect(result.jobId).toBe(job.id);
+    expect(repo.getJob(job.id)?.outDir).toBe(second);
+  });
+
   it('adds the range start to subtitle times and passes the range to the fetcher', async () => {
     const repo = memoryRepo();
     const { deps, fetchCalls } = makeFakeDeps(repo, {

@@ -19,7 +19,7 @@ const item = (videoId: string, tab: 'videos' | 'streams' = 'videos') => ({ video
 describe('migration 4', () => {
   it('creates the channel tables and is idempotent', () => {
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(4);
+    expect(db.pragma('user_version', { simple: true })).toBe(5);
     const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all().map((r) => (r as { name: string }).name);
     expect(tables).toEqual(expect.arrayContaining(['channels', 'feed_items']));
   });

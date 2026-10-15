@@ -46,6 +46,11 @@ const api: BgtApi = {
     openNotices: () => invoke(CHANNELS.setupOpenNotices),
     onProgress: (cb) => subscribe<SetupProgress>(CHANNELS.setupProgress, cb),
   },
+  output: {
+    get: () => invoke(CHANNELS.outputGet),
+    choose: () => invoke(CHANNELS.outputChoose),
+    reset: () => invoke(CHANNELS.outputReset),
+  },
   channels: {
     list: () => invoke(CHANNELS.channelsList),
     add: (input) => invoke(CHANNELS.channelsAdd, input),

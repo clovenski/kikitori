@@ -172,6 +172,7 @@ async function runJobInner(deps: PipelineDeps, params: RunParams): Promise<RunRe
     });
   }
   repo.setJobStatus(job.id, 'running');
+  repo.setJobOutDir(job.id, params.outDir); // files are found here later, even after the output folder setting changes
   params.onJob?.(job);
 
   const rangeMs = range.endMs - range.startMs;

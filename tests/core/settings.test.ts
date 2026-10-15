@@ -39,6 +39,15 @@ describe('read/write', () => {
     expect(readSettings(dir)).toBeNull();
   });
 
+  it('keeps a chosen output folder, and ignores an empty or non-text one', () => {
+    writeSettings(dir, { ...defaultSettings('cpu'), outputDir: 'D:/subs' });
+    expect(readSettings(dir)?.outputDir).toBe('D:/subs');
+    for (const bad of ['', 5, null]) {
+      writeFileSync(path.join(dir, 'settings.json'), JSON.stringify({ ...defaultSettings('cpu'), outputDir: bad }));
+      expect(readSettings(dir)).toEqual(defaultSettings('cpu'));
+    }
+  });
+
   it('currentTier and defaultTranscribeModel follow the saved tier, gpu when unset', () => {
     expect(currentTier(dir)).toBe('gpu');
     expect(defaultTranscribeModel(dir)).toBe('large-v3');

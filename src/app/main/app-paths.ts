@@ -18,6 +18,8 @@ export interface AppPaths {
   dataDir: string;
   /** Subtitles and summaries. */
   outDir: string;
+  /** True when KTR_OUTPUT_DIR fixes the output folder, so the app must not offer to change it. */
+  outDirLocked: boolean;
   /** Electron's userData folder to use, or null to keep the default. */
   userData: string | null;
 }
@@ -33,6 +35,7 @@ export function resolveAppPaths(a: AppPathsInput): AppPaths {
     outDir:
       env.KTR_OUTPUT_DIR ??
       (a.packaged && !env.KTR_USER_DATA ? path.join(a.documents, 'Kikitori') : path.join(base, 'output')),
+    outDirLocked: env.KTR_OUTPUT_DIR !== undefined,
     userData: profile,
   };
 }

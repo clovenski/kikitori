@@ -44,11 +44,14 @@ along. It also works on audio and video files you already have.
 4. Paste a YouTube link (or drop an audio/video file) and press **Add to queue**.
 
 Once installed, the app checks GitHub for a newer release a little after it starts and every few hours. It only tells
-you (and **Tools > Check for updates** asks on demand): nothing is downloaded until you press **Download**, and
+you (and **Settings > Check for updates** asks on demand): nothing is downloaded until you press **Download**, and
 nothing is installed until you press **Restart and update**.
 
 Downloaded tools and models live in `%APPDATA%\Kikitori`; subtitles and summaries are written to
-`Documents\Kikitori`. Uninstalling keeps them, so delete the first folder yourself to free the space.
+`Documents\Kikitori` unless you pick another folder under **Settings > Change folder...**.
+The new folder applies to jobs started after the change; files from earlier jobs stay where they were saved, and
+**Open output folder** and deleting a job still find them. Uninstalling keeps everything, so delete the first folder
+yourself to free the space.
 Antivirus programs sometimes flag yt-dlp or the model runtimes; they are downloaded from their publishers and
 checked against pinned checksums.
 

@@ -68,7 +68,7 @@ export function App() {
             Channels
             {newVideos > 0 && <span className="count">{newVideos}</span>}
           </button>
-          <button onClick={() => setToolsOpen(true)}>Tools</button>
+          <button onClick={() => setToolsOpen(true)}>Settings</button>
           <button className="primary" onClick={() => openNewJob()}>
             New job
           </button>

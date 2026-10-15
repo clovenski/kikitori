@@ -3,7 +3,8 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ToolsDialog } from '../../src/app/renderer/components/ToolsDialog';
 import { ApiProvider } from '../../src/app/renderer/lib/api';
-import type { BgtApi, UpdateState } from '../../src/app/shared/ipc';
+import type { BgtApi, OutputDirInfo, UpdateState } from '../../src/app/shared/ipc';
+import { DEFAULT_OUTPUT, fakeOutputApi } from './output-fakes';
 import { fakeSetupApi, stateFor } from './setup-fakes';
 import { fakeUpdatesApi } from './update-fakes';
 
@@ -11,17 +12,18 @@ afterEach(cleanup);
 
 const GPU_BASE = ['yt-dlp', 'ffmpeg', 'vad', 'whisper-gpu', 'model-transcribe-gpu'];
 
-function renderTools(state = stateFor({}, GPU_BASE), checkResult: UpdateState = { phase: 'idle' }) {
+function renderTools(state = stateFor({}, GPU_BASE), checkResult: UpdateState = { phase: 'idle' }, outputInfo: OutputDirInfo = DEFAULT_OUTPUT) {
   const fake = fakeSetupApi({ state });
   const up = fakeUpdatesApi({ phase: 'idle' }, checkResult);
+  const out = fakeOutputApi(outputInfo);
   const onChanged = vi.fn();
   const onClose = vi.fn();
   render(
-    <ApiProvider api={{ ...fake.api, ...up.api } as BgtApi}>
+    <ApiProvider api={{ ...fake.api, ...up.api, ...out.api } as BgtApi}>
       <ToolsDialog state={state} onChanged={onChanged} onClose={onClose} />
     </ApiProvider>,
   );
-  return { ...fake, onChanged, onClose, up };
+  return { ...fake, onChanged, onClose, up, out };
 }
 
 describe('ToolsDialog', () => {
@@ -30,6 +32,45 @@ describe('ToolsDialog', () => {
     expect(screen.getByText('Title yt-dlp').parentElement?.textContent).toContain('Installed');
     expect(screen.getByText('Title model-translate-gpu').parentElement?.textContent).toContain('Not installed');
     expect(screen.queryByText('Title model-translate-cpu')).toBeNull();
+  });
+
+  it('shows the output folder and says it is the default', async () => {
+    renderTools();
+    expect(await screen.findByText(DEFAULT_OUTPUT.dir)).toBeTruthy();
+    expect(screen.getByText(/Default location/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Use default folder' })).toBeNull();
+  });
+
+  it('changes the output folder through the picker and shows the new one, with a way back to the default', async () => {
+    const t = renderTools();
+    await screen.findByText(DEFAULT_OUTPUT.dir);
+    t.out.output.choose.mockResolvedValueOnce({ ok: true, value: { dir: 'D:/Subs', isDefault: false, locked: false } });
+    fireEvent.click(screen.getByRole('button', { name: 'Change folder...' }));
+    expect(await screen.findByText('D:/Subs')).toBeTruthy();
+    expect(screen.queryByText(/Default location/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Use default folder' }));
+    expect(await screen.findByText(DEFAULT_OUTPUT.dir)).toBeTruthy();
+    expect(t.out.output.reset).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the current output folder when the picker is cancelled, and shows why a folder was refused', async () => {
+    const t = renderTools();
+    await screen.findByText(DEFAULT_OUTPUT.dir);
+    fireEvent.click(screen.getByRole('button', { name: 'Change folder...' })); // the fake picker is cancelled by default
+    await waitFor(() => expect(t.out.output.choose).toHaveBeenCalledTimes(1));
+    expect(screen.getByText(DEFAULT_OUTPUT.dir)).toBeTruthy();
+    t.out.output.choose.mockResolvedValueOnce({ ok: false, error: { code: 'InvalidInput', message: "Can't write to Z:/nope" } });
+    fireEvent.click(screen.getByRole('button', { name: 'Change folder...' }));
+    expect(await screen.findByText("Can't write to Z:/nope")).toBeTruthy();
+    expect(screen.getByText(DEFAULT_OUTPUT.dir)).toBeTruthy();
+  });
+
+  it('cannot change an output folder that the environment fixes', async () => {
+    renderTools(stateFor({}, GPU_BASE), { phase: 'idle' }, { dir: 'E:/fixed', isDefault: false, locked: true });
+    expect(await screen.findByText('E:/fixed')).toBeTruthy();
+    expect(screen.getByText(/KTR_OUTPUT_DIR/)).toBeTruthy();
+    expect((screen.getByRole('button', { name: 'Change folder...' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByRole('button', { name: 'Use default folder' })).toBeNull();
   });
 
   it('checks for updates and says what it found', async () => {

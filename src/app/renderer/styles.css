@@ -109,6 +109,8 @@ button.icon-danger:hover, button.icon-danger:focus-visible { background: color-m
 .install-list li { display: flex; justify-content: space-between; gap: 12px; }
 .install-list .state-done { color: var(--ok); }
 .tools-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 40vh; overflow: auto; }
+.output-dir { display: grid; gap: 6px; }
+.output-dir .path { font-family: ui-monospace, Consolas, monospace; font-size: 12px; overflow-wrap: anywhere; padding: 6px 8px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
 .tools-list li { display: flex; justify-content: space-between; gap: 12px; }
 .dialog .install-list { margin: 0; }
 .content > .notice { margin-bottom: 12px; display: flex; gap: 8px; align-items: center; justify-content: space-between; }

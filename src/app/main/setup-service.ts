@@ -122,6 +122,7 @@ export class SetupService {
         tier: sel.tier,
         features: sel.features,
         setupCompleted: before.setupCompleted && !switching,
+        ...(before.outputDir === undefined ? {} : { outputDir: before.outputDir }),
       };
       writeSettings(this.d.dataDir, saved);
       await this.installMissing(sel.tier, sel.features, signal);

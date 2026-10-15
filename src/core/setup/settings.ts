@@ -9,6 +9,8 @@ export interface Settings {
   tier: Tier;
   features: { translation: boolean; summaries: boolean };
   setupCompleted: boolean;
+  /** Where subtitles and summaries are written; absent means the default folder. */
+  outputDir?: string;
 }
 
 export const defaultSettings = (tier: Tier = 'gpu'): Settings => ({
@@ -26,7 +28,14 @@ export function readSettings(dataDir: string): Settings | null {
     const f = raw.features;
     if (raw.version !== 1 || (raw.tier !== 'gpu' && raw.tier !== 'cpu') || typeof raw.setupCompleted !== 'boolean') return null;
     if (!f || typeof f.translation !== 'boolean' || typeof f.summaries !== 'boolean') return null;
-    return { version: 1, tier: raw.tier, features: { translation: f.translation, summaries: f.summaries }, setupCompleted: raw.setupCompleted };
+    const settings: Settings = {
+      version: 1,
+      tier: raw.tier,
+      features: { translation: f.translation, summaries: f.summaries },
+      setupCompleted: raw.setupCompleted,
+    };
+    if (typeof raw.outputDir === 'string' && raw.outputDir !== '') settings.outputDir = raw.outputDir;
+    return settings;
   } catch {
     return null;
   }

@@ -104,6 +104,9 @@ const MIGRATIONS: string[] = [
   );
   CREATE INDEX idx_feed_channel ON feed_items(channel_id, first_seen_at);
   `,
+  `
+  ALTER TABLE jobs ADD COLUMN out_dir TEXT;
+  `,
 ];
 
 export function migrate(db: Database): void {

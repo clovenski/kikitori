@@ -16,6 +16,7 @@ describe('resolveAppPaths', () => {
       resourcesDir: path.join('C:/proj', 'resources'),
       dataDir: path.join('C:/proj', 'data'),
       outDir: path.join('C:/proj', 'output'),
+      outDirLocked: false,
       userData: null,
     });
   });
@@ -28,6 +29,7 @@ describe('resolveAppPaths', () => {
       resourcesDir: path.join(profile, 'resources'),
       dataDir: path.join(profile, 'data'),
       outDir: path.join(base.documents, 'Kikitori'),
+      outDirLocked: false,
       userData: profile,
     });
   });
@@ -49,5 +51,6 @@ describe('resolveAppPaths', () => {
       env: { KTR_PROJECT_ROOT: 'X', KTR_RESOURCES_DIR: 'R', KTR_DATA_DIR: 'D', KTR_OUTPUT_DIR: 'O' },
     });
     expect([p.projectRoot, p.resourcesDir, p.dataDir, p.outDir]).toEqual(['X', 'R', 'D', 'O']);
+    expect(p.outDirLocked).toBe(true); // an explicit output folder cannot be changed from the app
   });
 });

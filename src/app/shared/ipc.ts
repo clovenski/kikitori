@@ -139,6 +139,15 @@ export interface QueueProgressEvent {
   event: ProgressEvent;
 }
 
+/** Where subtitles and summaries for new jobs are written. */
+export interface OutputDirInfo {
+  dir: string;
+  /** True when `dir` is the folder the app picked itself, not one the user chose. */
+  isDefault: boolean;
+  /** True when the environment fixes the folder, so the app cannot change it. */
+  locked: boolean;
+}
+
 export interface BgtApi {
   ping(): Promise<string>;
   library: { list(): Promise<Result<LibraryItem[]>> };
@@ -179,6 +188,12 @@ export interface BgtApi {
     updateYtDlp(): Promise<Result<string>>;
     openNotices(): Promise<Result<null>>;
     onProgress(cb: (p: SetupProgress) => void): () => void;
+  };
+  output: {
+    get(): Promise<Result<OutputDirInfo>>;
+    /** Opens the folder picker. Resolves to null when the user cancels. */
+    choose(): Promise<Result<OutputDirInfo | null>>;
+    reset(): Promise<Result<OutputDirInfo>>;
   };
   channels: {
     list(): Promise<Result<ChannelInfo[]>>;
@@ -230,6 +245,9 @@ export const CHANNELS = {
   setupUpdateYtDlp: 'setup:updateYtDlp',
   setupOpenNotices: 'setup:openNotices',
   setupProgress: 'setup:progress',
+  outputGet: 'output:get',
+  outputChoose: 'output:choose',
+  outputReset: 'output:reset',
   channelsList: 'channels:list',
   channelsAdd: 'channels:add',
   channelsRemove: 'channels:remove',

@@ -120,6 +120,15 @@ describe('SetupService', () => {
     expect(readSettings(data)).toMatchObject({ tier: 'cpu', setupCompleted: true });
   });
 
+  it('a tier switch keeps the chosen output folder', async () => {
+    const { service, lock } = setup();
+    installFake(lock, res, ['yt-dlp', 'ffmpeg', 'vad', 'whisper-gpu', 'model-transcribe-gpu']);
+    writeSettings(data, { version: 1, tier: 'gpu', features: { translation: false, summaries: false }, setupCompleted: true, outputDir: 'D:/subs' });
+    service.start(cpuNoLlm);
+    await service.whenIdle();
+    expect(readSettings(data)).toMatchObject({ tier: 'cpu', outputDir: 'D:/subs' });
+  });
+
   it('refuses to switch tier or repair while a job is running, but still adds missing parts', async () => {
     const { service, lock, uninstalled, installs } = setup({ jobRunning: () => true });
     installFake(lock, res, ['yt-dlp', 'ffmpeg', 'vad', 'whisper-gpu', 'model-transcribe-gpu']);

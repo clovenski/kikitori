@@ -33,6 +33,7 @@ import { denyAllPermissions, runShutdown, runStartup, shouldConfirmQuit } from '
 import { applyAppMenu } from './menu';
 import { isAllowedNavigation } from './navigation';
 import { deleteJobFiles } from './job-files';
+import { OutputDirService } from './output-dir';
 import { JobQueue } from './queue';
 import { runSubmission } from './run-submission';
 
@@ -150,7 +151,7 @@ void app.whenReady().then(() => runStartup(async () => {
   // Before anything can start: kill helpers an earlier crash left behind, then record this run's helpers.
   const cleaned = await startChildTracking(path.join(dir, 'children.json'));
   if (cleaned.killed.length > 0) console.log(`Cleaned up ${cleaned.killed.length} orphaned helper process(es).`);
-  const outDir = path.resolve(paths.outDir);
+  const defaultOutDir = path.resolve(paths.outDir);
   const db = openDb(path.join(dir, 'bgt.sqlite'));
   const repo = new Repo(db);
   repo.resetRunningJobs(); // a crash or hard kill can leave jobs claiming to be running
@@ -175,6 +176,15 @@ void app.whenReady().then(() => runStartup(async () => {
     updateYtDlp: () => updateYtDlp(resolveTool('yt-dlp')),
     emit: (p) => broadcast(CHANNELS.setupProgress, p),
     log: (m) => console.log(m),
+  });
+  const output = new OutputDirService({
+    dataDir: dir,
+    defaultDir: defaultOutDir,
+    locked: paths.outDirLocked,
+    pick: async (current) => {
+      const r = await dialog.showOpenDialog({ title: 'Choose where to save subtitles and summaries', defaultPath: current, properties: ['openDirectory', 'createDirectory'] });
+      return r.canceled || r.filePaths.length === 0 ? null : r.filePaths[0];
+    },
   });
   const channelDeps = { store: channelStore, ytdlpPath: () => resolveTool('yt-dlp'), log: (m: string) => console.log(m) };
   const watcher = new ChannelWatcher({
@@ -216,7 +226,8 @@ void app.whenReady().then(() => runStartup(async () => {
           makeDeps: () => createRealDeps({ dataDir: dir, model: model(), db, log: (m) => console.log(m) }).deps,
           autoGlossary: () => setup.autoGlossaryAvailable(),
           workRoot: path.join(dir, 'work'),
-          outDir,
+          outDir: () => output.current(),
+          defaultOutDir,
           pool,
           log: (m) => console.log(m),
         },
@@ -245,8 +256,9 @@ void app.whenReady().then(() => runStartup(async () => {
       openFolder: async (folder) => {
         await shell.openPath(folder);
       },
-      outDir,
-      deleteJobFiles: (jobId) => deleteJobFiles({ outDir, workRoot: path.join(dir, 'work') }, jobId),
+      defaultOutDir,
+      output,
+      deleteJobFiles: (jobId, outDir) => deleteJobFiles({ outDir, workRoot: path.join(dir, 'work') }, jobId),
       fileExists: existsSync,
       setup,
       openNotices: async () => {

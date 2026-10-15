@@ -10,6 +10,7 @@ import { isUrl } from '../../core/pipeline/real-deps';
 import { CHANNELS, type ProbeResult, type Result } from '../shared/ipc';
 import { buildFeed, toChannelInfo } from './channel-service';
 import { getJobDetail, listLibrary } from './library-service';
+import type { OutputDirService } from './output-dir';
 import type { JobQueue } from './queue';
 import type { SetupService } from './setup-service';
 import type { UpdateService } from './update-service';
@@ -33,9 +34,11 @@ export interface HandlerDeps {
   speedFactor(): number | null;
   pickFile(kind: 'media' | 'glossary'): Promise<string | null>;
   openFolder(dir: string): Promise<void>;
-  outDir: string;
-  /** Removes the output and work files of a deleted job. */
-  deleteJobFiles(jobId: number): void;
+  /** Where the files of a job that has no recorded folder live (jobs from before the folder could be changed). */
+  defaultOutDir: string;
+  output: Pick<OutputDirService, 'info' | 'choose' | 'reset'>;
+  /** Removes the output files (from `outDir`) and the work files of a deleted job. */
+  deleteJobFiles(jobId: number, outDir: string): void;
   /** Injectable for tests; defaults to the real file system. */
   fileExists?(path: string): boolean;
   setup: Pick<SetupService, 'state' | 'detect' | 'plan' | 'missingFor' | 'start' | 'cancel' | 'repair' | 'updateYtDlp'>;
@@ -76,17 +79,19 @@ export function createHandlers(d: HandlerDeps) {
     [CHANNELS.jobOpenOutputFolder]: (arg?: unknown) =>
       wrap(async () => {
         const id = parseId(arg, 'job id');
-        if (!d.repo.getJob(id)) throw new BgtError('InvalidInput', `There is no job ${id}.`);
-        await d.openFolder(d.outDir);
+        const job = d.repo.getJob(id);
+        if (!job) throw new BgtError('InvalidInput', `There is no job ${id}.`);
+        await d.openFolder(job.outDir ?? d.defaultOutDir);
         return null;
       }),
     [CHANNELS.jobDelete]: (arg?: unknown) =>
       wrap(() => {
         const id = parseId(arg, 'job id');
-        if (!d.repo.getJob(id)) throw new BgtError('InvalidInput', `There is no job ${id}.`);
+        const job = d.repo.getJob(id);
+        if (!job) throw new BgtError('InvalidInput', `There is no job ${id}.`);
         d.queue.removeJob(id); // throws while the job runs, before anything is lost
         d.repo.deleteJob(id);
-        d.deleteJobFiles(id);
+        d.deleteJobFiles(id, job.outDir ?? d.defaultOutDir);
         return null;
       }),
     [CHANNELS.queueList]: () => wrap(() => d.queue.list()),
@@ -146,6 +151,9 @@ export function createHandlers(d: HandlerDeps) {
         await d.openNotices();
         return null;
       }),
+    [CHANNELS.outputGet]: () => wrap(() => d.output.info()),
+    [CHANNELS.outputChoose]: () => wrap(() => d.output.choose()),
+    [CHANNELS.outputReset]: () => wrap(() => d.output.reset()),
     [CHANNELS.channelsList]: () => wrap(() => d.channels.store.listChannels().map(toChannelInfo)),
     [CHANNELS.channelsAdd]: (arg?: unknown) => wrap(async () => toChannelInfo(await d.channels.add(parseChannelText(arg)))),
     [CHANNELS.channelsRemove]: (arg?: unknown) =>
