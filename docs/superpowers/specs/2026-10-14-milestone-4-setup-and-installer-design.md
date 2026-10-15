@@ -36,13 +36,13 @@ Builds on: Milestones 1 to 3, merged on `master`. Related: `docs/known-issues.md
 ### 3.1 Hardware detection (`src/core/setup/hardware.ts`)
 - `parseNvidiaSmi(csv)` reads `nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader,nounits`.
 - `decideTier(hw)` returns `{ tier, reason }`:
-  - `gpu` when an NVIDIA GPU has at least 8192 MB VRAM and driver 551 or newer (the CUDA 12.4 builds need it).
-  - `cpu` otherwise, with a reason such as "no NVIDIA GPU found", "only 6144 MB of VRAM (8192 needed)" or "NVIDIA driver 535 is older than 551".
+  - `gpu` when an NVIDIA GPU has at least 7500 MB VRAM (8 GB cards report 8188 to 8192 MB) and driver 551 or newer (the CUDA 12.4 builds need it).
+  - `cpu` otherwise, with a reason such as "no NVIDIA GPU found", "only 6144 MB of VRAM (8 GB needed)" or "NVIDIA driver 535 is older than 551".
 - Also reports CPU core count and RAM, used only for messages (for example a warning below 8 GB RAM on the CPU tier). Detection failure (no `nvidia-smi`) means "no NVIDIA GPU".
 - The wizard shows the result and lets the user switch tier.
 
 ### 3.2 Components (`tools.lock.json`, schema v2)
-The lock groups pinned downloads into named components. Each component has `id`, `title`, `feature` (`core | transcription | translation | summaries`), `tier` (`all | gpu | cpu`), `license`, `homepage`, and `files` (the existing `LockEntry` shape plus `size` in bytes). Installing a component installs all its files.
+The lock groups pinned downloads into named components. Each component has `id`, `title`, `features` (a list of `core | transcription | translation | summaries`), `tier` (`all | gpu | cpu`), `license`, `homepage`, and `files` (the existing `LockEntry` shape plus `size` in bytes; yt-dlp also has `selfUpdates: true` because `yt-dlp -U` replaces it, so a changed size or checksum is not damage). Installing a component installs all its files.
 
 | Component | Tier | Feature | Contents |
 |---|---|---|---|
@@ -66,7 +66,7 @@ The transcription model name used in jobs follows the tier: `large-v3` on GPU, `
 
 ## 4. Settings and state
 
-`settings.json` in the data directory, written atomically: `{ version: 1, tier, features: { translation, summaries }, setupCompleted, installed: { <componentId>: { version, verifiedAt } } }`. The filesystem is the source of truth for "is it installed"; the `installed` map makes the UI fast and `Repair` rewrites it after re-verifying checksums. In development, a missing `settings.json` plus all components present for some tier writes a completed settings file without showing the wizard.
+`settings.json` in the data directory, written atomically: `{ version: 1, tier, features: { translation, summaries }, setupCompleted }`. The filesystem is the source of truth for "is it installed": a file counts when it exists with the pinned size, an unpacked archive counts when its checksum marker file matches. `Repair` re-hashes model and data files and deletes the ones that do not match, then downloads them again. In development, a missing `settings.json` plus all components present for some tier writes a completed settings file without showing the wizard.
 
 ## 5. Download manager (`src/core/setup/`)
 
