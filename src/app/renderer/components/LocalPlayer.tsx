@@ -5,9 +5,10 @@ interface Props {
   jobId: number;
   startSeconds: number;
   onReady(source: TimeSource): void;
+  onFail(message: string): void;
 }
 
-export function LocalPlayer({ jobId, startSeconds, onReady }: Props) {
+export function LocalPlayer({ jobId, startSeconds, onReady, onFail }: Props) {
   const ref = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     const video = ref.current;
@@ -19,5 +20,15 @@ export function LocalPlayer({ jobId, startSeconds, onReady }: Props) {
     video.addEventListener('loadedmetadata', ready, { once: true });
     return () => video.removeEventListener('loadedmetadata', ready);
   }, [jobId, startSeconds, onReady]);
-  return <video ref={ref} src={`bgt-media://job/${jobId}`} controls style={{ width: '100%', height: '100%' }} />;
+  return (
+    <video
+      ref={ref}
+      src={`bgt-media://job/${jobId}`}
+      controls
+      style={{ width: '100%', height: '100%' }}
+      onError={() =>
+        onFail('This video file could not be played. It may have been moved or deleted, or use a format the player cannot read.')
+      }
+    />
+  );
 }

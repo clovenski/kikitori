@@ -1,5 +1,6 @@
 import type { SubmissionOptions } from '../../core/db/submission-repo';
 import { BgtError } from '../../core/errors';
+import { cleanSource } from '../../core/source-text';
 import type { SubmitRequest } from '../shared/ipc';
 
 const invalid = (message: string) => new BgtError('InvalidInput', message);
@@ -7,8 +8,9 @@ const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'obj
 const isInt = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v);
 
 export function parseSource(raw: unknown): string {
-  if (typeof raw !== 'string' || raw.trim() === '') throw invalid('Enter a YouTube URL or choose a file (source is empty).');
-  return raw.trim();
+  const source = typeof raw === 'string' ? cleanSource(raw) : '';
+  if (source === '') throw invalid('Enter a YouTube URL or choose a file (source is empty).');
+  return source;
 }
 
 export function parseId(raw: unknown, what: string): number {

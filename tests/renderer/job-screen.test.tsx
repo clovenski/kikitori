@@ -15,7 +15,11 @@ vi.mock('../../src/app/renderer/components/YouTubePlayer', () => ({
   ),
 }));
 vi.mock('../../src/app/renderer/components/LocalPlayer', () => ({
-  LocalPlayer: (p: { jobId: number }) => <div data-testid="local" data-job={p.jobId} />,
+  LocalPlayer: (p: { jobId: number; onFail?(m: string): void }) => (
+    <div data-testid="local" data-job={p.jobId}>
+      <button onClick={() => p.onFail?.('This video file could not be played.')}>fail-local</button>
+    </div>
+  ),
 }));
 
 const detail = (over: Partial<JobDetail['item']> = {}, withEnglish = true): JobDetail => ({
@@ -82,6 +86,16 @@ describe('JobScreen', () => {
     expect(screen.getByText('Open on YouTube')).toBeTruthy();
     expect(screen.queryByTestId('yt')).toBeNull();
     expect(screen.getByText('Hello')).toBeTruthy(); // transcript still works
+  });
+
+  it('switches to reader mode with a notice when a local video cannot be played, with no YouTube link', async () => {
+    mount(detail({ isLocalFile: true, videoId: null, source: 'C:/clips/a.wav' }));
+    await act(async () => {});
+    fireEvent.click(screen.getByText('fail-local'));
+    expect(screen.getByText('This video file could not be played.')).toBeTruthy();
+    expect(screen.queryByTestId('local')).toBeNull();
+    expect(screen.queryByText('Open on YouTube')).toBeNull();
+    expect(screen.getByText('Hello')).toBeTruthy(); // the transcript still works
   });
 
   it('shows the summary tab and opens the output folder', async () => {

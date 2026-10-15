@@ -27,6 +27,13 @@ describe('buildSubmitRequest', () => {
     });
   });
 
+  it('strips the quotes Windows adds to "Copy as path"', () => {
+    const q = String.fromCharCode(34);
+    const r = buildSubmitRequest(form({ source: q + 'C:/my clips/a b.wav' + q }), 600_000);
+    expect(r).toMatchObject({ ok: true, request: { source: 'C:/my clips/a b.wav' } });
+    expect(fail(buildSubmitRequest(form({ source: q + q }), null))).toMatch(/URL or choose a file/i);
+  });
+
   it('parses times in the CLI formats and passes the glossary path', () => {
     const r = buildSubmitRequest(form({ start: '1:20:00', end: '1:50:00', glossaryPath: 'C:/g.json' }), 7_200_000);
     expect(r).toMatchObject({ ok: true, request: { startMs: 4_800_000, endMs: 6_600_000, options: { glossaryPath: 'C:/g.json' } } });

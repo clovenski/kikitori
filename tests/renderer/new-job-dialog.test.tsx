@@ -7,7 +7,14 @@ import type { BgtApi } from '../../src/app/shared/ipc';
 
 afterEach(cleanup);
 
-function setup(over: Partial<{ probe: BgtApi['source']['probe']; submit: BgtApi['queue']['submit'] }> = {}) {
+function setup(
+  over: Partial<{
+    probe: BgtApi['source']['probe'];
+    submit: BgtApi['queue']['submit'];
+    pickMedia: BgtApi['dialog']['pickMedia'];
+    pickGlossary: BgtApi['dialog']['pickGlossary'];
+  }> = {},
+) {
   const submit = vi.fn(over.submit ?? (async () => ({ ok: true as const, value: { id: 1 } as never })));
   const api = {
     source: {
@@ -15,7 +22,11 @@ function setup(over: Partial<{ probe: BgtApi['source']['probe']; submit: BgtApi[
       estimate: async () => ({ ok: true as const, value: 120 }),
     },
     queue: { submit },
-    dialog: { pickMedia: async () => ({ ok: true as const, value: 'C:/clip.wav' }), pickGlossary: async () => ({ ok: true as const, value: null }), pathForFile: () => 'C:/dropped.wav' },
+    dialog: {
+      pickMedia: over.pickMedia ?? (async () => ({ ok: true as const, value: 'C:/clip.wav' })),
+      pickGlossary: over.pickGlossary ?? (async () => ({ ok: true as const, value: null })),
+      pathForFile: () => 'C:/dropped.wav',
+    },
   } as unknown as BgtApi;
   const onClose = vi.fn();
   const onSubmitted = vi.fn();
@@ -137,6 +148,34 @@ describe('NewJobDialog', () => {
       fireEvent.blur(input);
     });
     expect(screen.getByText('Second try')).toBeTruthy();
+  });
+
+  it('shows an error instead of throwing when the file chooser fails', async () => {
+    setup({ pickMedia: async () => ({ ok: false as const, error: { code: 'Error', message: 'the dialog could not open' } }) });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Choose file'));
+    });
+    expect(screen.getByText('the dialog could not open')).toBeTruthy();
+  });
+
+  it('shows an error instead of throwing when the glossary chooser fails', async () => {
+    setup({ pickGlossary: async () => ({ ok: false as const, error: { code: 'Error', message: 'no glossary dialog' } }) });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Glossary file...'));
+    });
+    expect(screen.getByText('no glossary dialog')).toBeTruthy();
+  });
+
+  it('probes a pasted path without the surrounding quotes', async () => {
+    const probe = vi.fn(async () => ({ ok: true as const, value: { title: 'Clip', durationMs: 60_000 } }));
+    setup({ probe });
+    const q = String.fromCharCode(34);
+    const input = screen.getByLabelText('YouTube link or file path');
+    fireEvent.change(input, { target: { value: q + 'C:/my clips/a b.wav' + q } });
+    await act(async () => {
+      fireEvent.blur(input);
+    });
+    expect(probe).toHaveBeenCalledWith('C:/my clips/a b.wav');
   });
 
   it('fills the source from the file chooser and from a dropped file', async () => {

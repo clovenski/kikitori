@@ -20,6 +20,13 @@ describe('parseSubmitRequest', () => {
     });
   });
 
+  it('strips the quotes Windows adds to "Copy as path"', () => {
+    const q = String.fromCharCode(34);
+    expect(parseSubmitRequest({ ...good, source: q + 'C:/my clips/a b.wav' + q }).source).toBe('C:/my clips/a b.wav');
+    expect(parseSubmitRequest({ ...good, source: '  ' + q + 'C:/a.wav' + q + '  ' }).source).toBe('C:/a.wav');
+    expect(() => parseSubmitRequest({ ...good, source: q + q })).toThrow(/source/i);
+  });
+
   it('trims the source and keeps a glossary path', () => {
     const r = parseSubmitRequest({ ...good, source: '  C:/a/b.wav ', options: { ...good.options, glossaryPath: 'C:/g.json' } });
     expect(r.source).toBe('C:/a/b.wav');

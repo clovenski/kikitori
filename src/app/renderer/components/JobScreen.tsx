@@ -83,7 +83,7 @@ export function JobScreen({ jobId, onBack }: Props) {
         ) : (
           <PlayerShell lines={lines} mode={mode} size={size} timeMs={timeMs}>
             {item.isLocalFile ? (
-              <LocalPlayer jobId={item.jobId} startSeconds={startSeconds} onReady={onReady} />
+              <LocalPlayer jobId={item.jobId} startSeconds={startSeconds} onReady={onReady} onFail={onFail} />
             ) : item.videoId ? (
               <YouTubePlayer videoId={item.videoId} startSeconds={startSeconds} onReady={onReady} onFail={onFail} />
             ) : (

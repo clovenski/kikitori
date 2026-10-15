@@ -26,6 +26,8 @@ export function YouTubePlayer({ videoId, startSeconds, onReady, onFail }: Props)
 
   useEffect(() => {
     let destroyed = false;
+    let settled = false; // ready or failed; the start-up timer must then stay quiet
+    let readyTimer: ReturnType<typeof setTimeout> | undefined;
     let player: { destroy(): void } | null = null;
     const mount = document.createElement('div');
     host.current?.appendChild(mount);
@@ -46,6 +48,8 @@ export function YouTubePlayer({ videoId, startSeconds, onReady, onFail }: Props)
           },
           events: {
             onReady: () => {
+              settled = true;
+              clearTimeout(readyTimer);
               // Our overlay is the only subtitle track; YouTube's own captions would overlap it.
               created.unloadModule?.('captions');
               created.unloadModule?.('cc');
@@ -58,10 +62,20 @@ export function YouTubePlayer({ videoId, startSeconds, onReady, onFail }: Props)
             onStateChange: (e) => {
               if (e.data === 1) created.unloadModule?.('captions');
             },
-            onError: (e) => callbacks.current.onFail(ERRORS[e.data] ?? `The YouTube player reported error ${e.data}.`),
+            onError: (e) => {
+              settled = true;
+              clearTimeout(readyTimer);
+              callbacks.current.onFail(ERRORS[e.data] ?? `The YouTube player reported error ${e.data}.`);
+            },
           },
         });
         player = created;
+        // The player can load and then never report ready; without this the page would stay blank.
+        readyTimer = setTimeout(() => {
+          if (settled || destroyed) return;
+          settled = true;
+          callbacks.current.onFail('The YouTube player did not start in time. Check your internet connection, or open the video on YouTube.');
+        }, 15_000);
       })
       .catch((err: Error) => {
         if (!destroyed) callbacks.current.onFail(err.message);
@@ -69,6 +83,7 @@ export function YouTubePlayer({ videoId, startSeconds, onReady, onFail }: Props)
 
     return () => {
       destroyed = true;
+      clearTimeout(readyTimer);
       player?.destroy();
       mount.remove();
     };

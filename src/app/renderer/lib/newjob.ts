@@ -1,3 +1,4 @@
+import { cleanSource } from '../../../core/source-text';
 import { parseTimestamp, resolveRange } from '../../../core/time';
 import type { SubmitRequest } from '../../shared/ipc';
 
@@ -17,7 +18,7 @@ export function buildSubmitRequest(
   form: NewJobForm,
   durationMs: number | null,
 ): { ok: true; request: SubmitRequest } | { ok: false; error: string } {
-  const source = form.source.trim();
+  const source = cleanSource(form.source);
   if (source === '') return { ok: false, error: 'Enter a YouTube URL or choose a file.' };
   if (form.skim && form.translate) {
     return { ok: false, error: 'Skim skips full translation, so it cannot be combined with Translate.' };

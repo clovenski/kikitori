@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DragEvent } from 'react';
 import type { ProbeResult } from '../../shared/ipc';
-import { unwrap, useApi } from '../lib/api';
+import { cleanSource } from '../../../core/source-text';
+import { useApi } from '../lib/api';
 import { formatClock, formatEta } from '../lib/format';
 import { buildSubmitRequest, type NewJobForm } from '../lib/newjob';
 
@@ -34,7 +35,7 @@ export function NewJobDialog({ onClose, onSubmitted }: Props) {
 
   const runProbe = useCallback(
     async (source: string) => {
-      const trimmed = source.trim();
+      const trimmed = cleanSource(source);
       if (trimmed === '' || probed.current === trimmed) return;
       probed.current = trimmed;
       setProbe({ kind: 'loading' });
@@ -65,16 +66,28 @@ export function NewJobDialog({ onClose, onSubmitted }: Props) {
   }, [api, probe, form]);
 
   const chooseFile = async () => {
-    const path = unwrap(await api.dialog.pickMedia());
-    if (path) {
-      set('source', path);
-      await runProbe(path);
+    const r = await api.dialog.pickMedia();
+    if (!r.ok) {
+      setError(r.error.message);
+      return;
+    }
+    if (r.value) {
+      setError(null);
+      set('source', r.value);
+      await runProbe(r.value);
     }
   };
 
   const chooseGlossary = async () => {
-    const path = unwrap(await api.dialog.pickGlossary());
-    if (path) set('glossaryPath', path);
+    const r = await api.dialog.pickGlossary();
+    if (!r.ok) {
+      setError(r.error.message);
+      return;
+    }
+    if (r.value) {
+      setError(null);
+      set('glossaryPath', r.value);
+    }
   };
 
   const onDrop = async (e: DragEvent) => {
@@ -108,14 +121,14 @@ export function NewJobDialog({ onClose, onSubmitted }: Props) {
     } else {
       // The user clicked Add before the field lost focus, so nothing has been probed yet.
       setBusy(true);
-      const r = await api.source.probe(form.source.trim());
+      const r = await api.source.probe(cleanSource(form.source));
       setBusy(false);
       if (!r.ok) {
         setProbe({ kind: 'error', message: r.error.message });
         setError(r.error.message);
         return;
       }
-      probed.current = form.source.trim();
+      probed.current = cleanSource(form.source);
       setProbe({ kind: 'ok', info: r.value });
       durationMs = r.value.durationMs;
     }
