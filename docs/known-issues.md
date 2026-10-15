@@ -2,14 +2,9 @@
 
 Things that are known, understood, and deliberately not fixed yet. None of them loses data, kills the wrong process, or leaves the app unusable. Each entry says what happens, why it was left, and what a fix would look like.
 
-Last reviewed: after Milestone 5 (2026-10-14).
+Last reviewed: before the v1.0.0 release (2026-10-15).
 
 ## Desktop app
-
-### A model can restart after shutdown stopped it
-If the queue step of shutdown times out in the middle of a translation or summary stage, `pool.stopAll()` runs and the still-running stage can start a new `llama-server`.
-- **Why it is left:** needs a stuck queue step first; the next launch kills the stray process.
-- **Fix:** make `ModelPool.use()` refuse once `stopAll()` has been called for shutdown.
 
 ### Startup resets a job a CLI is running
 At startup the app turns every job still marked `running` into `pending` ("Not finished"). If you are running `kikitori run` in a terminal at that moment, that job briefly shows as "Not finished" in the library.
@@ -36,10 +31,10 @@ Helper records are only acted on when their owner process is gone. If this proce
 - **Repair re-hashes model and data files.** Unpacked programs (ffmpeg, whisper, llama) are only downloaded again when their marker file is missing.
 - **Changing tier with jobs queued is not handled:** finish or cancel queued jobs first. A resumed submission from before a tier switch runs with the installed tier's speech model.
 - **Pinned download URLs can disappear or be rate limited** (GitHub, Hugging Face, Gyan). The checksum turns that into a clear error; re-pin with `pnpm pin:tools --update` when it happens.
-- **Download robustness, left for later:** HTTP 429/502/503 answers are not retried and the message is the raw URL; the retry budget (4 tries) is used up even by tries that made progress ("Try again" resumes); a full disk during a download is reported as a connection problem and during unpacking names no shortfall; the speed and time-left figures are inflated for one session after a resume; a finished `.part` is renamed before its checksum is checked, so quitting during the check leaves an unverified file that counts as installed; quitting while unpacking downloads the archive again.
+- **Download robustness, left for later:** HTTP 429/502/503 answers are not retried and the message is the raw URL; the retry budget (4 tries) is used up even by tries that made progress ("Try again" resumes); a full disk during a download is reported as a connection problem and during unpacking names no shortfall; the speed and time-left figures are inflated for one session after a resume; quitting while unpacking downloads the archive again.
 - **Setup details, left for later:** cancelling an on-demand download keeps the chosen feature in the settings, which hides Settings > "Add translation and summaries" until it is installed; switching tier inside an unfinished first-run wizard keeps the first tier's partial files; the CLI in a CPU-only checkout that never opened the app assumes the GPU tier; `pnpm setup:tools` replaces a self-updated yt-dlp with the pinned one; "Update yt-dlp" is also offered for errors it cannot fix (private or members-only video).
 - **In the spec, not built:** a RAM warning below 8 GB on the CPU path, component versions on the Tools page, the uninstaller's note about kept models, versions in THIRD_PARTY_NOTICES, a component check when a queued job resumes, and refreshing the Tools list after a failed download.
-- **Not proven yet:** the two GitHub workflows (there is no repository to run them on), the offline error message end to end (it is unit-tested), and the on-demand download prompt in a real window (unit-tested).
+- **Not proven yet:** the offline error message end to end (it is unit-tested), and the on-demand download prompt in a real window (unit-tested).
 
 ## Channel watching (Milestone 5)
 
@@ -57,6 +52,7 @@ Helper records are only acted on when their owner process is gone. If this proce
 - **The installer is unsigned, so an update is trusted by the checksum in `latest.yml`** (served from the GitHub release over HTTPS), not by a signature. Anyone who can publish a release to the repository can ship code to every install. Signing the installer and setting `win.publisherName` makes the updater verify the signature too.
 - **Not tested end to end:** the restart that runs the installer (`quitAndInstall`). Checking and downloading were run against a local update server with the packaged app; installing one over a real install was not.
 - **Closing the app does not install a downloaded update:** only "Restart and update" does (`autoInstallOnAppQuit` is off, on purpose). The next start finds the version again and offers the restart.
+- **A release goes live for everyone at once:** the workflow publishes straight to "Latest" (no draft or staged rollout), so a bad build is offered to every install within minutes. Delete the release (and tag) to stop it; installs that already downloaded it keep it until they restart.
 - **Pre-releases are ignored** (`allowPrerelease` is off), so there is no beta channel.
 
 ## Translation quality (Milestone 2)
