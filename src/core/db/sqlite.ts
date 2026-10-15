@@ -31,6 +31,8 @@ export class Database {
 
   constructor(file: string, opts: { readonly?: boolean } = {}) {
     this.db = new DatabaseSync(file, { readOnly: opts.readonly ?? false });
+    // The CLI and the app share one WAL database. better-sqlite3 waited 5 s for a lock; node:sqlite waits 0.
+    this.db.exec('PRAGMA busy_timeout = 5000');
   }
 
   prepare(sql: string): Statement {

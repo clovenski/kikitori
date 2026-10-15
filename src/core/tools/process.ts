@@ -13,14 +13,22 @@ export interface RunOptions {
   onStderr?: (chunk: string) => void;
 }
 
-export function killTree(child: ChildProcess): void {
-  if (child.pid === undefined) return;
+/**
+ * Kills a child and everything it spawned. Resolves once the kill has been carried out: callers that are
+ * about to exit (app quit) must wait for it, because grandchildren outlive a taskkill that is cut short.
+ */
+export function killTree(child: ChildProcess): Promise<void> {
+  if (child.pid === undefined) return Promise.resolve();
   if (process.platform === 'win32') {
-    // PyInstaller-style exes (yt-dlp) spawn a child; /T takes the whole tree.
-    spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' });
-  } else {
-    child.kill('SIGTERM');
+    // PyInstaller-style exes (yt-dlp) spawn a worker and ffmpeg; /T takes the whole tree.
+    return new Promise((resolve) => {
+      const killer = spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' });
+      killer.once('error', () => resolve());
+      killer.once('close', () => resolve());
+    });
   }
+  child.kill('SIGTERM');
+  return Promise.resolve();
 }
 
 /** Runs a binary without a shell. Rejects with `signal.reason` on abort. */
@@ -47,9 +55,12 @@ export function runProcess(cmd: string, args: string[], opts: RunOptions = {}): 
       opts.onStderr?.(d);
     });
 
+    // Rejecting waits for the whole tree to be killed, so callers that exit right after an abort
+    // (app quit) do not leave grandchildren behind.
+    let killing: Promise<void> | null = null;
     const onAbort = () => {
-      killTree(child);
-      reject(signal?.reason);
+      killing = killTree(child);
+      void killing.then(() => reject(signal?.reason));
     };
     signal?.addEventListener('abort', onAbort, { once: true });
 
@@ -63,7 +74,9 @@ export function runProcess(cmd: string, args: string[], opts: RunOptions = {}): 
     });
     child.on('close', (code) => {
       signal?.removeEventListener('abort', onAbort);
-      resolve({ code, stdout, stderr });
+      // Killed because of an abort: that is a rejection, whichever of close/taskkill finishes first.
+      if (signal?.aborted) void (killing ?? Promise.resolve()).then(() => reject(signal.reason));
+      else resolve({ code, stdout, stderr });
     });
   });
 }

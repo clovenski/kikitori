@@ -79,6 +79,66 @@ describe('NewJobDialog', () => {
     expect(screen.getByText(/Skim skips full translation/)).toBeTruthy();
   });
 
+  it('does not queue while the probe is still running, and says so', async () => {
+    let finish: (v: { ok: true; value: { title: string; durationMs: number } }) => void = () => {};
+    const t = setup({ probe: () => new Promise((resolve) => (finish = resolve as typeof finish)) });
+    const input = screen.getByLabelText('YouTube link or file path');
+    fireEvent.change(input, { target: { value: url } });
+    await act(async () => {
+      fireEvent.blur(input);
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Add to queue'));
+    });
+    expect(t.submit).not.toHaveBeenCalled();
+    expect(screen.getByText(/Still reading the video/)).toBeTruthy();
+    await act(async () => finish({ ok: true, value: { title: 'T', durationMs: 600_000 } }));
+  });
+
+  it('does not queue a source whose probe failed, and shows why', async () => {
+    const t = setup({ probe: async () => ({ ok: false as const, error: { code: 'DownloadFailed', message: 'video is private' } }) });
+    const input = screen.getByLabelText('YouTube link or file path');
+    fireEvent.change(input, { target: { value: url } });
+    await act(async () => {
+      fireEvent.blur(input);
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Add to queue'));
+    });
+    expect(t.submit).not.toHaveBeenCalled();
+    expect(screen.getAllByText('video is private').length).toBeGreaterThan(0);
+  });
+
+  it('probes first when the user clicks Add right after typing (no blur yet), and enforces the length cap', async () => {
+    const t = setup({ probe: async () => ({ ok: true as const, value: { title: 'Long stream', durationMs: 40 * 60_000 } }) });
+    fireEvent.change(screen.getByLabelText('YouTube link or file path'), { target: { value: url } });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Add to queue'));
+    });
+    expect(t.submit).not.toHaveBeenCalled(); // 40 minutes without a range exceeds the 30 minute cap
+    expect(screen.getByText(/30 min limit/)).toBeTruthy();
+  });
+
+  it('probes the same source again after a failed probe, so a transient error is not a dead end', async () => {
+    let calls = 0;
+    setup({
+      probe: async () =>
+        ++calls === 1
+          ? { ok: false as const, error: { code: 'DownloadFailed', message: 'network hiccup' } }
+          : { ok: true as const, value: { title: 'Second try', durationMs: 600_000 } },
+    });
+    const input = screen.getByLabelText('YouTube link or file path');
+    fireEvent.change(input, { target: { value: url } });
+    await act(async () => {
+      fireEvent.blur(input);
+    });
+    expect(screen.getByText('network hiccup')).toBeTruthy();
+    await act(async () => {
+      fireEvent.blur(input);
+    });
+    expect(screen.getByText('Second try')).toBeTruthy();
+  });
+
   it('fills the source from the file chooser and from a dropped file', async () => {
     setup();
     await act(async () => {

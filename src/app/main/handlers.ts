@@ -1,7 +1,10 @@
+import { existsSync } from 'node:fs';
 import type { Repo } from '../../core/db/repo';
 import type { StageRepo } from '../../core/db/stage-repo';
 import { BgtError } from '../../core/errors';
+import { loadGlossaryFile } from '../../core/llm/glossary-file';
 import { estimateSeconds } from '../../core/pipeline/estimate';
+import { isUrl } from '../../core/pipeline/real-deps';
 import { CHANNELS, type ProbeResult, type Result } from '../shared/ipc';
 import { getJobDetail, listLibrary } from './library-service';
 import type { JobQueue } from './queue';
@@ -16,6 +19,8 @@ export interface HandlerDeps {
   pickFile(kind: 'media' | 'glossary'): Promise<string | null>;
   openFolder(dir: string): Promise<void>;
   outDir: string;
+  /** Injectable for tests; defaults to the real file system. */
+  fileExists?(path: string): boolean;
 }
 
 type Handler = (arg?: unknown) => Promise<Result<unknown>>;
@@ -47,7 +52,17 @@ export function createHandlers(d: HandlerDeps) {
         return null;
       }),
     [CHANNELS.queueList]: () => wrap(() => d.queue.list()),
-    [CHANNELS.queueSubmit]: (arg?: unknown) => wrap(() => d.queue.submit(parseSubmitRequest(arg))),
+    [CHANNELS.queueSubmit]: (arg?: unknown) =>
+      wrap(() => {
+        const request = parseSubmitRequest(arg);
+        // Fail now, not minutes later when the job starts: a missing file or an unreadable glossary
+        // can never succeed, so it must not be queued.
+        if (!isUrl(request.source) && !(d.fileExists ?? existsSync)(request.source)) {
+          throw new BgtError('InvalidInput', `File not found: ${request.source}`);
+        }
+        if (request.options.glossaryPath) loadGlossaryFile(request.options.glossaryPath);
+        return d.queue.submit(request);
+      }),
     [CHANNELS.queueCancel]: (arg?: unknown) =>
       wrap(() => {
         d.queue.cancel(parseId(arg, 'submission id'));

@@ -7,7 +7,13 @@ import { Database } from '../../src/core/db/sqlite';
 import { migrate } from '../../src/core/db/schema';
 import { memoryRepos, seedJob } from '../helpers/fakes';
 
-function setup(over: { speed?: number | null; probe?: () => Promise<{ title: string | null; durationMs: number }> } = {}) {
+function setup(
+  over: {
+    speed?: number | null;
+    probe?: () => Promise<{ title: string | null; durationMs: number }>;
+    fileExists?: (p: string) => boolean;
+  } = {},
+) {
   const { repo, stages } = memoryRepos();
   const db = new Database(':memory:');
   migrate(db);
@@ -25,6 +31,7 @@ function setup(over: { speed?: number | null; probe?: () => Promise<{ title: str
       opened.push(dir);
     },
     outDir: 'C:/out',
+    fileExists: over.fileExists ?? (() => true),
   });
   return { handlers, repo, stages, queue, opened };
 }
@@ -50,6 +57,31 @@ describe('handlers', () => {
     const bad = await t.handlers['queue:submit']({ source: '', startMs: 0, endMs: null, options });
     expect(bad).toMatchObject({ ok: false, error: { code: 'InvalidInput' } });
     expect(t.queue.list()).toHaveLength(1);
+  });
+
+  it('queue:submit refuses a local file that does not exist, and never queues it', async () => {
+    const t = setup({ fileExists: () => false });
+    const r = await t.handlers['queue:submit']({ source: 'C:/gone/clip.wav', startMs: 0, endMs: null, options });
+    expect(r).toMatchObject({ ok: false, error: { code: 'InvalidInput', message: expect.stringContaining('File not found') } });
+    expect(t.queue.list()).toHaveLength(0);
+  });
+
+  it('queue:submit does not require URLs to exist on disk', async () => {
+    const t = setup({ fileExists: () => false });
+    const r = await t.handlers['queue:submit']({ source: 'https://www.youtube.com/watch?v=7SHNxjFuw10', startMs: 0, endMs: null, options });
+    expect(r.ok).toBe(true);
+  });
+
+  it('queue:submit loads the glossary file up front and refuses a bad one before queueing', async () => {
+    const t = setup();
+    const r = await t.handlers['queue:submit']({
+      source: 'C:/a.wav',
+      startMs: 0,
+      endMs: null,
+      options: { ...options, glossaryPath: 'C:/definitely/not/here/glossary.json' },
+    });
+    expect(r).toMatchObject({ ok: false, error: { code: 'InvalidInput', message: expect.stringContaining('glossary.json') } });
+    expect(t.queue.list()).toHaveLength(0);
   });
 
   it('queue:cancel and queue:resume validate ids', async () => {

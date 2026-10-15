@@ -97,7 +97,7 @@ export class LlamaServer {
         await sleep(150);
       }
     } catch (err) {
-      killTree(child);
+      await killTree(child);
       throw err;
     }
     return new LlamaServer(baseUrl, child);
@@ -106,7 +106,7 @@ export class LlamaServer {
   async stop(): Promise<void> {
     if (this.child.exitCode !== null || this.child.signalCode !== null) return;
     const closed = new Promise<void>((resolve) => this.child.once('close', () => resolve()));
-    killTree(this.child);
+    await killTree(this.child);
     await Promise.race([closed, sleep(5000)]);
   }
 }

@@ -1,5 +1,6 @@
+import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { app, BrowserWindow, dialog, net, protocol, session, shell } from 'electron';
+import { app, BrowserWindow, dialog, protocol, session, shell } from 'electron';
 import { pathToFileURL } from 'node:url';
 import { openDb } from '../../core/db';
 import { Repo } from '../../core/db/repo';
@@ -12,7 +13,8 @@ import { dataDir } from '../../core/tools/paths';
 import { CHANNELS } from '../shared/ipc';
 import { createHandlers } from './handlers';
 import { broadcast, registerIpc } from './ipc';
-import { parseMediaUrl, resolveMediaPath } from './media';
+import { buildMediaResponse, parseMediaUrl, resolveMediaPath } from './media';
+import { isAllowedNavigation } from './navigation';
 import { JobQueue } from './queue';
 import { runSubmission } from './run-submission';
 
@@ -46,8 +48,10 @@ function createWindow(): BrowserWindow {
     if (/^https?:\/\//.test(url)) void shell.openExternal(url);
     return { action: 'deny' };
   });
+  const appUrl =
+    process.env.ELECTRON_RENDERER_URL ?? pathToFileURL(path.join(import.meta.dirname, '../renderer/index.html')).toString();
   win.webContents.on('will-navigate', (e, url) => {
-    if (!url.startsWith('file://') && !url.startsWith(process.env.ELECTRON_RENDERER_URL ?? 'file://')) e.preventDefault();
+    if (!isAllowedNavigation(url, appUrl)) e.preventDefault();
   });
   win.on('close', (e) => {
     if (quitting || !queue) return;
@@ -147,13 +151,14 @@ void app.whenReady().then(async () => {
         await shell.openPath(folder);
       },
       outDir,
+      fileExists: existsSync,
     }),
   );
 
   protocol.handle('bgt-media', (request) => {
     const file = resolveMediaPath(repo, parseMediaUrl(request.url));
     if (!file) return new Response('Not found', { status: 404 });
-    return net.fetch(pathToFileURL(file).toString(), { headers: request.headers });
+    return buildMediaResponse(file, request.headers.get('range'));
   });
 
   const win = createWindow();

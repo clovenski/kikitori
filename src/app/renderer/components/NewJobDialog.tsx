@@ -40,6 +40,7 @@ export function NewJobDialog({ onClose, onSubmitted }: Props) {
       setProbe({ kind: 'loading' });
       const r = await api.source.probe(trimmed);
       if (probed.current !== trimmed) return;
+      if (!r.ok) probed.current = ''; // allow another attempt after a failure
       setProbe(r.ok ? { kind: 'ok', info: r.value } : { kind: 'error', message: r.error.message });
     },
     [api],
@@ -87,7 +88,37 @@ export function NewJobDialog({ onClose, onSubmitted }: Props) {
   };
 
   const submit = async () => {
-    const durationMs = probe.kind === 'ok' ? probe.info.durationMs : null;
+    // Cheap form mistakes first (empty source, skim + translate, bad times), then the source itself.
+    const early = buildSubmitRequest(form, null);
+    if (!early.ok) {
+      setError(early.error);
+      return;
+    }
+    if (probe.kind === 'loading') {
+      setError('Still reading the video. Try again in a moment.');
+      return;
+    }
+    if (probe.kind === 'error') {
+      setError(probe.message);
+      return;
+    }
+    let durationMs: number;
+    if (probe.kind === 'ok') {
+      durationMs = probe.info.durationMs;
+    } else {
+      // The user clicked Add before the field lost focus, so nothing has been probed yet.
+      setBusy(true);
+      const r = await api.source.probe(form.source.trim());
+      setBusy(false);
+      if (!r.ok) {
+        setProbe({ kind: 'error', message: r.error.message });
+        setError(r.error.message);
+        return;
+      }
+      probed.current = form.source.trim();
+      setProbe({ kind: 'ok', info: r.value });
+      durationMs = r.value.durationMs;
+    }
     const built = buildSubmitRequest(form, durationMs);
     if (!built.ok) {
       setError(built.error);

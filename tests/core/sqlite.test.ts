@@ -16,6 +16,12 @@ describe('Database adapter', () => {
     expect(db.prepare('SELECT name FROM t ORDER BY id').all()).toEqual([{ name: 'a' }, { name: 'b' }]);
   });
 
+  it('waits up to 5 seconds for a locked database instead of failing at once', () => {
+    // The CLI and the app share one WAL database; better-sqlite3 waited 5 s by default, node:sqlite waits 0.
+    const db = new Database(':memory:');
+    expect(db.pragma('busy_timeout', { simple: true })).toBe(5000);
+  });
+
   it('reads and writes pragmas', () => {
     const db = new Database(':memory:');
     expect(db.pragma('user_version', { simple: true })).toBe(0);
