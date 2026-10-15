@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -84,6 +84,20 @@ describe('runProcess', () => {
       const failing = runProcess('definitely-not-a-real-binary-xyz', []);
       await expect(failing).rejects.toBeDefined();
       expect(reg.list()).toEqual([]);
+    } finally {
+      disableChildRegistry();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('still runs and settles normally when the child registry file cannot be written', async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'bgt-badreg-'));
+    mkdirSync(path.join(dir, 'children.json')); // a directory: every write fails
+    enableChildRegistry(path.join(dir, 'children.json'));
+    try {
+      const r = await runProcess(node, ['-e', 'console.log("still works")']);
+      expect(r).toMatchObject({ code: 0 });
+      expect(r.stdout.trim()).toBe('still works');
     } finally {
       disableChildRegistry();
       rmSync(dir, { recursive: true, force: true });

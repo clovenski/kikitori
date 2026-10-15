@@ -85,6 +85,14 @@ describe('TranscriptPanel following playback', () => {
     expect(scrollIntoView).not.toHaveBeenCalled();
   });
 
+  it('also pauses following when the user presses on the panel (dragging the scrollbar fires no wheel event)', () => {
+    const { rerender, container } = render(panel(0));
+    fireEvent.pointerDown(container.querySelector('.panel') as HTMLElement);
+    scrollIntoView.mockClear();
+    rerender(panel(1));
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+
   it('seeks when a line is clicked', () => {
     const onSeek = vi.fn();
     const { container } = render(panel(0, onSeek));

@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -18,11 +18,15 @@ beforeEach(() => {
 });
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
-/** A fake process table: pid -> image name. */
-function fakeProbe(table: Record<number, string>) {
+/**
+ * A fake process table: pid -> image name. `starts` gives each pid's start time (default: long ago, i.e.
+ * before anything was recorded). `undefinedFor` makes the probe fail ("cannot tell") for those pids.
+ */
+function fakeProbe(table: Record<number, string>, opts: { starts?: Record<number, number>; undefinedFor?: number[] } = {}) {
   const killed: number[] = [];
   const probe: ProcessProbe = {
-    imageName: (pid) => table[pid] ?? null,
+    imageName: (pid) => (opts.undefinedFor?.includes(pid) ? undefined : (table[pid] ?? null)),
+    startTime: (pid) => (opts.undefinedFor?.includes(pid) ? undefined : table[pid] === undefined ? null : (opts.starts?.[pid] ?? 0)),
     killTree: async (pid) => {
       killed.push(pid);
       delete table[pid];
@@ -112,6 +116,56 @@ describe('ChildRegistry', () => {
     } finally {
       disableChildRegistry();
     }
+  });
+
+  it('never kills a process that merely reuses the recorded pid (it started after the helper was recorded)', async () => {
+    new ChildRegistry(file, { pid: 100, name: 'electron.exe' }).register(500, 'ffmpeg.exe');
+    // The user's own ffmpeg, started an hour from now relative to the record, happens to have pid 500.
+    const { probe, killed } = fakeProbe({ 500: 'ffmpeg.exe' }, { starts: { 500: Date.now() + 3_600_000 } });
+    const reaper = new ChildRegistry(file, { pid: 200, name: 'electron.exe' });
+    expect(await reaper.reapOrphans(probe)).toEqual({ killed: [] });
+    expect(killed).toEqual([]);
+    expect(reaper.list()).toEqual([]);
+  });
+
+  it('keeps a record and kills nothing when the process table cannot be read (probe failed)', async () => {
+    new ChildRegistry(file, { pid: 100, name: 'electron.exe' }).register(500, 'llama-server.exe');
+    // The child check fails, owner 100 is absent.
+    const childUnknown = fakeProbe({ 500: 'llama-server.exe' }, { undefinedFor: [500] });
+    const reaper = new ChildRegistry(file, { pid: 200, name: 'electron.exe' });
+    expect(await reaper.reapOrphans(childUnknown.probe)).toEqual({ killed: [] });
+    expect(childUnknown.killed).toEqual([]);
+    expect(reaper.list().map((r) => r.pid)).toEqual([500]);
+
+    // The owner check fails: the owner might be alive, so its children are left alone.
+    const ownerUnknown = fakeProbe({ 500: 'llama-server.exe' }, { undefinedFor: [100] });
+    expect(await reaper.reapOrphans(ownerUnknown.probe)).toEqual({ killed: [] });
+    expect(ownerUnknown.killed).toEqual([]);
+    expect(reaper.list().map((r) => r.pid)).toEqual([500]);
+  });
+
+  it('keeps a record when the start time cannot be read, and drops one that predates identity checks', async () => {
+    new ChildRegistry(file, { pid: 100, name: 'electron.exe' }).register(500, 'ffmpeg.exe');
+    const probe = fakeProbe({ 500: 'ffmpeg.exe' });
+    probe.probe.startTime = () => undefined;
+    const reaper = new ChildRegistry(file, { pid: 200, name: 'electron.exe' });
+    expect(await reaper.reapOrphans(probe.probe)).toEqual({ killed: [] });
+    expect(reaper.list().map((r) => r.pid)).toEqual([500]);
+
+    writeFileSync(file, JSON.stringify([{ pid: 700, name: 'ffmpeg.exe', owner: 100, ownerName: 'electron.exe' }]));
+    const old = fakeProbe({ 700: 'ffmpeg.exe' });
+    expect(await reaper.reapOrphans(old.probe)).toEqual({ killed: [] }); // no startedAt: identity cannot be proven
+    expect(old.killed).toEqual([]);
+    expect(reaper.list()).toEqual([]);
+  });
+
+  it('survives a registry file that cannot be written: bookkeeping must never break a running helper', async () => {
+    // A directory where the file should be makes every write fail, as a locked file would on Windows.
+    mkdirSync(path.join(dir, 'locked.json'));
+    const reg = new ChildRegistry(path.join(dir, 'locked.json'), { pid: 1, name: 'node.exe' });
+    expect(() => reg.register(500, 'x.exe')).not.toThrow();
+    expect(() => reg.unregister(500)).not.toThrow();
+    expect(await reg.reapOrphans(fakeProbe({}).probe)).toEqual({ killed: [] });
   });
 
   it('keeps the file valid JSON while records change', () => {

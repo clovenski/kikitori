@@ -48,7 +48,7 @@ export function TranscriptPanel({ lines, activeIndex, mode, onSeek }: Props) {
 
   if (lines.length === 0) return <div className="panel">No speech was transcribed for this job.</div>;
   return (
-    <div className="panel" onWheel={pause} onTouchMove={pause} onKeyDown={pause}>
+    <div className="panel" onWheel={pause} onTouchMove={pause} onKeyDown={pause} onPointerDown={pause}>
       {lines.map((line, i) => (
         <Row key={line.id} line={line} active={i === activeIndex} mode={mode} onSeek={onSeek} follow={follow} />
       ))}

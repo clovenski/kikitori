@@ -2,7 +2,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { runJob, type RunParams } from '../../src/core/pipeline/run';
+import { runJob, statusAfterFailure, type RunParams } from '../../src/core/pipeline/run';
 import type { Segment } from '../../src/core/types';
 import { makeFakeDeps, memoryRepo } from '../helpers/fakes';
 
@@ -44,6 +44,17 @@ beforeEach(() => {
   root = mkdtempSync(path.join(os.tmpdir(), 'bgt-run-'));
 });
 afterEach(() => rmSync(root, { recursive: true, force: true }));
+
+describe('statusAfterFailure', () => {
+  it('pauses an aborted job and fails any other, but never touches a job that already finished', () => {
+    expect(statusAfterFailure('running', true)).toBe('pending');
+    expect(statusAfterFailure('running', false)).toBe('failed');
+    expect(statusAfterFailure('pending', false)).toBe('failed');
+    // e.g. writing the output files failed after the job was already marked done
+    expect(statusAfterFailure('done', false)).toBeNull();
+    expect(statusAfterFailure('done', true)).toBeNull();
+  });
+});
 
 describe('runJob', () => {
   it('runs end to end, dedupes the overlap (earlier chunk wins) and writes the SRT', async () => {

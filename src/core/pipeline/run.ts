@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, renameSync, rmSync } from 'node:fs';
 import path from 'node:path';
-import type { JobRow, Repo } from '../db/repo';
+import type { JobRow, JobStatus, Repo } from '../db/repo';
 import type { Transcriber } from '../interfaces';
 import { formatClock, resolveRange } from '../time';
 import type { ProgressEvent } from '../progress';
@@ -113,6 +113,15 @@ async function processChunk(
 }
 
 /**
+ * The status a job should get when the pipeline stops without finishing, or null to leave it alone.
+ * A job already marked done stays done even if a later step (writing output files) throws.
+ */
+export function statusAfterFailure(current: JobStatus, aborted: boolean): JobStatus | null {
+  if (current === 'done') return null;
+  return aborted ? 'pending' : 'failed';
+}
+
+/**
  * Runs the transcription pipeline. If it stops without finishing, the job is marked `pending` (paused by
  * an abort, resumable) or `failed`, never left claiming to be `running`.
  */
@@ -127,7 +136,11 @@ export async function runJob(deps: PipelineDeps, params: RunParams): Promise<Run
       },
     });
   } catch (err) {
-    if (current) deps.repo.setJobStatus((current as JobRow).id, params.signal?.aborted ? 'pending' : 'failed');
+    if (current) {
+      const id = (current as JobRow).id;
+      const next = statusAfterFailure(deps.repo.getJob(id)?.status ?? 'running', Boolean(params.signal?.aborted));
+      if (next) deps.repo.setJobStatus(id, next);
+    }
     throw err;
   }
 }
