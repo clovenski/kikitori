@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NewJobDialog } from '../../src/app/renderer/components/NewJobDialog';
 import { ApiProvider } from '../../src/app/renderer/lib/api';
 import type { BgtApi } from '../../src/app/shared/ipc';
+import { fakeSetupApi, viewFor } from './setup-fakes';
 
 afterEach(cleanup);
 
@@ -13,6 +14,7 @@ function setup(
     submit: BgtApi['queue']['submit'];
     pickMedia: BgtApi['dialog']['pickMedia'];
     pickGlossary: BgtApi['dialog']['pickGlossary'];
+    extra: Partial<BgtApi>;
   }> = {},
 ) {
   const submit = vi.fn(over.submit ?? (async () => ({ ok: true as const, value: { id: 1 } as never })));
@@ -27,6 +29,7 @@ function setup(
       pickGlossary: over.pickGlossary ?? (async () => ({ ok: true as const, value: null })),
       pathForFile: () => 'C:/dropped.wav',
     },
+    ...over.extra,
   } as unknown as BgtApi;
   const onClose = vi.fn();
   const onSubmitted = vi.fn();
@@ -61,6 +64,30 @@ describe('NewJobDialog', () => {
       fireEvent.blur(input);
     });
     expect(screen.getByText('blocked by YouTube')).toBeTruthy();
+  });
+
+  it('offers to download a missing component, then submits again once it is installed', async () => {
+    const fake = fakeSetupApi();
+    const view = viewFor({ tier: 'gpu', features: { translation: true, summaries: false } }, [
+      'yt-dlp', 'ffmpeg', 'vad', 'whisper-gpu', 'model-transcribe-gpu',
+    ]);
+    fake.setup.missingFor.mockResolvedValue({ ok: true, value: view });
+    const submit = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, error: { code: 'SetupRequired', message: 'Download first' } })
+      .mockResolvedValueOnce({ ok: true, value: { id: 1 } });
+    const t = setup({ submit, extra: { setup: fake.setup as never } });
+    fireEvent.change(screen.getByLabelText('YouTube link or file path'), { target: { value: url } });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Add to queue'));
+    });
+    expect(await screen.findByText('Download needed')).toBeTruthy();
+    expect(t.onSubmitted).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText('Download'));
+    await waitFor(() => expect(fake.setup.start).toHaveBeenCalledWith(view.selection));
+    act(() => fake.emit({ phase: 'done', progress: null, message: null }));
+    await waitFor(() => expect(t.onSubmitted).toHaveBeenCalled());
+    expect(submit).toHaveBeenCalledTimes(2);
   });
 
   it('submits a valid request and reports success', async () => {

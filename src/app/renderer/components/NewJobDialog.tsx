@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DragEvent } from 'react';
-import type { ProbeResult } from '../../shared/ipc';
+import type { ProbeResult, SetupPlanView } from '../../shared/ipc';
 import { cleanSource } from '../../../core/source-text';
 import { useApi } from '../lib/api';
 import { formatClock, formatEta } from '../lib/format';
 import { buildSubmitRequest, type NewJobForm } from '../lib/newjob';
+import { SetupDownloadDialog } from './SetupDownloadDialog';
 
 interface Props {
   onClose(): void;
@@ -28,6 +29,7 @@ export function NewJobDialog({ onClose, onSubmitted }: Props) {
   const [eta, setEta] = useState<number | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [needs, setNeeds] = useState<SetupPlanView | null>(null);
   const [over, setOver] = useState(false);
   const probed = useRef('');
 
@@ -141,8 +143,15 @@ export function NewJobDialog({ onClose, onSubmitted }: Props) {
     setError(null);
     const r = await api.queue.submit(built.request);
     setBusy(false);
-    if (r.ok) onSubmitted();
-    else setError(r.error.message);
+    if (r.ok) {
+      onSubmitted();
+    } else if (r.error.code === 'SetupRequired') {
+      const view = await api.setup.missingFor(built.request.options);
+      if (view.ok) setNeeds(view.value);
+      else setError(r.error.message);
+    } else {
+      setError(r.error.message);
+    }
   };
 
   return (
@@ -214,6 +223,16 @@ export function NewJobDialog({ onClose, onSubmitted }: Props) {
           </button>
         </div>
       </div>
+      {needs && (
+        <SetupDownloadDialog
+          plan={needs}
+          onCancel={() => setNeeds(null)}
+          onDone={() => {
+            setNeeds(null);
+            void submit();
+          }}
+        />
+      )}
     </div>
   );
 }

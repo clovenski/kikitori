@@ -53,6 +53,23 @@ describe('QueueStrip', () => {
     expect(screen.getAllByText('Resume')).toHaveLength(2);
   });
 
+  it('offers "Update yt-dlp" only for download failures', () => {
+    const onUpdate = vi.fn();
+    render(
+      <QueueStrip
+        submissions={[sub({ id: 4, state: 'failed', error: 'DownloadFailed: yt-dlp failed after 3 attempts' }), sub({ id: 5, state: 'failed', error: 'TranscribeFailed: nope' })]}
+        progress={new Map()}
+        onCancel={() => {}}
+        onResume={() => {}}
+        onUpdateYtDlp={onUpdate}
+      />,
+    );
+    const buttons = screen.getAllByText('Update yt-dlp');
+    expect(buttons).toHaveLength(1);
+    fireEvent.click(buttons[0]);
+    expect(onUpdate).toHaveBeenCalled();
+  });
+
   it('does not show finished submissions', () => {
     const { container } = render(<QueueStrip submissions={[sub({ state: 'done' })]} progress={new Map()} onCancel={() => {}} onResume={() => {}} />);
     expect(container.textContent).toBe('');

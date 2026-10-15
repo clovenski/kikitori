@@ -6,11 +6,12 @@ interface Props {
   progress: Map<number, ProgressEvent>;
   onCancel(id: number): void;
   onResume(id: number): void;
+  onUpdateYtDlp?(): void;
 }
 
 const RESUMABLE = new Set(['failed', 'interrupted', 'cancelled']);
 
-export function QueueStrip({ submissions, progress, onCancel, onResume }: Props) {
+export function QueueStrip({ submissions, progress, onCancel, onResume, onUpdateYtDlp }: Props) {
   const running = submissions.find((s) => s.state === 'running');
   const waiting = submissions.filter((s) => s.state === 'queued').length;
   const stopped = submissions.filter((s) => RESUMABLE.has(s.state)).slice(-3);
@@ -34,6 +35,7 @@ export function QueueStrip({ submissions, progress, onCancel, onResume }: Props)
           <span className="queue-source">{s.source}</span>
           <span className={`badge state-${s.state}`}>{stateLabel(s.state)}</span>
           {s.error && <span className="queue-error">{s.error}</span>}
+          {s.error?.startsWith('DownloadFailed') && onUpdateYtDlp && <button onClick={onUpdateYtDlp}>Update yt-dlp</button>}
           <button onClick={() => onResume(s.id)}>Resume</button>
         </div>
       ))}
