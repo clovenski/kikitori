@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4a3fc4"/>
+      <stop offset="1" stop-color="#1c1763"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="248" height="248" rx="56" fill="url(#bg)"/>
+  <!-- the 門 (gate) radical of 聞 as plain shapes: legible at 16-24px, no font needed -->
+  <g fill="#fff">
+    <rect x="52" y="56" width="152" height="36" rx="10"/>
+    <rect x="52" y="56" width="36" height="148" rx="10"/>
+    <rect x="168" y="56" width="36" height="148" rx="10"/>
+  </g>
+  <rect x="104" y="124" width="48" height="48" rx="10" fill="#ffb84d"/>
+</svg>
