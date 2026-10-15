@@ -236,7 +236,7 @@ void app.whenReady().then(() => runStartup(async () => {
       },
       ensureReady: (options) => ensureInstalled(lock, tier(), wantsOfOptions(options), resources),
       transcribeModel: model,
-      channels: { store: channelStore, add: (input) => followChannel(channelDeps, input), refresh: (id) => watcher.refresh(id) },
+      channels: { store: channelStore, add: (input) => watcher.runTracked((signal) => followChannel(channelDeps, input, signal)), refresh: (id) => watcher.refresh(id) },
     }),
   );
 

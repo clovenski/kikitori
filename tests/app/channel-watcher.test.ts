@@ -130,4 +130,44 @@ describe('ChannelWatcher', () => {
     await watcher.refresh();
     expect(checked).toEqual([]);
   });
+
+  it('work run through the watcher (following a channel) is aborted by stop, which waits for it', async () => {
+    const { watcher } = make();
+    let signal: AbortSignal | null = null;
+    let settled = false;
+    const work = watcher
+      .runTracked(
+        (s) =>
+          new Promise<string>((_resolve, reject) => {
+            signal = s;
+            s.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' })), { once: true });
+          }),
+      )
+      .catch((e) => e)
+      .finally(() => (settled = true));
+    await vi.advanceTimersByTimeAsync(10);
+    expect(signal).not.toBeNull();
+    expect((signal as unknown as AbortSignal).aborted).toBe(false);
+    await watcher.stop();
+    expect(settled).toBe(true);
+    expect(await work).toMatchObject({ name: 'AbortError' });
+  });
+
+  it('work started after stop is already aborted', async () => {
+    const { watcher } = make();
+    await watcher.stop();
+    let seen: boolean | null = null;
+    await watcher.runTracked(async (s) => (seen = s.aborted));
+    expect(seen).toBe(true);
+  });
+
+  it('start after stop gives new work a live signal again', async () => {
+    const { watcher } = make();
+    await watcher.stop();
+    watcher.start();
+    let seen: boolean | null = null;
+    await watcher.runTracked(async (s) => (seen = s.aborted));
+    expect(seen).toBe(false);
+    await watcher.stop();
+  });
 });

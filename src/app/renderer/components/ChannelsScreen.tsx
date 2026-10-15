@@ -126,15 +126,18 @@ export function ChannelsScreen({ channels, feed, onReload, onProcess, onOpenJob 
                 {f.durationMs !== null && <span>{formatClock(f.durationMs)}</span>}
                 {f.tab === 'streams' && <span className="badge">Stream</span>}
                 {f.job && <span className="badge">{jobStatusLabel(f.job.status)}</span>}
+                {!f.job && f.queued && <span className="badge">Queued</span>}
               </div>
             </div>
             <div className="actions">
               {f.job ? (
                 <button onClick={() => onOpenJob((f.job as NonNullable<FeedItem['job']>).jobId)}>Open in library</button>
               ) : (
-                <button className="primary" onClick={() => onProcess(f.videoId)}>
-                  Process
-                </button>
+                !f.queued && (
+                  <button className="primary" onClick={() => onProcess(f.videoId)}>
+                    Process
+                  </button>
+                )
               )}
               <button onClick={() => void dismiss(f.videoId)}>Dismiss</button>
             </div>

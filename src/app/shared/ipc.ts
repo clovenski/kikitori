@@ -122,6 +122,8 @@ export interface FeedItem {
   firstSeenAt: string;
   /** The job that already exists for this video, if any. */
   job: { jobId: number; status: JobStatus } | null;
+  /** Sent to the queue and waiting to start (no job yet); it must not be offered again. */
+  queued: boolean;
 }
 
 export interface QueueProgressEvent {

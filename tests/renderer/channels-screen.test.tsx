@@ -115,4 +115,13 @@ describe('ChannelsScreen', () => {
     renderScreen({ channels: [channel(1)] });
     expect(screen.getByText('No new videos right now.')).toBeTruthy();
   });
+
+  it('a video waiting in the queue says so and cannot be processed a second time', () => {
+    const t = renderScreen({ channels: [channel(1)], feed: [feedItem('aaaaaaaaaaa', { queued: true })] });
+    expect(screen.getByText('Queued')).toBeTruthy();
+    expect(screen.queryByText('Process')).toBeNull();
+    expect(screen.queryByText('Open in library')).toBeNull();
+    expect(t.onProcess).not.toHaveBeenCalled();
+    expect(screen.getByText('Dismiss')).toBeTruthy();
+  });
 });

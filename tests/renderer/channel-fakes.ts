@@ -21,6 +21,7 @@ export const feedItem = (videoId: string, over: Partial<FeedItem> = {}): FeedIte
   tab: 'videos',
   firstSeenAt: '2026-01-01T00:00:00Z',
   job: null,
+  queued: false,
   ...over,
 });
 

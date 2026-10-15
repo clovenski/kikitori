@@ -145,7 +145,7 @@ export function createHandlers(d: HandlerDeps) {
         await d.channels.refresh(parseOptionalId(arg, 'channel id'));
         return null;
       }),
-    [CHANNELS.feedList]: () => wrap(() => buildFeed(d.channels.store, d.repo)),
+    [CHANNELS.feedList]: () => wrap(() => buildFeed(d.channels.store, d.repo, d.queue.list())),
     [CHANNELS.feedDismiss]: (arg?: unknown) =>
       wrap(() => {
         d.channels.store.dismiss(parseVideoId(arg));

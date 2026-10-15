@@ -30,11 +30,15 @@ export class ChannelWatcher {
   private running: Promise<void> | null = null;
   private controller: AbortController | null = null;
   private stopped = false;
+  /** Aborted by stop(): the signal for work that is not a scheduled check (following a channel). */
+  private lifetime = new AbortController();
+  private readonly tracked = new Set<Promise<unknown>>();
 
   constructor(private readonly d: ChannelWatcherDeps) {}
 
   start(): void {
     this.stopped = false;
+    if (this.lifetime.signal.aborted) this.lifetime = new AbortController();
     this.schedule(this.d.startDelayMs ?? START_DELAY_MS);
   }
 
@@ -44,7 +48,19 @@ export class ChannelWatcher {
     if (this.timer) clearTimeout(this.timer);
     this.timer = null;
     this.controller?.abort();
-    await this.running;
+    this.lifetime.abort();
+    await Promise.allSettled([this.running, ...this.tracked]);
+  }
+
+  /** Runs work that starts yt-dlp on the app's behalf; stop() aborts it and waits for it, so no helper outlives the app. */
+  async runTracked<T>(work: (signal: AbortSignal) => Promise<T>): Promise<T> {
+    const promise = work(this.lifetime.signal);
+    this.tracked.add(promise);
+    try {
+      return await promise;
+    } finally {
+      this.tracked.delete(promise);
+    }
   }
 
   /** Checks one channel (or all of them) now. A request that arrives during a check shares that check. */

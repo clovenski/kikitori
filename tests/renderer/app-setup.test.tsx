@@ -63,10 +63,15 @@ describe('App first-run gating', () => {
 });
 
 describe('App channels', () => {
-  it('shows how many videos are new on the Channels button, not counting ones that already have a job', async () => {
+  it('shows how many videos are new on the Channels button, not counting ones that already have a job or are queued', async () => {
     renderApp(false, {
       channels: [channel(1)],
-      feed: [feedItem('aaaaaaaaaaa'), feedItem('bbbbbbbbbbb'), feedItem('ccccccccccc', { job: { jobId: 3, status: 'done' } })],
+      feed: [
+        feedItem('aaaaaaaaaaa'),
+        feedItem('bbbbbbbbbbb'),
+        feedItem('ccccccccccc', { job: { jobId: 3, status: 'done' } }),
+        feedItem('ddddddddddd', { queued: true }),
+      ],
     });
     const button = await screen.findByRole('button', { name: /Channels/ });
     await waitFor(() => expect(button.textContent).toContain('2'));

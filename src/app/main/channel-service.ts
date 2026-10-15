@@ -1,5 +1,6 @@
 import type { Channel, ChannelStore } from '../../core/db/channel-repo';
 import type { Repo } from '../../core/db/repo';
+import type { Submission } from '../../core/db/submission-repo';
 import { parseYoutubeId } from '../../core/youtube';
 import type { ChannelInfo, FeedItem, JobStatus } from '../shared/ipc';
 
@@ -14,7 +15,7 @@ export const toChannelInfo = (c: Channel): ChannelInfo => ({
 });
 
 /** The feed with the job (if any) that already exists for each video: matched by video id, or by the URL for older jobs. */
-export function buildFeed(store: ChannelStore, repo: Repo): FeedItem[] {
+export function buildFeed(store: ChannelStore, repo: Repo, submissions: Submission[]): FeedItem[] {
   const jobs = new Map<string, { jobId: number; status: JobStatus }>();
   for (const job of repo.listJobs()) {
     // listJobs is newest first, so the first job seen for a video is its newest one; a finished job wins over it.
@@ -22,6 +23,13 @@ export function buildFeed(store: ChannelStore, repo: Repo): FeedItem[] {
     if (!videoId) continue;
     const seen = jobs.get(videoId);
     if (!seen || (job.status === 'done' && seen.status !== 'done')) jobs.set(videoId, { jobId: job.id, status: job.status });
+  }
+  // A queued submission only gets its job when it starts; until then the video would look untouched.
+  const waiting = new Set<string>();
+  for (const sub of submissions) {
+    if (sub.state !== 'queued' && sub.state !== 'running') continue;
+    const videoId = parseYoutubeId(sub.source);
+    if (videoId) waiting.add(videoId);
   }
   return store.listFeed().map((row) => ({
     videoId: row.videoId,
@@ -32,5 +40,6 @@ export function buildFeed(store: ChannelStore, repo: Repo): FeedItem[] {
     tab: row.tab,
     firstSeenAt: row.firstSeenAt,
     job: jobs.get(row.videoId) ?? null,
+    queued: !jobs.has(row.videoId) && waiting.has(row.videoId),
   }));
 }

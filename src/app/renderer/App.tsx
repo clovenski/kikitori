@@ -50,7 +50,7 @@ export function App() {
     );
   }
 
-  const newVideos = feed.filter((f) => f.job === null).length;
+  const newVideos = feed.filter((f) => f.job === null && !f.queued).length;
 
   return (
     <div className="app">
