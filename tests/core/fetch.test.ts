@@ -38,6 +38,7 @@ const entry = (overrides: Partial<LockEntry> = {}): LockEntry => ({
   version: '1',
   url: `${base}/m.bin`,
   sha256: payloadSha,
+  size: payload.length,
   kind: 'file',
   dest: 'models/m.bin',
   ...overrides,

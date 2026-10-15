@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { BgtError } from '../core/errors';
-import { loadLock, lockedModelPath } from '../core/tools/lock';
+import { componentModelPath, loadLock } from '../core/tools/lock';
 import { findVadModel, modelPath, projectRoot, resolveTool, resourcesDir, type ToolName } from '../core/tools/paths';
 import { runProcess } from '../core/tools/process';
 
@@ -32,9 +32,9 @@ export async function doctorCommand(): Promise<void> {
 
   try {
     const lock = loadLock(path.join(projectRoot(), 'tools.lock.json'));
-    for (const id of ['model-translate', 'model-general']) {
+    for (const id of ['model-translate-gpu', 'model-general-gpu']) {
       try {
-        line(id, lockedModelPath(id, lock, resourcesDir()), true);
+        line(id, componentModelPath(lock, id, resourcesDir()), true);
       } catch (err) {
         line(id, err instanceof Error ? err.message : String(err), false);
       }

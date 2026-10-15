@@ -61,7 +61,7 @@ export async function runStagesForJob(
         stages: handle.stages,
         job,
         outDir: path.resolve(o.out),
-        pool: createRealModelPool({ log: console.log }),
+        pool: createRealModelPool({ log: console.log, tier: () => 'gpu' }),
         log: console.log,
         signal,
       },

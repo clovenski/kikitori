@@ -15,7 +15,7 @@ import type { ReadableStream as WebReadableStream } from 'node:stream/web';
 import { pipeline } from 'node:stream/promises';
 import extract from 'extract-zip';
 import { BgtError } from '../errors';
-import type { LockEntry } from './lock';
+import { markerPath, type LockEntry } from './lock';
 
 export async function sha256File(file: string): Promise<string> {
   const hash = createHash('sha256');
@@ -81,7 +81,7 @@ export async function fetchEntry(
     return;
   }
 
-  const marker = path.join(dest, entry.merge ? `.${entry.id}.sha256` : '.sha256');
+  const marker = markerPath(entry, resources);
   if (existsSync(marker) && readFileSync(marker, 'utf8').trim() === entry.sha256) {
     log(`${entry.id}: up to date`);
     return;

@@ -92,6 +92,7 @@ const entry = (id: string, url: string, over: Partial<LockEntry> = {}): LockEntr
   version: '1',
   url: `${base}${url}`,
   sha256: sha(zips[url]),
+  size: zips[url].length,
   kind: 'zip',
   dest: 'llama',
   ...over,

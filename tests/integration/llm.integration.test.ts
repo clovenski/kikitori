@@ -7,7 +7,7 @@ import { glossaryMessages } from '../../src/core/llm/prompts';
 // Opt in with BGT_INTEGRATION=1. Requires `pnpm setup:tools` (about 10 GB of models).
 describe.skipIf(!process.env.BGT_INTEGRATION)('real llama-server', () => {
   it('translates Japanese lines with Hy-MT2 and extracts glossary JSON with the general model', async () => {
-    const pool = createRealModelPool({ log: () => {} });
+    const pool = createRealModelPool({ log: () => {}, tier: () => 'gpu' });
     try {
       const translate = await pool.use('translate');
       const out = await new HyMtTranslator(translate).translateBatch(

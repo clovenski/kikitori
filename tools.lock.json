@@ -1,71 +1,292 @@
 {
   "platform": "win32-x64",
-  "tools": [
+  "components": [
     {
       "id": "yt-dlp",
-      "version": "2026.08.19",
-      "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp.exe",
-      "sha256": "66674953fe251b89f4d08c5f0e35e0728679bd67ab3d7d05c0562af101dd3e7a",
-      "kind": "file",
-      "dest": "bin/yt-dlp.exe"
+      "title": "yt-dlp (video downloader)",
+      "features": [
+        "core"
+      ],
+      "tier": "all",
+      "license": "Unlicense",
+      "homepage": "https://github.com/yt-dlp/yt-dlp",
+      "files": [
+        {
+          "id": "yt-dlp",
+          "version": "2026.08.19",
+          "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp.exe",
+          "sha256": "66674953fe251b89f4d08c5f0e35e0728679bd67ab3d7d05c0562af101dd3e7a",
+          "kind": "file",
+          "dest": "bin/yt-dlp.exe",
+          "size": 17840399,
+          "selfUpdates": true
+        }
+      ]
     },
     {
-      "id": "whisper.cpp",
-      "version": "b5454 (whisper-bin-win-cuda-12.4.0-x64.zip)",
-      "url": "https://github.com/ggml-org/whisper.cpp/releases/download/b5454/whisper-bin-win-cuda-12.4.0-x64.zip",
-      "sha256": "afef0b881c500958921c3f5523b50e59ee2ec9b6f5cbd25b324c51ed308a957a",
-      "kind": "zip",
-      "dest": "whisper"
+      "id": "ffmpeg",
+      "title": "ffmpeg (audio conversion, Gyan essentials build)",
+      "features": [
+        "core"
+      ],
+      "tier": "all",
+      "license": "GPL-3.0-or-later",
+      "homepage": "https://www.gyan.dev/ffmpeg/builds/",
+      "files": [
+        {
+          "id": "ffmpeg",
+          "version": "9.0.2 (ffmpeg-9.0.2-essentials_build.zip)",
+          "url": "https://github.com/GyanD/codexffmpeg/releases/download/9.0.2/ffmpeg-9.0.2-essentials_build.zip",
+          "sha256": "60f467265b1e312373dbcd92200c2618a74850f98d3d078e94296bb3fa2047ba",
+          "size": 114768076,
+          "kind": "zip",
+          "dest": "ffmpeg"
+        }
+      ]
     },
     {
-      "id": "model-large-v3",
-      "version": "5359861",
-      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-large-v3.bin",
-      "sha256": "64d182b440b98d5203c4f9bd541544d84c605196c4f7b845dfa11fb23594d1e2",
-      "kind": "file",
-      "dest": "models/ggml-large-v3.bin"
+      "id": "vad",
+      "title": "Voice activity model (Silero VAD)",
+      "features": [
+        "transcription"
+      ],
+      "tier": "all",
+      "license": "MIT",
+      "homepage": "https://huggingface.co/ggml-org/whisper-vad",
+      "files": [
+        {
+          "id": "vad-silero",
+          "version": "9ffd54a",
+          "url": "https://huggingface.co/ggml-org/whisper-vad/resolve/9ffd54a1e1ee413ddf265af9913beaf518d1639b/ggml-silero-v6.2.0.bin",
+          "sha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+          "kind": "file",
+          "dest": "models/ggml-silero-v6.2.0.bin",
+          "size": 885098
+        }
+      ]
     },
     {
-      "id": "vad-silero",
-      "version": "9ffd54a",
-      "url": "https://huggingface.co/ggml-org/whisper-vad/resolve/9ffd54a1e1ee413ddf265af9913beaf518d1639b/ggml-silero-v6.2.0.bin",
-      "sha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
-      "kind": "file",
-      "dest": "models/ggml-silero-v6.2.0.bin"
+      "id": "whisper-gpu",
+      "title": "Speech recognition program (whisper.cpp, NVIDIA GPU)",
+      "features": [
+        "transcription"
+      ],
+      "tier": "gpu",
+      "license": "MIT (the CUDA archive also contains NVIDIA CUDA runtime files under the NVIDIA licence)",
+      "homepage": "https://github.com/ggml-org/whisper.cpp",
+      "files": [
+        {
+          "id": "whisper.cpp",
+          "version": "b5454 (whisper-bin-win-cuda-12.4.0-x64.zip)",
+          "url": "https://github.com/ggml-org/whisper.cpp/releases/download/b5454/whisper-bin-win-cuda-12.4.0-x64.zip",
+          "sha256": "afef0b881c500958921c3f5523b50e59ee2ec9b6f5cbd25b324c51ed308a957a",
+          "size": 684913404,
+          "kind": "zip",
+          "dest": "whisper"
+        }
+      ]
     },
     {
-      "id": "llama.cpp",
-      "version": "b11624 (llama-b11624-bin-win-cuda-12.4-x64.zip)",
-      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11624/llama-b11624-bin-win-cuda-12.4-x64.zip",
-      "sha256": "712096c39d31946410b152356753856b31164cf2653c3ab51b836b3f4e7f9e44",
-      "kind": "zip",
-      "dest": "llama",
-      "merge": true
+      "id": "whisper-cpu",
+      "title": "Speech recognition program (whisper.cpp, CPU)",
+      "features": [
+        "transcription"
+      ],
+      "tier": "cpu",
+      "license": "MIT",
+      "homepage": "https://github.com/ggml-org/whisper.cpp",
+      "files": [
+        {
+          "id": "whisper.cpp-cpu",
+          "version": "b5454 (whisper-bin-x64.zip)",
+          "url": "https://github.com/ggml-org/whisper.cpp/releases/download/b5454/whisper-bin-x64.zip",
+          "sha256": "6ba69e3482d7826214f90a6a9c84ca07782aec1e1d0c6a7c30c994fd5d816ccb",
+          "size": 8928640,
+          "kind": "zip",
+          "dest": "whisper"
+        }
+      ]
     },
     {
-      "id": "llama-cudart",
-      "version": "b11624 (cudart-llama-bin-win-cuda-12.4-x64.zip)",
-      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11624/cudart-llama-bin-win-cuda-12.4-x64.zip",
-      "sha256": "8c79a9b226de4b3cacfd1f83d24f962d0773be79f1e7b75c6af4ded7e32ae1d6",
-      "kind": "zip",
-      "dest": "llama",
-      "merge": true
+      "id": "model-transcribe-gpu",
+      "title": "Speech recognition model (Whisper large-v3)",
+      "features": [
+        "transcription"
+      ],
+      "tier": "gpu",
+      "license": "MIT",
+      "homepage": "https://huggingface.co/ggerganov/whisper.cpp",
+      "files": [
+        {
+          "id": "model-large-v3",
+          "version": "5359861",
+          "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-large-v3.bin",
+          "sha256": "64d182b440b98d5203c4f9bd541544d84c605196c4f7b845dfa11fb23594d1e2",
+          "kind": "file",
+          "dest": "models/ggml-large-v3.bin",
+          "size": 3095033483
+        }
+      ]
     },
     {
-      "id": "model-translate",
-      "version": "ab84726",
-      "url": "https://huggingface.co/tencent/Hy-MT2-7B-GGUF/resolve/ab8472660ac61fac25f1af43fac2599d52a8a775/Hy-MT2-7B-Q4_K_M.gguf",
-      "sha256": "9f96256500f3fc1ab4d64336b58f52a949a95ad7516b0c229476eef782f9f77b",
-      "kind": "file",
-      "dest": "models/Hy-MT2-7B-Q4_K_M.gguf"
+      "id": "model-transcribe-cpu",
+      "title": "Speech recognition model (Whisper large-v3-turbo, 5-bit)",
+      "features": [
+        "transcription"
+      ],
+      "tier": "cpu",
+      "license": "MIT",
+      "homepage": "https://huggingface.co/ggerganov/whisper.cpp",
+      "files": [
+        {
+          "id": "model-large-v3-turbo-q5_0",
+          "version": "5359861",
+          "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-large-v3-turbo-q5_0.bin",
+          "sha256": "394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2",
+          "size": 574041195,
+          "kind": "file",
+          "dest": "models/ggml-large-v3-turbo-q5_0.bin"
+        }
+      ]
     },
     {
-      "id": "model-general",
-      "version": "7c41481",
-      "url": "https://huggingface.co/Qwen/Qwen3-8B-GGUF/resolve/7c41481f57cb95916b40956ab2f0b139b296d974/Qwen3-8B-Q4_K_M.gguf",
-      "sha256": "d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785",
-      "kind": "file",
-      "dest": "models/Qwen3-8B-Q4_K_M.gguf"
+      "id": "llama-gpu",
+      "title": "Language model runtime (llama.cpp, NVIDIA GPU)",
+      "features": [
+        "translation",
+        "summaries"
+      ],
+      "tier": "gpu",
+      "license": "MIT (the CUDA archive also contains NVIDIA CUDA runtime files under the NVIDIA licence)",
+      "homepage": "https://github.com/ggml-org/llama.cpp",
+      "files": [
+        {
+          "id": "llama.cpp",
+          "version": "b11624 (llama-b11624-bin-win-cuda-12.4-x64.zip)",
+          "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11624/llama-b11624-bin-win-cuda-12.4-x64.zip",
+          "sha256": "712096c39d31946410b152356753856b31164cf2653c3ab51b836b3f4e7f9e44",
+          "kind": "zip",
+          "dest": "llama",
+          "merge": true,
+          "size": 265272930
+        },
+        {
+          "id": "llama-cudart",
+          "version": "b11624 (cudart-llama-bin-win-cuda-12.4-x64.zip)",
+          "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11624/cudart-llama-bin-win-cuda-12.4-x64.zip",
+          "sha256": "8c79a9b226de4b3cacfd1f83d24f962d0773be79f1e7b75c6af4ded7e32ae1d6",
+          "kind": "zip",
+          "dest": "llama",
+          "merge": true,
+          "size": 391443627
+        }
+      ]
+    },
+    {
+      "id": "llama-cpu",
+      "title": "Language model runtime (llama.cpp, CPU)",
+      "features": [
+        "translation",
+        "summaries"
+      ],
+      "tier": "cpu",
+      "license": "MIT",
+      "homepage": "https://github.com/ggml-org/llama.cpp",
+      "files": [
+        {
+          "id": "llama.cpp-cpu",
+          "version": "b11630 (llama-b11630-bin-win-cpu-x64.zip)",
+          "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11630/llama-b11630-bin-win-cpu-x64.zip",
+          "sha256": "82463bff7b42c41e8dc934202fb60ba28e1120c04264484b8d349b4a5958190d",
+          "size": 19563017,
+          "kind": "zip",
+          "dest": "llama"
+        }
+      ]
+    },
+    {
+      "id": "model-translate-gpu",
+      "title": "Translation model (Hy-MT2 7B)",
+      "features": [
+        "translation"
+      ],
+      "tier": "gpu",
+      "license": "Apache-2.0",
+      "homepage": "https://huggingface.co/tencent/Hy-MT2-7B-GGUF",
+      "files": [
+        {
+          "id": "model-translate",
+          "version": "ab84726",
+          "url": "https://huggingface.co/tencent/Hy-MT2-7B-GGUF/resolve/ab8472660ac61fac25f1af43fac2599d52a8a775/Hy-MT2-7B-Q4_K_M.gguf",
+          "sha256": "9f96256500f3fc1ab4d64336b58f52a949a95ad7516b0c229476eef782f9f77b",
+          "kind": "file",
+          "dest": "models/Hy-MT2-7B-Q4_K_M.gguf",
+          "size": 4624648896
+        }
+      ]
+    },
+    {
+      "id": "model-translate-cpu",
+      "title": "Translation model (Hy-MT2 1.8B)",
+      "features": [
+        "translation"
+      ],
+      "tier": "cpu",
+      "license": "Apache-2.0",
+      "homepage": "https://huggingface.co/tencent/Hy-MT2-1.8B-GGUF",
+      "files": [
+        {
+          "id": "model-translate-cpu",
+          "version": "a0c709d",
+          "url": "https://huggingface.co/tencent/Hy-MT2-1.8B-GGUF/resolve/a0c709d9fac510f2c807aa3af52872340dc37a4a/Hy-MT2-1.8B-Q4_K_M.gguf",
+          "sha256": "dc5f44fcf1fa496ee7ad725982c0c8c553a4de00259b53af84c4b89fb0c06699",
+          "size": 1133080448,
+          "kind": "file",
+          "dest": "models/Hy-MT2-1.8B-Q4_K_M.gguf"
+        }
+      ]
+    },
+    {
+      "id": "model-general-gpu",
+      "title": "Summary model (Qwen3 8B)",
+      "features": [
+        "summaries"
+      ],
+      "tier": "gpu",
+      "license": "Apache-2.0",
+      "homepage": "https://huggingface.co/Qwen/Qwen3-8B-GGUF",
+      "files": [
+        {
+          "id": "model-general",
+          "version": "7c41481",
+          "url": "https://huggingface.co/Qwen/Qwen3-8B-GGUF/resolve/7c41481f57cb95916b40956ab2f0b139b296d974/Qwen3-8B-Q4_K_M.gguf",
+          "sha256": "d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785",
+          "kind": "file",
+          "dest": "models/Qwen3-8B-Q4_K_M.gguf",
+          "size": 5027783488
+        }
+      ]
+    },
+    {
+      "id": "model-general-cpu",
+      "title": "Summary model (Qwen3 4B)",
+      "features": [
+        "summaries"
+      ],
+      "tier": "cpu",
+      "license": "Apache-2.0",
+      "homepage": "https://huggingface.co/Qwen/Qwen3-4B-GGUF",
+      "files": [
+        {
+          "id": "model-general-cpu",
+          "version": "bc64014",
+          "url": "https://huggingface.co/Qwen/Qwen3-4B-GGUF/resolve/bc640142c66e1fdd12af0bd68f40445458f3869b/Qwen3-4B-Q4_K_M.gguf",
+          "sha256": "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5",
+          "size": 2497280256,
+          "kind": "file",
+          "dest": "models/Qwen3-4B-Q4_K_M.gguf"
+        }
+      ]
     }
   ]
 }

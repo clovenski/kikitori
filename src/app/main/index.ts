@@ -124,7 +124,7 @@ void app.whenReady().then(() => runStartup(async () => {
   repo.resetRunningJobs(); // a crash or hard kill can leave jobs claiming to be running
   const stages = new StageRepo(db);
   const store = new SubmissionStore(db);
-  const pool = createRealModelPool({ log: (m) => console.log(m) });
+  const pool = createRealModelPool({ log: (m) => console.log(m), tier: () => 'gpu' });
   const probeDeps = () => createRealDeps({ dataDir: dir, model: 'large-v3', db, log: () => {} }).deps;
 
   queue = new JobQueue({
