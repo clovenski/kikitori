@@ -2,14 +2,9 @@
 
 Things that are known, understood, and deliberately not fixed yet. None of them loses data, kills the wrong process, or leaves the app unusable. Each entry says what happens, why it was left, and what a fix would look like.
 
-Last reviewed: after Milestone 3 (2026-10-14).
+Last reviewed: after Milestone 4 (2026-10-14).
 
 ## Desktop app
-
-### Quitting twice quits early
-Clicking the window's X while a File > Exit shutdown is still running makes the app exit immediately and cuts the cleanup short.
-- **Why it is left:** the cleanup that gets skipped is what the orphan cleanup at the next start already covers.
-- **Fix:** call `event.preventDefault()` in `before-quit` while a shutdown is in progress (`src/app/main/index.ts`). One line; worth doing with Milestone 4.
 
 ### A model can restart after shutdown stopped it
 If the queue step of shutdown times out in the middle of a translation or summary stage, `pool.stopAll()` runs and the still-running stage can start a new `llama-server`.
@@ -26,19 +21,22 @@ If the YouTube player script fails to load, the app switches to reader mode and 
 - **Why it is left:** the fallback is the designed behavior and it needs a bad network to trigger.
 - **Fix:** ignore script errors that arrive after the timeout, and reload the iframe API by replacing the script tag.
 
-## Pipeline
-
-### Every yt-dlp failure is retried
-Downloads retry up to 3 times with a short backoff, because YouTube intermittently refuses ffmpeg's direct fetch (the cause was inferred, not seen in the failing output). Permanent failures (format not available, disk full, members-only video that passed the probe) are retried too and take about 6 seconds longer to report.
-- **Why it is left:** private videos and bad URLs already fail earlier, at the probe.
-- **Fix:** do not retry exit conditions that cannot change (read yt-dlp's error text, or exit code).
-
 ## Helper-process cleanup
 
 ### A reused owner process id can hide orphans
 Helper records are only acted on when their owner process is gone. If this process happens to get the same id as a dead owner, that owner's old records look alive and are never cleaned up. Temp files (`children.json.<pid>.tmp`) left by a crash mid-write are never deleted.
 - **Why it is left:** the worst case is an orphan staying alive, never a wrong kill. Windows already kills the app's helpers together with the app in the cases tried.
 - **Fix:** store the owner's start time too, and sweep stale `.tmp` files at startup.
+
+## Setup and installer (Milestone 4)
+
+- **Unsigned installer:** Windows SmartScreen warns on first run ("More info", then "Run anyway"), and some antivirus programs flag yt-dlp or the model runtimes. Both are documented in the README, not fixed.
+- **CPU path speed:** on the author's i7-13700K a 2-minute range (audio download, transcription, translation, summary) took about 120 seconds with the CPU components (Whisper large-v3-turbo 5-bit, Hy-MT2 1.8B, Qwen3 4B). Other machines will be slower, and the quality was only spot-checked: translations read fine, the summary is thinner than the GPU tier's.
+- **Only NVIDIA GPUs with a CUDA 12.4 driver (551 or newer) get the GPU path.** AMD and Intel GPUs use the CPU path. A driver that passes the check can still fail at run time: use Tools > Switch to CPU only.
+- **Repair re-hashes model and data files.** Unpacked programs (ffmpeg, whisper, llama) are only downloaded again when their marker file is missing.
+- **Changing tier with jobs queued is not handled:** finish or cancel queued jobs first. A resumed submission from before a tier switch runs with the installed tier's speech model.
+- **Pinned download URLs can disappear or be rate limited** (GitHub, Hugging Face, Gyan). The checksum turns that into a clear error; re-pin with `pnpm pin:tools --update` when it happens.
+- **Not proven yet:** the two GitHub workflows (there is no repository to run them on), the offline error message end to end (it is unit-tested), and the on-demand download prompt in a real window (unit-tested).
 
 ## Translation quality (Milestone 2)
 
