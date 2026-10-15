@@ -24,7 +24,7 @@ beforeEach(() => {
 describe('migrate', () => {
   it('is idempotent and sets user_version', () => {
     migrate(db);
-    expect(db.pragma('user_version', { simple: true })).toBe(3);
+    expect(db.pragma('user_version', { simple: true })).toBe(4);
   });
 });
 

@@ -82,6 +82,28 @@ const MIGRATIONS: string[] = [
     updated_at TEXT NOT NULL
   );
   `,
+  `
+  CREATE TABLE channels (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    youtube_channel_id TEXT NOT NULL UNIQUE,
+    handle TEXT,
+    title TEXT NOT NULL,
+    url TEXT NOT NULL,
+    added_at TEXT NOT NULL,
+    last_checked_at TEXT,
+    last_error TEXT
+  );
+  CREATE TABLE feed_items (
+    video_id TEXT PRIMARY KEY,
+    channel_id INTEGER NOT NULL REFERENCES channels(id),
+    title TEXT NOT NULL,
+    duration_ms INTEGER,
+    tab TEXT NOT NULL,
+    first_seen_at TEXT NOT NULL,
+    dismissed INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE INDEX idx_feed_channel ON feed_items(channel_id, first_seen_at);
+  `,
 ];
 
 export function migrate(db: Database): void {
