@@ -66,3 +66,16 @@ pnpm build:installer       # dist/Kikitori-Setup-<version>.exe
 
 `KTR_USER_DATA=<folder>` runs the app against an empty profile (it then shows the first-run wizard).
 Third-party components and licenses: `THIRD_PARTY_NOTICES.md`. Project license: MIT.
+
+### Releasing
+
+Pushing commits to master only runs CI. A release is made only when a tag starting with `v` is pushed
+(`.github/workflows/release.yml`), and installed copies update from the newest GitHub release:
+
+1. Bump `version` in `package.json` (e.g. `0.3.1`). The workflow fails if the tag does not match it.
+2. Commit, then `git tag v0.3.1`, then push the commit and the tag.
+
+The workflow builds the installer and creates a new release with `gh release create`; it never overwrites an
+existing one, so re-pushing a tag such as `v0.3.0` fails with "release already exists". The updater only offers a
+version higher than the installed one (it compares `latest.yml` with the running version), so every update needs a
+new version number. To redo a release, delete the GitHub release and the tag first.
