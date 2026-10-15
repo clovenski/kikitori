@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import type { Repo } from '../../core/db/repo';
 import type { StageRepo } from '../../core/db/stage-repo';
+import type { SubmissionOptions } from '../../core/db/submission-repo';
 import { BgtError } from '../../core/errors';
 import { loadGlossaryFile } from '../../core/llm/glossary-file';
 import { estimateSeconds } from '../../core/pipeline/estimate';
@@ -8,7 +9,15 @@ import { isUrl } from '../../core/pipeline/real-deps';
 import { CHANNELS, type ProbeResult, type Result } from '../shared/ipc';
 import { getJobDetail, listLibrary } from './library-service';
 import type { JobQueue } from './queue';
-import { parseEstimateArgs, parseId, parseSource, parseSubmitRequest } from './validate';
+import type { SetupService } from './setup-service';
+import {
+  parseEstimateArgs,
+  parseId,
+  parseSetupSelection,
+  parseSource,
+  parseSubmissionOptions,
+  parseSubmitRequest,
+} from './validate';
 
 export interface HandlerDeps {
   repo: Repo;
@@ -21,6 +30,12 @@ export interface HandlerDeps {
   outDir: string;
   /** Injectable for tests; defaults to the real file system. */
   fileExists?(path: string): boolean;
+  setup: Pick<SetupService, 'state' | 'detect' | 'plan' | 'missingFor' | 'start' | 'cancel' | 'repair' | 'updateYtDlp'>;
+  openNotices(): Promise<void>;
+  /** Throws SetupRequired when the job needs components that are not installed yet. */
+  ensureReady(options: SubmissionOptions): void;
+  /** Whisper model name of the installed tier; stored on every new submission. */
+  transcribeModel(): string;
 }
 
 type Handler = (arg?: unknown) => Promise<Result<unknown>>;
@@ -61,7 +76,8 @@ export function createHandlers(d: HandlerDeps) {
           throw new BgtError('InvalidInput', `File not found: ${request.source}`);
         }
         if (request.options.glossaryPath) loadGlossaryFile(request.options.glossaryPath);
-        return d.queue.submit(request);
+        d.ensureReady(request.options);
+        return d.queue.submit({ ...request, options: { ...request.options, model: d.transcribeModel() } });
       }),
     [CHANNELS.queueCancel]: (arg?: unknown) =>
       wrap(() => {
@@ -82,6 +98,31 @@ export function createHandlers(d: HandlerDeps) {
       }),
     [CHANNELS.dialogPickMedia]: () => wrap(() => d.pickFile('media')),
     [CHANNELS.dialogPickGlossary]: () => wrap(() => d.pickFile('glossary')),
+    [CHANNELS.setupState]: () => wrap(() => d.setup.state()),
+    [CHANNELS.setupDetect]: () => wrap(() => d.setup.detect()),
+    [CHANNELS.setupPlan]: (arg?: unknown) => wrap(() => d.setup.plan(parseSetupSelection(arg))),
+    [CHANNELS.setupMissingFor]: (arg?: unknown) => wrap(() => d.setup.missingFor(parseSubmissionOptions(arg))),
+    [CHANNELS.setupStart]: (arg?: unknown) =>
+      wrap(() => {
+        d.setup.start(parseSetupSelection(arg));
+        return null;
+      }),
+    [CHANNELS.setupCancel]: () =>
+      wrap(async () => {
+        await d.setup.cancel();
+        return null;
+      }),
+    [CHANNELS.setupRepair]: () =>
+      wrap(() => {
+        d.setup.repair();
+        return null;
+      }),
+    [CHANNELS.setupUpdateYtDlp]: () => wrap(() => d.setup.updateYtDlp()),
+    [CHANNELS.setupOpenNotices]: () =>
+      wrap(async () => {
+        await d.openNotices();
+        return null;
+      }),
   } satisfies Record<string, Handler>;
   return handlers;
 }

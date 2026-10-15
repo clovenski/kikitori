@@ -27,16 +27,9 @@ export function parseEstimateArgs(raw: unknown): { durationMs: number; startMs: 
   return { durationMs, startMs, endMs: endMs as number | null };
 }
 
-export function parseSubmitRequest(raw: unknown): SubmitRequest {
-  if (!isObject(raw)) throw invalid('Invalid request.');
-  const source = parseSource(raw.source);
-  const { startMs, endMs } = raw;
-  if (!isInt(startMs) || startMs < 0) throw invalid('Start time must be a non-negative whole number of milliseconds.');
-  if (endMs !== null && endMs !== undefined && (!isInt(endMs) || endMs <= startMs)) {
-    throw invalid('End time must be after the start time.');
-  }
-  const o = raw.options;
-  if (!isObject(o)) throw invalid('Missing options.');
+export function parseSubmissionOptions(raw: unknown): SubmissionOptions {
+  if (!isObject(raw)) throw invalid('Missing options.');
+  const o = raw;
   const translate = o.translate === true;
   const summarize = o.summarize === true;
   const skim = o.skim === true;
@@ -49,6 +42,18 @@ export function parseSubmitRequest(raw: unknown): SubmitRequest {
   if (typeof model !== 'string' || !/^[a-z0-9][a-z0-9._-]*$/i.test(model)) throw invalid('Invalid model name.');
   const options: SubmissionOptions = { translate, summarize, skim, maxMinutes, model };
   if (typeof o.glossaryPath === 'string' && o.glossaryPath.trim() !== '') options.glossaryPath = o.glossaryPath.trim();
+  return options;
+}
+
+export function parseSubmitRequest(raw: unknown): SubmitRequest {
+  if (!isObject(raw)) throw invalid('Invalid request.');
+  const source = parseSource(raw.source);
+  const { startMs, endMs } = raw;
+  if (!isInt(startMs) || startMs < 0) throw invalid('Start time must be a non-negative whole number of milliseconds.');
+  if (endMs !== null && endMs !== undefined && (!isInt(endMs) || endMs <= startMs)) {
+    throw invalid('End time must be after the start time.');
+  }
+  const options = parseSubmissionOptions(raw.options);
   return { source, startMs, endMs: endMs === undefined ? null : (endMs as number | null), options };
 }
 

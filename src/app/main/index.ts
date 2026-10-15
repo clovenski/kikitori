@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { app, BrowserWindow, dialog, protocol, session, shell } from 'electron';
 import { pathToFileURL } from 'node:url';
@@ -10,10 +10,19 @@ import { createPerfStore } from '../../core/pipeline/estimate';
 import { createRealDeps } from '../../core/pipeline/real-deps';
 import { createRealModelPool } from '../../core/pipeline/real-llm';
 import { startChildTracking } from '../../core/tools/children';
-import { dataDir } from '../../core/tools/paths';
+import { transcribeModelName, wantsOfOptions } from '../../core/setup/components';
+import { detectHardware } from '../../core/setup/hardware';
+import { freeDiskBytes, installComponents, removeDamaged, uninstallComponents } from '../../core/setup/installer';
+import { ensureInstalled } from '../../core/setup/plan';
+import { currentTier, ensureSettings } from '../../core/setup/settings';
+import { loadLock } from '../../core/tools/lock';
+import { dataDir, projectRoot, resolveTool, resourcesDir } from '../../core/tools/paths';
+import { updateYtDlp } from '../../core/tools/ytdlp';
 import { CHANNELS } from '../shared/ipc';
 import { createHandlers } from './handlers';
 import { broadcast, registerIpc } from './ipc';
+import { resolveAppPaths } from './app-paths';
+import { SetupService } from './setup-service';
 import { buildMediaResponse, parseMediaUrl, resolveMediaPath } from './media';
 import { denyAllPermissions, runShutdown, runStartup, shouldConfirmQuit } from './lifecycle';
 import { isAllowedNavigation } from './navigation';
@@ -21,8 +30,20 @@ import { JobQueue } from './queue';
 import { runSubmission } from './run-submission';
 
 const smoke = process.argv.includes('--smoke');
-// `import.meta.url`-based root discovery in src/core does not work from a bundle.
-process.env.BGT_PROJECT_ROOT ??= app.getAppPath();
+// Every location is decided before any core code reads it (`import.meta.url` root discovery does not work from a bundle).
+const paths = resolveAppPaths({
+  packaged: app.isPackaged,
+  appPath: app.getAppPath(),
+  resourcesPath: process.resourcesPath,
+  appData: app.getPath('appData'),
+  documents: app.getPath('documents'),
+  env: process.env,
+});
+process.env.BGT_PROJECT_ROOT = paths.projectRoot;
+process.env.BGT_RESOURCES_DIR = paths.resourcesDir;
+process.env.BGT_DATA_DIR = paths.dataDir;
+process.env.BGT_OUTPUT_DIR = paths.outDir;
+if (paths.userData) app.setPath('userData', paths.userData);
 
 const REFERER = 'https://bgt.local/';
 protocol.registerSchemesAsPrivileged([
@@ -118,14 +139,32 @@ void app.whenReady().then(() => runStartup(async () => {
   // Before anything can start: kill helpers an earlier crash left behind, then record this run's helpers.
   const cleaned = await startChildTracking(path.join(dir, 'children.json'));
   if (cleaned.killed.length > 0) console.log(`Cleaned up ${cleaned.killed.length} orphaned helper process(es).`);
-  const outDir = path.resolve(process.env.BGT_OUTPUT_DIR ?? path.join(app.getAppPath(), 'output'));
+  const outDir = path.resolve(paths.outDir);
   const db = openDb(path.join(dir, 'bgt.sqlite'));
   const repo = new Repo(db);
   repo.resetRunningJobs(); // a crash or hard kill can leave jobs claiming to be running
   const stages = new StageRepo(db);
   const store = new SubmissionStore(db);
-  const pool = createRealModelPool({ log: (m) => console.log(m), tier: () => 'gpu' });
-  const probeDeps = () => createRealDeps({ dataDir: dir, model: 'large-v3', db, log: () => {} }).deps;
+  const lock = loadLock(path.join(projectRoot(), 'tools.lock.json'));
+  const resources = resourcesDir();
+  ensureSettings({ dataDir: dir, lock, resources }); // a checkout that already has a whole tier needs no wizard
+  const tier = () => currentTier(dir);
+  const model = () => transcribeModelName(tier());
+  const setup = new SetupService({
+    lock,
+    resourcesDir: resources,
+    dataDir: dir,
+    hardware: () => detectHardware(),
+    install: installComponents,
+    uninstall: uninstallComponents,
+    removeDamaged,
+    freeBytes: freeDiskBytes,
+    updateYtDlp: () => updateYtDlp(resolveTool('yt-dlp')),
+    emit: (p) => broadcast(CHANNELS.setupProgress, p),
+    log: (m) => console.log(m),
+  });
+  const pool = createRealModelPool({ log: (m) => console.log(m), tier });
+  const probeDeps = () => createRealDeps({ dataDir: dir, model: model(), db, log: () => {} }).deps;
 
   queue = new JobQueue({
     store,
@@ -134,7 +173,9 @@ void app.whenReady().then(() => runStartup(async () => {
         {
           repo,
           stages,
-          makeDeps: (s) => createRealDeps({ dataDir: dir, model: s.options.model, db, log: (m) => console.log(m) }).deps,
+          // The installed tier decides the speech model; a submission from before a tier switch still runs.
+          makeDeps: () => createRealDeps({ dataDir: dir, model: model(), db, log: (m) => console.log(m) }).deps,
+          autoGlossary: () => setup.autoGlossaryAvailable(),
           workRoot: path.join(dir, 'work'),
           outDir,
           pool,
@@ -167,6 +208,12 @@ void app.whenReady().then(() => runStartup(async () => {
       },
       outDir,
       fileExists: existsSync,
+      setup,
+      openNotices: async () => {
+        await shell.openPath(path.join(projectRoot(), 'THIRD_PARTY_NOTICES.md'));
+      },
+      ensureReady: (options) => ensureInstalled(lock, tier(), wantsOfOptions(options), resources),
+      transcribeModel: model,
     }),
   );
 
@@ -185,11 +232,13 @@ void app.whenReady().then(() => runStartup(async () => {
     win.webContents.once('did-finish-load', async () => {
       try {
         const reply = await win.webContents.executeJavaScript(
-          'window.bgt ? Promise.all([window.bgt.ping(), window.bgt.library.list()]) : Promise.resolve(["no-bridge"])',
+          'window.bgt ? Promise.all([window.bgt.ping(), window.bgt.library.list(), window.bgt.setup.state()]) : Promise.resolve(["no-bridge"])',
         );
         clearTimeout(timer);
-        if (reply[0] === 'pong' && reply[1]?.ok === true) {
-          console.log('SMOKE OK');
+        if (reply[0] === 'pong' && reply[1]?.ok === true && reply[2]?.ok === true) {
+          const line = `SMOKE OK wizard=${reply[2].value.needsWizard}`;
+          console.log(line);
+          if (process.env.BGT_SMOKE_OUT) writeFileSync(process.env.BGT_SMOKE_OUT, line); // packaged GUI apps may not show stdout
           app.exit(0);
         } else {
           console.error(`SMOKE FAIL: ${JSON.stringify(reply)}`);
@@ -205,7 +254,10 @@ void app.whenReady().then(() => runStartup(async () => {
   }
 
   app.on('before-quit', (event) => {
-    if (quitting) return;
+    if (quitting) {
+      event.preventDefault(); // a second quit request must not cut the cleanup short
+      return;
+    }
     if (!confirmQuit(BrowserWindow.getAllWindows()[0])) {
       event.preventDefault();
       return;
@@ -214,6 +266,7 @@ void app.whenReady().then(() => runStartup(async () => {
     event.preventDefault();
     void runShutdown(
       [
+        { name: 'setup', run: () => setup.cancel() },
         { name: 'queue', run: async () => void (await queue?.shutdown()) },
         { name: 'models', run: () => pool.stopAll() },
         { name: 'database', run: async () => db.close() },

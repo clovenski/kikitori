@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { createHandlers } from '../../src/app/main/handlers';
+import { describe, expect, it, vi } from 'vitest';
+import { createHandlers, type HandlerDeps } from '../../src/app/main/handlers';
 import { JobQueue } from '../../src/app/main/queue';
 import { SubmissionStore } from '../../src/core/db/submission-repo';
 import { BgtError } from '../../src/core/errors';
@@ -12,6 +12,8 @@ function setup(
     speed?: number | null;
     probe?: () => Promise<{ title: string | null; durationMs: number }>;
     fileExists?: (p: string) => boolean;
+    ensureReady?: (o: unknown) => void;
+    model?: string;
   } = {},
 ) {
   const { repo, stages } = memoryRepos();
@@ -20,6 +22,16 @@ function setup(
   const store = new SubmissionStore(db);
   const queue = new JobQueue({ store, run: async () => {}, emitChanged: () => {}, emitProgress: () => {} });
   const opened: string[] = [];
+  const service = {
+    state: vi.fn(() => ({ needsWizard: false })),
+    detect: vi.fn(async () => ({ recommendedTier: 'cpu' })),
+    plan: vi.fn(() => ({ missingBytes: 0 })),
+    missingFor: vi.fn(() => ({ missingBytes: 5 })),
+    start: vi.fn(),
+    cancel: vi.fn(async () => {}),
+    repair: vi.fn(),
+    updateYtDlp: vi.fn(async () => 'updated'),
+  };
   const handlers = createHandlers({
     repo,
     stages,
@@ -32,8 +44,12 @@ function setup(
     },
     outDir: 'C:/out',
     fileExists: over.fileExists ?? (() => true),
+    setup: service as unknown as HandlerDeps['setup'],
+    openNotices: async () => {},
+    ensureReady: over.ensureReady ?? (() => {}),
+    transcribeModel: () => over.model ?? 'large-v3',
   });
-  return { handlers, repo, stages, queue, opened };
+  return { handlers, repo, stages, queue, opened, service };
 }
 
 const options = { translate: false, summarize: false, skim: false, maxMinutes: 30, model: 'large-v3' };
@@ -57,6 +73,46 @@ describe('handlers', () => {
     const bad = await t.handlers['queue:submit']({ source: '', startMs: 0, endMs: null, options });
     expect(bad).toMatchObject({ ok: false, error: { code: 'InvalidInput' } });
     expect(t.queue.list()).toHaveLength(1);
+  });
+
+  it('queue:submit checks that the needed components are installed and queues nothing when they are not', async () => {
+    const t = setup({
+      ensureReady: () => {
+        throw new BgtError('SetupRequired', 'Download the translation model first.');
+      },
+    });
+    const r = await t.handlers['queue:submit']({ source: 'C:/a.wav', startMs: 0, endMs: null, options: { ...options, translate: true } });
+    expect(r).toMatchObject({ ok: false, error: { code: 'SetupRequired' } });
+    expect(t.queue.list()).toHaveLength(0);
+  });
+
+  it('queue:submit stores the whisper model of the installed tier, not the one the renderer sent', async () => {
+    const t = setup({ model: 'large-v3-turbo-q5_0' });
+    await t.handlers['queue:submit']({ source: 'C:/a.wav', startMs: 0, endMs: null, options });
+    expect(t.queue.list()[0].options.model).toBe('large-v3-turbo-q5_0');
+  });
+
+  it('setup channels validate their arguments and delegate to the service', async () => {
+    const t = setup();
+    expect(await t.handlers['setup:start']({ tier: 'tpu' })).toMatchObject({ ok: false, error: { code: 'InvalidInput' } });
+    expect(t.service.start).not.toHaveBeenCalled();
+    const selection = { tier: 'cpu', features: { translation: true, summaries: false } };
+    expect(await t.handlers['setup:start'](selection)).toEqual({ ok: true, value: null });
+    expect(t.service.start).toHaveBeenCalledWith(selection);
+    expect(await t.handlers['setup:state']()).toEqual({ ok: true, value: { needsWizard: false } });
+    expect(await t.handlers['setup:missingFor']({ translate: true })).toEqual({ ok: true, value: { missingBytes: 5 } });
+    expect(await t.handlers['setup:updateYtDlp']()).toEqual({ ok: true, value: 'updated' });
+    expect(await t.handlers['setup:cancel']()).toEqual({ ok: true, value: null });
+    expect(await t.handlers['setup:repair']()).toEqual({ ok: true, value: null });
+  });
+
+  it('a setup that is already running comes back as an error result, not a thrown exception', async () => {
+    const t = setup();
+    t.service.start.mockImplementation(() => {
+      throw new BgtError('InvalidInput', 'A download is already running.');
+    });
+    const r = await t.handlers['setup:start']({ tier: 'cpu', features: { translation: true, summaries: true } });
+    expect(r).toMatchObject({ ok: false, error: { message: 'A download is already running.' } });
   });
 
   it('queue:submit refuses a local file that does not exist, and never queues it', async () => {

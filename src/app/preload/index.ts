@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
-import { CHANNELS, type BgtApi, type QueueProgressEvent, type Submission } from '../shared/ipc';
+import { CHANNELS, type BgtApi, type QueueProgressEvent, type SetupProgress, type Submission } from '../shared/ipc';
 
 const invoke = <T>(channel: string, arg?: unknown) => ipcRenderer.invoke(channel, arg) as Promise<T>;
 
@@ -32,6 +32,18 @@ const api: BgtApi = {
     pickMedia: () => invoke(CHANNELS.dialogPickMedia),
     pickGlossary: () => invoke(CHANNELS.dialogPickGlossary),
     pathForFile: (file) => webUtils.getPathForFile(file),
+  },
+  setup: {
+    state: () => invoke(CHANNELS.setupState),
+    detect: () => invoke(CHANNELS.setupDetect),
+    plan: (selection) => invoke(CHANNELS.setupPlan, selection),
+    missingFor: (options) => invoke(CHANNELS.setupMissingFor, options),
+    start: (selection) => invoke(CHANNELS.setupStart, selection),
+    cancel: () => invoke(CHANNELS.setupCancel),
+    repair: () => invoke(CHANNELS.setupRepair),
+    updateYtDlp: () => invoke(CHANNELS.setupUpdateYtDlp),
+    openNotices: () => invoke(CHANNELS.setupOpenNotices),
+    onProgress: (cb) => subscribe<SetupProgress>(CHANNELS.setupProgress, cb),
   },
 };
 

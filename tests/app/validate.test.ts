@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseEstimateArgs, parseId, parseSetupSelection, parseSource, parseSubmitRequest } from '../../src/app/main/validate';
+import { parseEstimateArgs, parseId, parseSetupSelection, parseSource, parseSubmissionOptions, parseSubmitRequest } from '../../src/app/main/validate';
 
 const good = {
   source: 'https://www.youtube.com/watch?v=7SHNxjFuw10',
@@ -79,5 +79,12 @@ describe('parseSetupSelection', () => {
     for (const bad of [null, 'gpu', { tier: 'tpu', features: { translation: true, summaries: true } }, { tier: 'gpu' }, { tier: 'gpu', features: { translation: 1, summaries: true } }]) {
       expect(() => parseSetupSelection(bad)).toThrow(expect.objectContaining({ code: 'InvalidInput' }));
     }
+  });
+});
+
+describe('parseSubmissionOptions', () => {
+  it('fills the defaults and rejects non-objects', () => {
+    expect(parseSubmissionOptions({ translate: true })).toEqual({ translate: true, summarize: false, skim: false, maxMinutes: 30, model: 'large-v3' });
+    expect(() => parseSubmissionOptions(null)).toThrow(expect.objectContaining({ code: 'InvalidInput' }));
   });
 });

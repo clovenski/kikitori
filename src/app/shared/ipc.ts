@@ -130,6 +130,20 @@ export interface BgtApi {
     /** Absolute path of a dropped file (synchronous; resolved in the preload). */
     pathForFile(file: File): string;
   };
+  setup: {
+    state(): Promise<Result<SetupState>>;
+    detect(): Promise<Result<HardwareReport>>;
+    plan(selection: SetupSelection): Promise<Result<SetupPlanView>>;
+    /** What a job with these options still needs downloaded. */
+    missingFor(options: SubmissionOptions): Promise<Result<SetupPlanView>>;
+    /** Starts the download in the background; progress arrives through `onProgress`. */
+    start(selection: SetupSelection): Promise<Result<null>>;
+    cancel(): Promise<Result<null>>;
+    repair(): Promise<Result<null>>;
+    updateYtDlp(): Promise<Result<string>>;
+    openNotices(): Promise<Result<null>>;
+    onProgress(cb: (p: SetupProgress) => void): () => void;
+  };
 }
 
 /** IPC channel names, shared by main and preload. */
@@ -148,4 +162,14 @@ export const CHANNELS = {
   sourceEstimate: 'source:estimate',
   dialogPickMedia: 'dialog:pickMedia',
   dialogPickGlossary: 'dialog:pickGlossary',
+  setupState: 'setup:state',
+  setupDetect: 'setup:detect',
+  setupPlan: 'setup:plan',
+  setupMissingFor: 'setup:missingFor',
+  setupStart: 'setup:start',
+  setupCancel: 'setup:cancel',
+  setupRepair: 'setup:repair',
+  setupUpdateYtDlp: 'setup:updateYtDlp',
+  setupOpenNotices: 'setup:openNotices',
+  setupProgress: 'setup:progress',
 } as const;
