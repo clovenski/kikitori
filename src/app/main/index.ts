@@ -5,6 +5,8 @@ import { pathToFileURL } from 'node:url';
 import { openDb } from '../../core/db';
 import { Repo } from '../../core/db/repo';
 import { StageRepo } from '../../core/db/stage-repo';
+import { addChannel as followChannel, checkChannel } from '../../core/channels/check';
+import { ChannelStore } from '../../core/db/channel-repo';
 import { SubmissionStore } from '../../core/db/submission-repo';
 import { createPerfStore } from '../../core/pipeline/estimate';
 import { createRealDeps } from '../../core/pipeline/real-deps';
@@ -19,6 +21,7 @@ import { loadLock } from '../../core/tools/lock';
 import { dataDir, projectRoot, resolveTool, resourcesDir } from '../../core/tools/paths';
 import { updateYtDlp } from '../../core/tools/ytdlp';
 import { CHANNELS } from '../shared/ipc';
+import { ChannelWatcher } from './channel-watcher';
 import { createHandlers } from './handlers';
 import { broadcast, registerIpc } from './ipc';
 import { resolveAppPaths } from './app-paths';
@@ -145,6 +148,7 @@ void app.whenReady().then(() => runStartup(async () => {
   repo.resetRunningJobs(); // a crash or hard kill can leave jobs claiming to be running
   const stages = new StageRepo(db);
   const store = new SubmissionStore(db);
+  const channelStore = new ChannelStore(db);
   const lock = loadLock(path.join(projectRoot(), 'tools.lock.json'));
   const resources = resourcesDir();
   ensureSettings({ dataDir: dir, lock, resources }); // a checkout that already has a whole tier needs no wizard
@@ -162,6 +166,23 @@ void app.whenReady().then(() => runStartup(async () => {
     jobRunning: () => queue?.list().some((s) => s.state === 'running') ?? false,
     updateYtDlp: () => updateYtDlp(resolveTool('yt-dlp')),
     emit: (p) => broadcast(CHANNELS.setupProgress, p),
+    log: (m) => console.log(m),
+  });
+  const channelDeps = { store: channelStore, ytdlpPath: () => resolveTool('yt-dlp'), log: (m: string) => console.log(m) };
+  const watcher = new ChannelWatcher({
+    store: channelStore,
+    check: (channel, signal) => checkChannel(channelDeps, channel, signal),
+    canRun: () => {
+      const state = setup.state();
+      if (state.needsWizard || state.installing) return false;
+      try {
+        resolveTool('yt-dlp');
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    onChanged: () => broadcast(CHANNELS.channelsChanged, null),
     log: (m) => console.log(m),
   });
   const pool = createRealModelPool({ log: (m) => console.log(m), tier });
@@ -215,6 +236,7 @@ void app.whenReady().then(() => runStartup(async () => {
       },
       ensureReady: (options) => ensureInstalled(lock, tier(), wantsOfOptions(options), resources),
       transcribeModel: model,
+      channels: { store: channelStore, add: (input) => followChannel(channelDeps, input), refresh: (id) => watcher.refresh(id) },
     }),
   );
 
@@ -252,6 +274,7 @@ void app.whenReady().then(() => runStartup(async () => {
     });
   } else {
     queue.start();
+    watcher.start();
   }
 
   app.on('before-quit', (event) => {
@@ -267,6 +290,7 @@ void app.whenReady().then(() => runStartup(async () => {
     event.preventDefault();
     void runShutdown(
       [
+        { name: 'channels', run: () => watcher.stop() },
         { name: 'setup', run: () => setup.cancel() },
         { name: 'queue', run: async () => void (await queue?.shutdown()) },
         { name: 'models', run: () => pool.stopAll() },

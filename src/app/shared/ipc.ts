@@ -102,6 +102,28 @@ export interface SubmitRequest {
   options: SubmissionOptions;
 }
 
+export interface ChannelInfo {
+  id: number;
+  youtubeChannelId: string;
+  handle: string | null;
+  title: string;
+  url: string;
+  lastCheckedAt: string | null;
+  lastError: string | null;
+}
+
+export interface FeedItem {
+  videoId: string;
+  channelId: number;
+  channelTitle: string;
+  title: string;
+  durationMs: number | null;
+  tab: 'videos' | 'streams';
+  firstSeenAt: string;
+  /** The job that already exists for this video, if any. */
+  job: { jobId: number; status: JobStatus } | null;
+}
+
 export interface QueueProgressEvent {
   submissionId: number;
   event: ProgressEvent;
@@ -146,6 +168,17 @@ export interface BgtApi {
     openNotices(): Promise<Result<null>>;
     onProgress(cb: (p: SetupProgress) => void): () => void;
   };
+  channels: {
+    list(): Promise<Result<ChannelInfo[]>>;
+    add(input: string): Promise<Result<ChannelInfo>>;
+    remove(id: number): Promise<Result<null>>;
+    /** Checks one channel (or all of them) now and resolves when the check is done. */
+    refresh(id?: number): Promise<Result<null>>;
+    feed(): Promise<Result<FeedItem[]>>;
+    dismiss(videoId: string): Promise<Result<null>>;
+    dismissAll(channelId?: number): Promise<Result<null>>;
+    onChanged(cb: () => void): () => void;
+  };
 }
 
 /** IPC channel names, shared by main and preload. */
@@ -174,4 +207,12 @@ export const CHANNELS = {
   setupUpdateYtDlp: 'setup:updateYtDlp',
   setupOpenNotices: 'setup:openNotices',
   setupProgress: 'setup:progress',
+  channelsList: 'channels:list',
+  channelsAdd: 'channels:add',
+  channelsRemove: 'channels:remove',
+  channelsRefresh: 'channels:refresh',
+  feedList: 'feed:list',
+  feedDismiss: 'feed:dismiss',
+  feedDismissAll: 'feed:dismissAll',
+  channelsChanged: 'channels:changed',
 } as const;

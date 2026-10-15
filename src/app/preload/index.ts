@@ -45,6 +45,16 @@ const api: BgtApi = {
     openNotices: () => invoke(CHANNELS.setupOpenNotices),
     onProgress: (cb) => subscribe<SetupProgress>(CHANNELS.setupProgress, cb),
   },
+  channels: {
+    list: () => invoke(CHANNELS.channelsList),
+    add: (input) => invoke(CHANNELS.channelsAdd, input),
+    remove: (id) => invoke(CHANNELS.channelsRemove, id),
+    refresh: (id) => invoke(CHANNELS.channelsRefresh, id),
+    feed: () => invoke(CHANNELS.feedList),
+    dismiss: (videoId) => invoke(CHANNELS.feedDismiss, videoId),
+    dismissAll: (channelId) => invoke(CHANNELS.feedDismissAll, channelId),
+    onChanged: (cb) => subscribe<null>(CHANNELS.channelsChanged, () => cb()),
+  },
 };
 
 contextBridge.exposeInMainWorld('bgt', api);

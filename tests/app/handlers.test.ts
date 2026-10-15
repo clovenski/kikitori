@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createHandlers, type HandlerDeps } from '../../src/app/main/handlers';
 import { JobQueue } from '../../src/app/main/queue';
+import { ChannelStore } from '../../src/core/db/channel-repo';
 import { SubmissionStore } from '../../src/core/db/submission-repo';
 import { BgtError } from '../../src/core/errors';
 import { Database } from '../../src/core/db/sqlite';
@@ -20,6 +21,11 @@ function setup(
   const db = new Database(':memory:');
   migrate(db);
   const store = new SubmissionStore(db);
+  const channelStore = new ChannelStore(db);
+  const addChannel = vi.fn(async (input: string) =>
+    channelStore.addChannel({ youtubeChannelId: `UC${input}`, handle: null, title: input, url: `https://www.youtube.com/channel/UC${input}` }),
+  );
+  const refreshChannels = vi.fn<(id?: number) => Promise<void>>(async () => {});
   const queue = new JobQueue({ store, run: async () => {}, emitChanged: () => {}, emitProgress: () => {} });
   const opened: string[] = [];
   const service = {
@@ -48,8 +54,9 @@ function setup(
     openNotices: async () => {},
     ensureReady: over.ensureReady ?? (() => {}),
     transcribeModel: () => over.model ?? 'large-v3',
+    channels: { store: channelStore, add: addChannel, refresh: refreshChannels },
   });
-  return { handlers, repo, stages, queue, opened, service };
+  return { handlers, repo, stages, queue, opened, service, channelStore, addChannel, refreshChannels };
 }
 
 const options = { translate: false, summarize: false, skim: false, maxMinutes: 30, model: 'large-v3' };
@@ -176,5 +183,49 @@ describe('handlers', () => {
     seedJob(t.repo, ['あ']);
     expect(await t.handlers['job:openOutputFolder'](1)).toEqual({ ok: true, value: null });
     expect(t.opened).toEqual(['C:/out']);
+  });
+
+  it('channels:add trims the text, follows the channel and returns it; empty text is refused', async () => {
+    const t = setup();
+    expect(await t.handlers['channels:add']('  @abc  ')).toMatchObject({ ok: true, value: { title: '@abc', lastError: null } });
+    expect(t.addChannel).toHaveBeenCalledWith('@abc');
+    expect(await t.handlers['channels:add']('  ')).toMatchObject({ ok: false, error: { code: 'InvalidInput' } });
+    expect(await t.handlers['channels:list']()).toMatchObject({ ok: true, value: [{ title: '@abc' }] });
+  });
+
+  it('channels:add passes a failure back as an error result', async () => {
+    const t = setup();
+    t.addChannel.mockRejectedValueOnce(new BgtError('InvalidInput', 'You already follow this channel.'));
+    expect(await t.handlers['channels:add']('@abc')).toMatchObject({ ok: false, error: { message: 'You already follow this channel.' } });
+  });
+
+  it('channels:remove and channels:refresh validate their ids', async () => {
+    const t = setup();
+    const c = t.channelStore.addChannel({ youtubeChannelId: 'UCx', handle: null, title: 'x', url: 'u' });
+    expect(await t.handlers['channels:refresh']()).toEqual({ ok: true, value: null });
+    expect(t.refreshChannels).toHaveBeenLastCalledWith(undefined);
+    expect(await t.handlers['channels:refresh'](c.id)).toEqual({ ok: true, value: null });
+    expect(t.refreshChannels).toHaveBeenLastCalledWith(c.id);
+    expect(await t.handlers['channels:refresh']('1')).toMatchObject({ ok: false, error: { code: 'InvalidInput' } });
+    expect(await t.handlers['channels:remove']('x')).toMatchObject({ ok: false, error: { code: 'InvalidInput' } });
+    expect(await t.handlers['channels:remove'](c.id)).toEqual({ ok: true, value: null });
+    expect(t.channelStore.listChannels()).toEqual([]);
+  });
+
+  it('feed:list links videos that already have a job; feed:dismiss and feed:dismissAll validate and persist', async () => {
+    const t = setup();
+    const c = t.channelStore.addChannel({ youtubeChannelId: 'UCx', handle: null, title: 'x', url: 'u' });
+    t.channelStore.addItems(c.id, [
+      { videoId: 'aaaaaaaaaaa', title: 'A', durationMs: 1000, tab: 'videos' },
+      { videoId: 'bbbbbbbbbbb', title: 'B', durationMs: 1000, tab: 'streams' },
+    ]);
+    const job = t.repo.createJob({ source: 'https://www.youtube.com/watch?v=aaaaaaaaaaa', rangeStartMs: 0, rangeEndMs: 1, settings: { model: 'large-v3', language: 'ja', maxMinutes: 30 }, videoId: 'aaaaaaaaaaa' });
+    const feed = await t.handlers['feed:list']();
+    expect(feed).toMatchObject({ ok: true, value: [{ videoId: 'aaaaaaaaaaa', job: { jobId: job.id } }, { videoId: 'bbbbbbbbbbb', job: null }] });
+    expect(await t.handlers['feed:dismiss']('nope')).toMatchObject({ ok: false, error: { code: 'InvalidInput' } });
+    expect(await t.handlers['feed:dismiss']('bbbbbbbbbbb')).toEqual({ ok: true, value: null });
+    expect(t.channelStore.listFeed().map((f) => f.videoId)).toEqual(['aaaaaaaaaaa']);
+    expect(await t.handlers['feed:dismissAll']()).toEqual({ ok: true, value: null });
+    expect(t.channelStore.listFeed()).toEqual([]);
   });
 });

@@ -66,3 +66,18 @@ export function parseSetupSelection(raw: unknown): SetupSelection {
   }
   return { tier, features: { translation: features.translation, summaries: features.summaries } };
 }
+
+export function parseChannelText(raw: unknown): string {
+  const text = typeof raw === 'string' ? raw.trim() : '';
+  if (text === '' || text.length > 300) throw invalid('Enter a channel link or @handle.');
+  return text;
+}
+
+export function parseVideoId(raw: unknown): string {
+  if (typeof raw !== 'string' || !/^[A-Za-z0-9_-]{11}$/.test(raw)) throw invalid('Invalid video id.');
+  return raw;
+}
+
+export function parseOptionalId(raw: unknown, what: string): number | undefined {
+  return raw === undefined || raw === null ? undefined : parseId(raw, what);
+}

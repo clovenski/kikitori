@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { parseEstimateArgs, parseId, parseSetupSelection, parseSource, parseSubmissionOptions, parseSubmitRequest } from '../../src/app/main/validate';
+import {
+  parseChannelText,
+  parseEstimateArgs,
+  parseId,
+  parseOptionalId,
+  parseSetupSelection,
+  parseSource,
+  parseSubmissionOptions,
+  parseSubmitRequest,
+  parseVideoId,
+} from '../../src/app/main/validate';
 
 const good = {
   source: 'https://www.youtube.com/watch?v=7SHNxjFuw10',
@@ -86,5 +96,29 @@ describe('parseSubmissionOptions', () => {
   it('fills the defaults and rejects non-objects', () => {
     expect(parseSubmissionOptions({ translate: true })).toEqual({ translate: true, summarize: false, skim: false, maxMinutes: 30, model: 'large-v3' });
     expect(() => parseSubmissionOptions(null)).toThrow(expect.objectContaining({ code: 'InvalidInput' }));
+  });
+});
+
+describe('channel arguments', () => {
+  it('parseChannelText trims and refuses empty or huge text', () => {
+    expect(parseChannelText('  @name  ')).toBe('@name');
+    for (const bad of ['', '   ', null, 5, 'x'.repeat(301)]) {
+      expect(() => parseChannelText(bad)).toThrow(expect.objectContaining({ code: 'InvalidInput' }));
+    }
+  });
+
+  it('parseVideoId accepts exactly an 11 character video id', () => {
+    expect(parseVideoId('7SHNxjFuw10')).toBe('7SHNxjFuw10');
+    for (const bad of ['', 'short', '7SHNxjFuw10x', 'bad id here', 5, null]) {
+      expect(() => parseVideoId(bad)).toThrow(expect.objectContaining({ code: 'InvalidInput' }));
+    }
+  });
+
+  it('parseOptionalId allows nothing at all or a positive id', () => {
+    expect(parseOptionalId(undefined, 'channel id')).toBeUndefined();
+    expect(parseOptionalId(null, 'channel id')).toBeUndefined();
+    expect(parseOptionalId(3, 'channel id')).toBe(3);
+    expect(() => parseOptionalId('3', 'channel id')).toThrow(expect.objectContaining({ code: 'InvalidInput' }));
+    expect(() => parseOptionalId(0, 'channel id')).toThrow(expect.objectContaining({ code: 'InvalidInput' }));
   });
 });

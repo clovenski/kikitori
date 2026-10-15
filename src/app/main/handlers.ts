@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs';
+import type { Channel, ChannelStore } from '../../core/db/channel-repo';
 import type { Repo } from '../../core/db/repo';
 import type { StageRepo } from '../../core/db/stage-repo';
 import type { SubmissionOptions } from '../../core/db/submission-repo';
@@ -7,16 +8,20 @@ import { loadGlossaryFile } from '../../core/llm/glossary-file';
 import { estimateSeconds } from '../../core/pipeline/estimate';
 import { isUrl } from '../../core/pipeline/real-deps';
 import { CHANNELS, type ProbeResult, type Result } from '../shared/ipc';
+import { buildFeed, toChannelInfo } from './channel-service';
 import { getJobDetail, listLibrary } from './library-service';
 import type { JobQueue } from './queue';
 import type { SetupService } from './setup-service';
 import {
+  parseChannelText,
   parseEstimateArgs,
   parseId,
+  parseOptionalId,
   parseSetupSelection,
   parseSource,
   parseSubmissionOptions,
   parseSubmitRequest,
+  parseVideoId,
 } from './validate';
 
 export interface HandlerDeps {
@@ -36,6 +41,11 @@ export interface HandlerDeps {
   ensureReady(options: SubmissionOptions): void;
   /** Whisper model name of the installed tier; stored on every new submission. */
   transcribeModel(): string;
+  channels: {
+    store: ChannelStore;
+    add(input: string): Promise<Channel>;
+    refresh(id?: number): Promise<void>;
+  };
 }
 
 type Handler = (arg?: unknown) => Promise<Result<unknown>>;
@@ -121,6 +131,29 @@ export function createHandlers(d: HandlerDeps) {
     [CHANNELS.setupOpenNotices]: () =>
       wrap(async () => {
         await d.openNotices();
+        return null;
+      }),
+    [CHANNELS.channelsList]: () => wrap(() => d.channels.store.listChannels().map(toChannelInfo)),
+    [CHANNELS.channelsAdd]: (arg?: unknown) => wrap(async () => toChannelInfo(await d.channels.add(parseChannelText(arg)))),
+    [CHANNELS.channelsRemove]: (arg?: unknown) =>
+      wrap(() => {
+        d.channels.store.removeChannel(parseId(arg, 'channel id'));
+        return null;
+      }),
+    [CHANNELS.channelsRefresh]: (arg?: unknown) =>
+      wrap(async () => {
+        await d.channels.refresh(parseOptionalId(arg, 'channel id'));
+        return null;
+      }),
+    [CHANNELS.feedList]: () => wrap(() => buildFeed(d.channels.store, d.repo)),
+    [CHANNELS.feedDismiss]: (arg?: unknown) =>
+      wrap(() => {
+        d.channels.store.dismiss(parseVideoId(arg));
+        return null;
+      }),
+    [CHANNELS.feedDismissAll]: (arg?: unknown) =>
+      wrap(() => {
+        d.channels.store.dismissAll(parseOptionalId(arg, 'channel id'));
         return null;
       }),
   } satisfies Record<string, Handler>;
