@@ -61,6 +61,7 @@ function makeZip(files: { name: string; data: string }[]): Buffer {
 const zips: Record<string, Buffer> = {
   '/main.zip': makeZip([{ name: 'llama-server.exe', data: 'server' }]),
   '/cudart.zip': makeZip([{ name: 'cudart64.dll', data: 'dll' }]),
+  '/bad.zip': Buffer.from('this is not a zip'),
 };
 const sha = (b: Buffer) => createHash('sha256').update(b).digest('hex');
 
@@ -111,6 +112,12 @@ describe('fetchEntry zip merge', () => {
     expect(existsSync(path.join(dir, 'llama', 'llama-server.exe'))).toBe(true);
     expect(existsSync(path.join(dir, 'llama', 'cudart64.dll'))).toBe(true);
     expect(existsSync(path.join(dir, 'llama', '.cudart.sha256'))).toBe(true);
+  });
+
+  it('reports an archive that cannot be unpacked and leaves no marker or leftovers', async () => {
+    await expect(fetchEntry(entry('bad', '/bad.zip'), dir, () => {})).rejects.toThrow(/Could not unpack bad/);
+    expect(existsSync(path.join(dir, 'llama', '.sha256'))).toBe(false);
+    expect(existsSync(path.join(dir, 'bad.zip'))).toBe(false);
   });
 
   it('a non-merge zip still replaces the destination', async () => {

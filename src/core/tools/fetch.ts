@@ -1,21 +1,16 @@
 import { createHash } from 'node:crypto';
-import {
-  createReadStream,
-  createWriteStream,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  renameSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { createReadStream, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { Readable, Transform } from 'node:stream';
-import type { ReadableStream as WebReadableStream } from 'node:stream/web';
-import { pipeline } from 'node:stream/promises';
 import extract from 'extract-zip';
 import { BgtError } from '../errors';
+import { downloadResumable } from '../setup/download';
 import { markerPath, type LockEntry } from './lock';
+
+export class ChecksumError extends BgtError {
+  constructor(message: string) {
+    super('DownloadFailed', message);
+  }
+}
 
 export async function sha256File(file: string): Promise<string> {
   const hash = createHash('sha256');
@@ -27,38 +22,16 @@ export async function downloadFile(
   url: string,
   dest: string,
   onProgress?: (received: number, total: number) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
-  mkdirSync(path.dirname(dest), { recursive: true });
-  const res = await fetch(url, { redirect: 'follow', headers: { 'User-Agent': 'bg-auto-translator' } });
-  if (!res.ok || !res.body) {
-    throw new BgtError('DownloadFailed', `GET ${url} failed with HTTP ${res.status}.`);
-  }
-  const total = Number(res.headers.get('content-length') ?? 0);
-  const part = `${dest}.part`;
-  let received = 0;
-  const counter = new Transform({
-    transform(chunk: Buffer, _encoding, callback) {
-      received += chunk.length;
-      onProgress?.(received, total);
-      callback(null, chunk);
-    },
-  });
-  await pipeline(
-    Readable.fromWeb(res.body as unknown as WebReadableStream),
-    counter,
-    createWriteStream(part),
-  );
-  renameSync(part, dest);
+  await downloadResumable(url, dest, { onProgress, signal });
 }
 
 async function verified(file: string, entry: LockEntry): Promise<void> {
   const actual = await sha256File(file);
   if (actual !== entry.sha256) {
     rmSync(file, { force: true });
-    throw new BgtError(
-      'DownloadFailed',
-      `Checksum mismatch for ${entry.id}: expected ${entry.sha256}, got ${actual}.`,
-    );
+    throw new ChecksumError(`Checksum mismatch for ${entry.id}: expected ${entry.sha256}, got ${actual}.`);
   }
 }
 
@@ -67,6 +40,7 @@ export async function fetchEntry(
   resources: string,
   log: (message: string) => void,
   onProgress?: (received: number, total: number) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
   const dest = path.join(resources, entry.dest);
 
@@ -76,7 +50,7 @@ export async function fetchEntry(
       return;
     }
     log(`${entry.id}: downloading ${entry.version}`);
-    await downloadFile(entry.url, dest, onProgress);
+    await downloadFile(entry.url, dest, onProgress, signal);
     await verified(dest, entry);
     return;
   }
@@ -88,11 +62,17 @@ export async function fetchEntry(
   }
   log(`${entry.id}: downloading ${entry.version}`);
   const zip = path.join(resources, `${entry.id}.zip`);
-  await downloadFile(entry.url, zip, onProgress);
+  await downloadFile(entry.url, zip, onProgress, signal);
   await verified(zip, entry);
   if (!entry.merge) rmSync(dest, { recursive: true, force: true });
   mkdirSync(dest, { recursive: true });
-  await extract(zip, { dir: path.resolve(dest) });
+  try {
+    await extract(zip, { dir: path.resolve(dest) });
+  } catch (err) {
+    rmSync(zip, { force: true });
+    if (!entry.merge) rmSync(dest, { recursive: true, force: true });
+    throw new BgtError('DownloadFailed', `Could not unpack ${entry.id}: ${err instanceof Error ? err.message : err}`, { cause: err });
+  }
   writeFileSync(marker, entry.sha256);
   rmSync(zip, { force: true });
 }
