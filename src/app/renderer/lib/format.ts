@@ -49,3 +49,7 @@ export function progressPercent(e: ProgressEvent): number {
   if (e.total <= 0) return 0;
   return Math.min(100, Math.max(0, Math.round((e.done / e.total) * 100)));
 }
+
+export function formatRemaining(seconds: number | null): string {
+  return seconds === null ? 'estimating' : formatEta(seconds);
+}

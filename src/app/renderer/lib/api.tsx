@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import type { BgtApi, LibraryItem, ProgressEvent, Result, Submission } from '../../shared/ipc';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import type { BgtApi, LibraryItem, ProgressEvent, Result, SetupProgress, SetupState, Submission } from '../../shared/ipc';
 
 const ApiContext = createContext<BgtApi | null>(null);
 
@@ -62,4 +62,31 @@ export function useLibrary(submissions: Submission[]): LibraryItem[] {
     };
   }, [api, submissions]);
   return items;
+}
+
+export function useSetupState(): { state: SetupState | null; refresh(): void } {
+  const api = useApi();
+  const [state, setState] = useState<SetupState | null>(null);
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    void api.setup.state().then((r) => {
+      if (alive && r.ok) setState(r.value);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [api, tick]);
+  const refresh = useCallback(() => setTick((t) => t + 1), []);
+  return { state, refresh };
+}
+
+const IDLE: SetupProgress = { phase: 'idle', progress: null, message: null };
+
+/** The latest progress report of the background setup (it keeps running when a dialog closes). */
+export function useSetupProgress(): SetupProgress {
+  const api = useApi();
+  const [progress, setProgress] = useState<SetupProgress>(IDLE);
+  useEffect(() => api.setup.onProgress(setProgress), [api]);
+  return progress;
 }

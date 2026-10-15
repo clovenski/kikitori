@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { JobScreen } from './components/JobScreen';
 import { LibraryScreen } from './components/LibraryScreen';
 import { NewJobDialog } from './components/NewJobDialog';
 import { QueueStrip } from './components/QueueStrip';
-import { useApi, useLibrary, useProgress, useQueue } from './lib/api';
+import { Wizard } from './components/Wizard';
+import { useApi, useLibrary, useProgress, useQueue, useSetupState } from './lib/api';
 
 type Route = { name: 'library' } | { name: 'job'; jobId: number };
 
@@ -12,8 +13,27 @@ export function App() {
   const submissions = useQueue();
   const progress = useProgress();
   const items = useLibrary(submissions);
+  const { state, refresh } = useSetupState();
   const [route, setRoute] = useState<Route>({ name: 'library' });
   const [newJobOpen, setNewJobOpen] = useState(false);
+  // Decided once, when the setup state first arrives: finishing the wizard must not pull it away before the user clicks on.
+  const [wizard, setWizard] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (state && wizard === null) setWizard(state.needsWizard);
+  }, [state, wizard]);
+
+  if (wizard === null) return <div className="app" />;
+  if (wizard) {
+    return (
+      <Wizard
+        onFinished={() => {
+          setWizard(false);
+          refresh();
+          setNewJobOpen(true);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="app">

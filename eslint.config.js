@@ -35,9 +35,9 @@ export default tseslint.config(
               message: 'The renderer must not use Node or Electron APIs; use window.bgt.',
             },
             {
-              group: ['**/core/**', '!**/core/time', '!**/core/errors', '!**/core/youtube', '!**/core/source-text'],
+              group: ['**/core/**', '!**/core/time', '!**/core/errors', '!**/core/youtube', '!**/core/source-text', '!**/core/bytes'],
               allowTypeImports: true,
-              message: 'The renderer may only import types and the pure modules core/time, core/errors, core/youtube, core/source-text.',
+              message: 'The renderer may only import types and the pure modules core/time, core/errors, core/youtube, core/source-text, core/bytes.',
             },
           ],
         },

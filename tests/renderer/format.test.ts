@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatClock, formatEta, jobStatusLabel, progressPercent, stageLabel, stateLabel } from '../../src/app/renderer/lib/format';
+import { formatClock, formatEta, formatRemaining, jobStatusLabel, progressPercent, stageLabel, stateLabel } from '../../src/app/renderer/lib/format';
 
 describe('format helpers', () => {
   it('formats clock times', () => {
@@ -29,5 +29,13 @@ describe('format helpers', () => {
     expect(progressPercent({ stage: 'transcribe', done: 1, total: 4, message: '' })).toBe(25);
     expect(progressPercent({ stage: 'transcribe', done: 0, total: 0, message: '' })).toBe(0);
     expect(progressPercent({ stage: 'transcribe', done: 9, total: 4, message: '' })).toBe(100);
+  });
+});
+
+describe('formatRemaining', () => {
+  it('says so when the speed is not known yet', () => {
+    expect(formatRemaining(null)).toBe('estimating');
+    expect(formatRemaining(20)).toBe('under a minute');
+    expect(formatRemaining(100)).toBe('about 2 min');
   });
 });
