@@ -104,6 +104,14 @@ describe('runSubmission', () => {
     expect(t.events).toEqual(expect.arrayContaining(['glossary', 'translate', 'summarize']));
   });
 
+  it('skips the automatic name list when the summaries model is not installed', async () => {
+    const t = setup();
+    t.env.autoGlossary = () => false;
+    await runSubmission(t.env, sub({ translate: true }), t.ctx);
+    expect(t.pool.used).toEqual(['translate']);
+    expect(t.stages.getStage(1, 'translate')).toBe('done');
+  });
+
   it('skim summarizes without translating', async () => {
     const t = setup();
     await runSubmission(t.env, sub({ skim: true }), t.ctx);

@@ -84,6 +84,10 @@ export async function probeVideo(a: {
   return { durationMs: Math.round(seconds * 1000), title: title === '' || title === 'NA' ? null : title };
 }
 
+/** Failures that asking again cannot fix; they are reported at once instead of after three attempts. */
+const PERMANENT =
+  /Requested format is not available|No space left on device|Private video|members-only|Video unavailable|This video is (?:private|unavailable)|Sign in to confirm/i;
+
 export async function downloadAudio(a: {
   ytdlpPath: string;
   ffmpegPath: string;
@@ -123,6 +127,9 @@ export async function downloadAudio(a: {
       lastError = 'yt-dlp finished but produced no audio file';
     } else {
       lastError = tailLines(r.stderr, 3);
+      if (PERMANENT.test(r.stderr)) {
+        throw new BgtError('DownloadFailed', 'yt-dlp cannot download this video: ' + lastError + '. ' + HINT);
+      }
     }
     if (attempt < attempts) await sleep((a.backoffMs ?? 2000) * attempt, undefined, { signal: a.signal });
   }

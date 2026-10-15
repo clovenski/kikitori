@@ -16,6 +16,8 @@ export interface RunSubmissionEnv {
   outDir: string;
   pool: ModelPool;
   log(message: string): void;
+  /** False when the general (summaries) model is not installed: the automatic name list is skipped. */
+  autoGlossary?(): boolean;
 }
 
 export async function runSubmission(env: RunSubmissionEnv, sub: Submission, ctx: RunContext): Promise<void> {
@@ -49,7 +51,7 @@ export async function runSubmission(env: RunSubmissionEnv, sub: Submission, ctx:
       signal: ctx.signal,
       progress: ctx.progress,
     },
-    { translate: options.translate, summarize: options.summarize, skim: options.skim, userGlossary },
+    { translate: options.translate, summarize: options.summarize, skim: options.skim, userGlossary, autoGlossary: env.autoGlossary?.() },
   );
 }
 

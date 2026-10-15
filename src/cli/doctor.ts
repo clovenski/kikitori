@@ -1,12 +1,16 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { BgtError } from '../core/errors';
+import { transcribeModelName } from '../core/setup/components';
+import { currentTier } from '../core/setup/settings';
 import { componentModelPath, loadLock } from '../core/tools/lock';
-import { findVadModel, modelPath, projectRoot, resolveTool, resourcesDir, type ToolName } from '../core/tools/paths';
+import { dataDir, findVadModel, modelPath, projectRoot, resolveTool, resourcesDir, type ToolName } from '../core/tools/paths';
 import { runProcess } from '../core/tools/process';
 
 export async function doctorCommand(): Promise<void> {
   let problems = 0;
+  const tier = currentTier(dataDir());
+  console.log('INFO     tier             ' + tier);
   const line = (label: string, value: string, ok: boolean) => {
     if (!ok) problems++;
     console.log(`${ok ? 'OK     ' : 'MISSING'}  ${label.padEnd(16)} ${value}`);
@@ -22,17 +26,18 @@ export async function doctorCommand(): Promise<void> {
     }
   }
 
+  const model = transcribeModelName(tier);
   try {
-    line('model large-v3', modelPath('ggml-large-v3.bin'), true);
+    line('model ' + model, modelPath('ggml-' + model + '.bin'), true);
   } catch (err) {
-    line('model large-v3', err instanceof Error ? err.message : String(err), false);
+    line('model ' + model, err instanceof Error ? err.message : String(err), false);
   }
   const vad = findVadModel();
   line('VAD model', vad ?? 'not found (run "pnpm setup:tools")', vad !== null && existsSync(vad));
 
   try {
     const lock = loadLock(path.join(projectRoot(), 'tools.lock.json'));
-    for (const id of ['model-translate-gpu', 'model-general-gpu']) {
+    for (const id of ['model-translate-' + tier, 'model-general-' + tier]) {
       try {
         line(id, componentModelPath(lock, id, resourcesDir()), true);
       } catch (err) {

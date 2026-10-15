@@ -21,6 +21,8 @@ export interface StageOptions {
   summarize: boolean;
   skim: boolean;
   userGlossary: Record<string, string>;
+  /** false skips the model-written name list (the general model is not installed); user entries still apply. */
+  autoGlossary?: boolean;
   batchSize?: number;
 }
 
@@ -55,7 +57,13 @@ export async function runLlmStages(ctx: StageContext, opts: StageOptions): Promi
   };
 
   try {
-    if (wantGlossary) {
+    if (wantGlossary && opts.autoGlossary === false) {
+      stages.upsertGlossary(
+        job.id,
+        Object.entries(opts.userGlossary).map(([ja, en]) => ({ ja, en, source: 'user' as const })),
+      );
+      log('Skipping the automatic name list because the summaries model is not installed.');
+    } else if (wantGlossary) {
       await guard('glossary', async () => {
         log('Extracting names and terms...');
         const llm = await pool.use('general', signal);

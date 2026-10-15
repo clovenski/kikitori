@@ -2,6 +2,7 @@ import path from 'node:path';
 import { BgtError } from '../core/errors';
 import { createRealDeps } from '../core/pipeline/real-deps';
 import { runJob } from '../core/pipeline/run';
+import { defaultTranscribeModel } from '../core/setup/settings';
 import { dataDir } from '../core/tools/paths';
 import { parseTimestamp } from '../core/time';
 import { trackChildren } from './tracking';
@@ -10,7 +11,7 @@ import { prepareLlmOptions, runStagesForJob, wantsLlm } from './llm';
 export interface RunCliOptions {
   start?: string;
   end?: string;
-  model: string;
+  model?: string;
   out: string;
   maxMinutes: string;
   keepWork?: boolean;
@@ -41,10 +42,11 @@ export async function runCommand(source: string, opts: RunCliOptions): Promise<v
     const llmWanted = wantsLlm(opts);
     const startMs = opts.start ? parseTimestamp(opts.start) : 0;
     const endMs = opts.end ? parseTimestamp(opts.end) : null;
+    const model = opts.model ?? defaultTranscribeModel(dataDir());
 
     const handle = createRealDeps({
       dataDir: dataDir(),
-      model: opts.model,
+      model,
       log: (m) => console.log(m),
     });
     const { deps, workRoot, close } = handle;
@@ -55,7 +57,7 @@ export async function runCommand(source: string, opts: RunCliOptions): Promise<v
       startMs,
       endMs,
       maxMinutes,
-      model: opts.model,
+      model,
       language: 'ja',
       workRoot,
       outDir: path.resolve(opts.out),

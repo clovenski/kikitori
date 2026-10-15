@@ -45,10 +45,13 @@ function findFileRecursive(dir: string, fileName: string): string | null {
 
 const BUNDLED_DIR: Record<ToolName, string> = {
   'yt-dlp': 'bin',
-  ffmpeg: 'bin',
+  ffmpeg: 'ffmpeg',
   'whisper-cli': 'whisper',
   'llama-server': 'llama',
 };
+
+/** These archives unpack into a versioned subfolder, so the program is searched for. */
+const NESTED = new Set<ToolName>(['ffmpeg', 'whisper-cli', 'llama-server']);
 
 export interface ResolveOptions {
   resourcesDir?: string;
@@ -59,12 +62,11 @@ export interface ResolveOptions {
 export function resolveTool(name: ToolName, opts: ResolveOptions = {}): string {
   const exe = exeName(name);
   const dir = path.join(opts.resourcesDir ?? resourcesDir(), BUNDLED_DIR[name]);
-  const bundled =
-    name === 'whisper-cli' || name === 'llama-server'
-      ? findFileRecursive(dir, exe)
-      : existsSync(path.join(dir, exe))
-        ? path.join(dir, exe)
-        : null;
+  const bundled = NESTED.has(name)
+    ? findFileRecursive(dir, exe)
+    : existsSync(path.join(dir, exe))
+      ? path.join(dir, exe)
+      : null;
   if (bundled) return bundled;
 
   const onPath = findOnPath(exe, opts.pathEnv);
@@ -72,8 +74,8 @@ export function resolveTool(name: ToolName, opts: ResolveOptions = {}): string {
 
   const hint =
     name === 'ffmpeg'
-      ? 'Install ffmpeg (for example "winget install Gyan.FFmpeg") and make sure it is on PATH.'
-      : 'Run "pnpm setup:tools" to download it.';
+      ? 'Open Tools in the app to download it, or install ffmpeg (for example "winget install Gyan.FFmpeg") and make sure it is on PATH.'
+      : 'Open Tools in the app or run "pnpm setup:tools" to download it.';
   throw new BgtError('ToolMissing', `${name} was not found in ${dir} or on PATH. ${hint}`);
 }
 

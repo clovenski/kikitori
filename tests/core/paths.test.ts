@@ -18,8 +18,8 @@ const touch = (...parts: string[]) => {
 };
 
 describe('resolveTool', () => {
-  it('prefers a bundled binary over PATH', () => {
-    const bundled = touch('res', 'bin', exeName('ffmpeg'));
+  it('prefers a bundled binary over PATH, finding ffmpeg in the versioned folder of the Gyan archive', () => {
+    const bundled = touch('res', 'ffmpeg', 'ffmpeg-9.0.2-essentials_build', 'bin', exeName('ffmpeg'));
     const pathDir = path.dirname(touch('onpath', exeName('ffmpeg')));
     expect(resolveTool('ffmpeg', { resourcesDir: path.join(root, 'res'), pathEnv: pathDir })).toBe(bundled);
   });

@@ -65,6 +65,21 @@ describe('runLlmStages', () => {
     }
   });
 
+  it('skips the automatic name list when asked to, still applies the user glossary and never loads the general model', async () => {
+    const { repo, stages } = memoryRepos();
+    const job = seedJob(repo, ['あ', 'い', 'あ']);
+    const pool = fakePool({ general: scriptedChat(generalAnswer), translate: scriptedChat(echoTranslate()) });
+    const logs: string[] = [];
+    await runLlmStages(
+      { repo, stages, job, outDir: dir, pool, log: (m) => logs.push(m) },
+      { ...opts, translate: true, autoGlossary: false, userGlossary: { あ: 'Ah!' } },
+    );
+    expect(pool.started).toEqual(['translate']);
+    expect(stages.listGlossary(job.id)).toEqual([{ ja: 'あ', en: 'Ah!', source: 'user' }]);
+    expect(stages.getStage(job.id, 'glossary')).not.toBe('done');
+    expect(logs.join(String.fromCharCode(10))).toContain('Skipping the automatic name list');
+  });
+
   it('skim mode runs glossary and summarize on the general model only, with no translation', async () => {
     const { repo, stages } = memoryRepos();
     const job = seedJob(repo, ['あ', 'い']);

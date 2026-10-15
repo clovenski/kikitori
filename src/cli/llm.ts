@@ -4,6 +4,7 @@ import { loadGlossaryFile } from '../core/llm/glossary-file';
 import { createRealDeps } from '../core/pipeline/real-deps';
 import { createRealModelPool } from '../core/pipeline/real-llm';
 import { runLlmStages, type StageOptions } from '../core/pipeline/stages';
+import { currentTier, defaultTranscribeModel } from '../core/setup/settings';
 import { dataDir } from '../core/tools/paths';
 import { trackChildren } from './tracking';
 
@@ -48,7 +49,7 @@ export async function runStagesForJob(
   reuse?: ReturnType<typeof createRealDeps>,
 ): Promise<void> {
   const opts = prepareLlmOptions(o);
-  const handle = reuse ?? createRealDeps({ dataDir: dataDir(), model: 'large-v3', log: console.log });
+  const handle = reuse ?? createRealDeps({ dataDir: dataDir(), model: defaultTranscribeModel(dataDir()), log: console.log });
   try {
     const job = handle.deps.repo.getJob(jobId);
     if (!job) throw new BgtError('InvalidInput', `There is no job ${jobId}.`);
@@ -61,7 +62,7 @@ export async function runStagesForJob(
         stages: handle.stages,
         job,
         outDir: path.resolve(o.out),
-        pool: createRealModelPool({ log: console.log, tier: () => 'gpu' }),
+        pool: createRealModelPool({ log: console.log, tier: () => currentTier(dataDir()) }),
         log: console.log,
         signal,
       },

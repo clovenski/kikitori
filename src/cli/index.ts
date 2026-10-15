@@ -14,7 +14,7 @@ program
   .argument('<source>', 'YouTube URL or path to a local audio/video file')
   .option('--start <time>', 'start of the section (S, M:SS or H:MM:SS)')
   .option('--end <time>', 'end of the section')
-  .option('--model <name>', 'whisper model name (ggml-<name>.bin)', 'large-v3')
+  .option('--model <name>', 'whisper model name (ggml-<name>.bin); default: the one for the installed tier')
   .option('--out <dir>', 'output directory', 'output')
   .option('--max-minutes <n>', 'maximum minutes of audio per job', '30')
   .option('--keep-work', 'keep intermediate files in data/work')

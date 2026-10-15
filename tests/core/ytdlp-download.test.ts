@@ -53,6 +53,15 @@ describe('downloadAudio retries', () => {
     expect(s.calls).toHaveLength(3);
   });
 
+  it('does not retry a failure that cannot change', async () => {
+    const s = script([fail('ERROR: [youtube] x: Requested format is not available')]);
+    const err = await downloadAudio({ ...base, workDir: dir, run: s.run }).catch((e) => e);
+    expect(err.code).toBe('DownloadFailed');
+    expect(err.message).toContain('cannot download this video');
+    expect(err.message).toContain('Requested format is not available');
+    expect(s.calls).toHaveLength(1);
+  });
+
   it('removes a partial file between attempts so a stale one is never mistaken for the download', async () => {
     let first = true;
     const calls: string[][] = [];
