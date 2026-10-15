@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatClock, formatEta, formatRemaining, jobStatusLabel, progressPercent, stageLabel, stateLabel } from '../../src/app/renderer/lib/format';
+import { formatClock, formatEta, formatRemaining, jobStatusLabel, progressPercent, stageLabel, stateLabel, timeAgo } from '../../src/app/renderer/lib/format';
 
 describe('format helpers', () => {
   it('formats clock times', () => {
@@ -37,5 +37,16 @@ describe('formatRemaining', () => {
     expect(formatRemaining(null)).toBe('estimating');
     expect(formatRemaining(20)).toBe('under a minute');
     expect(formatRemaining(100)).toBe('about 2 min');
+  });
+});
+
+describe('timeAgo', () => {
+  const now = Date.parse('2026-01-01T12:00:00Z');
+  it('says how long ago in the largest sensible unit', () => {
+    expect(timeAgo('2026-01-01T11:59:50Z', now)).toBe('just now');
+    expect(timeAgo('2026-01-01T11:55:00Z', now)).toBe('5 min ago');
+    expect(timeAgo('2026-01-01T09:00:00Z', now)).toBe('3 h ago');
+    expect(timeAgo('2025-12-29T12:00:00Z', now)).toBe('3 d ago');
+    expect(timeAgo('not a date', now)).toBe('a while ago');
   });
 });

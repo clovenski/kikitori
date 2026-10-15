@@ -97,3 +97,20 @@ input[type='text'], select { font: inherit; color: inherit; background: var(--pa
 .tools-list li { display: flex; justify-content: space-between; gap: 12px; }
 .dialog .install-list { margin: 0; }
 .content > .notice { margin-bottom: 12px; display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+
+.channels { max-width: 900px; margin: 0 auto; display: grid; gap: 12px; }
+.channels h2, .channels h3 { margin: 0; }
+.channels .add { display: flex; gap: 8px; }
+.channels .add input { flex: 1; }
+.channels .hint { color: var(--muted); font-size: 12px; margin: 0; }
+.channels .error { color: var(--bad); font-size: 12px; }
+.channel-list, .feed { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.channel-row { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.channel-row .title { font-weight: 600; }
+.channel-row .sub { color: var(--muted); font-size: 12px; }
+.feed-item { display: grid; grid-template-columns: 160px 1fr auto; gap: 12px; align-items: center; padding: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.feed-item img { width: 160px; height: 90px; object-fit: cover; border-radius: 6px; background: #000; }
+.feed-item .title { font-weight: 600; overflow-wrap: anywhere; }
+.feed-item .meta { display: flex; gap: 10px; flex-wrap: wrap; color: var(--muted); font-size: 12px; align-items: center; }
+.feed-item .actions { display: grid; gap: 6px; }
+.count { display: inline-block; min-width: 18px; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: var(--accent); color: var(--accent-text); font-size: 11px; text-align: center; }

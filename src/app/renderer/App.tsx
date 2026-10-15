@@ -1,24 +1,31 @@
 import { useEffect, useState } from 'react';
+import { ChannelsScreen } from './components/ChannelsScreen';
 import { JobScreen } from './components/JobScreen';
 import { LibraryScreen } from './components/LibraryScreen';
 import { NewJobDialog } from './components/NewJobDialog';
 import { QueueStrip } from './components/QueueStrip';
 import { ToolsDialog } from './components/ToolsDialog';
 import { Wizard } from './components/Wizard';
-import { useApi, useLibrary, useProgress, useQueue, useSetupState } from './lib/api';
+import { useApi, useChannels, useLibrary, useProgress, useQueue, useSetupState } from './lib/api';
 
-type Route = { name: 'library' } | { name: 'job'; jobId: number };
+type Route = { name: 'library' } | { name: 'job'; jobId: number } | { name: 'channels' };
 
 export function App() {
   const api = useApi();
   const submissions = useQueue();
   const progress = useProgress();
   const items = useLibrary(submissions);
+  const { channels, feed, reload } = useChannels(submissions);
   const { state, refresh } = useSetupState();
   const [route, setRoute] = useState<Route>({ name: 'library' });
   const [newJobOpen, setNewJobOpen] = useState(false);
+  const [newJobSource, setNewJobSource] = useState<string | undefined>(undefined);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const openNewJob = (source?: string) => {
+    setNewJobSource(source);
+    setNewJobOpen(true);
+  };
   const updateYtDlp = async () => {
     setNote('Updating yt-dlp...');
     const r = await api.setup.updateYtDlp();
@@ -37,11 +44,13 @@ export function App() {
         onFinished={() => {
           setWizard(false);
           refresh();
-          setNewJobOpen(true);
+          openNewJob();
         }}
       />
     );
   }
+
+  const newVideos = feed.filter((f) => f.job === null).length;
 
   return (
     <div className="app">
@@ -50,8 +59,12 @@ export function App() {
           Kikitori
         </button>
         <div className="inline">
+          <button onClick={() => setRoute({ name: 'channels' })}>
+            Channels
+            {newVideos > 0 && <span className="count">{newVideos}</span>}
+          </button>
           <button onClick={() => setToolsOpen(true)}>Tools</button>
-          <button className="primary" onClick={() => setNewJobOpen(true)}>
+          <button className="primary" onClick={() => openNewJob()}>
             New job
           </button>
         </div>
@@ -62,10 +75,18 @@ export function App() {
             {note} <button onClick={() => setNote(null)}>Dismiss</button>
           </div>
         )}
-        {route.name === 'library' ? (
-          <LibraryScreen items={items} submissions={submissions} onOpen={(jobId) => setRoute({ name: 'job', jobId })} onNew={() => setNewJobOpen(true)} />
-        ) : (
-          <JobScreen jobId={route.jobId} onBack={() => setRoute({ name: 'library' })} />
+        {route.name === 'library' && (
+          <LibraryScreen items={items} submissions={submissions} onOpen={(jobId) => setRoute({ name: 'job', jobId })} onNew={() => openNewJob()} />
+        )}
+        {route.name === 'job' && <JobScreen jobId={route.jobId} onBack={() => setRoute({ name: 'library' })} />}
+        {route.name === 'channels' && (
+          <ChannelsScreen
+            channels={channels}
+            feed={feed}
+            onReload={reload}
+            onProcess={(videoId) => openNewJob(`https://www.youtube.com/watch?v=${videoId}`)}
+            onOpenJob={(jobId) => setRoute({ name: 'job', jobId })}
+          />
         )}
       </main>
       <QueueStrip
@@ -77,6 +98,8 @@ export function App() {
       />
       {newJobOpen && (
         <NewJobDialog
+          key={newJobSource ?? 'blank'}
+          initialSource={newJobSource}
           onClose={() => setNewJobOpen(false)}
           onSubmitted={() => {
             setNewJobOpen(false);

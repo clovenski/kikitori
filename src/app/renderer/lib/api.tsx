@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
-import type { BgtApi, LibraryItem, ProgressEvent, Result, SetupProgress, SetupState, Submission } from '../../shared/ipc';
+import type { BgtApi, ChannelInfo, FeedItem, LibraryItem, ProgressEvent, Result, SetupProgress, SetupState, Submission } from '../../shared/ipc';
 
 const ApiContext = createContext<BgtApi | null>(null);
 
@@ -89,4 +89,26 @@ export function useSetupProgress(): SetupProgress {
   const [progress, setProgress] = useState<SetupProgress>(IDLE);
   useEffect(() => api.setup.onProgress(setProgress), [api]);
   return progress;
+}
+
+/** Followed channels and their feed; reloads on `channels:changed` and whenever the queue changes (a new job links a video). */
+export function useChannels(submissions: Submission[]): { channels: ChannelInfo[]; feed: FeedItem[]; reload(): void } {
+  const api = useApi();
+  const [channels, setChannels] = useState<ChannelInfo[]>([]);
+  const [feed, setFeed] = useState<FeedItem[]>([]);
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    void Promise.all([api.channels.list(), api.channels.feed()]).then(([c, f]) => {
+      if (!alive) return;
+      if (c.ok) setChannels(c.value);
+      if (f.ok) setFeed(f.value);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [api, tick, submissions]);
+  useEffect(() => api.channels.onChanged(() => setTick((t) => t + 1)), [api]);
+  const reload = useCallback(() => setTick((t) => t + 1), []);
+  return { channels, feed, reload };
 }

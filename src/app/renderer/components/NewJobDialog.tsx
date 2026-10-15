@@ -10,14 +10,16 @@ import { SetupDownloadDialog } from './SetupDownloadDialog';
 interface Props {
   onClose(): void;
   onSubmitted(): void;
+  /** A link to fill in and read straight away (the Process hand-off from the Channels screen). */
+  initialSource?: string;
 }
 
 type ProbeState = { kind: 'idle' } | { kind: 'loading' } | { kind: 'ok'; info: ProbeResult } | { kind: 'error'; message: string };
 
-export function NewJobDialog({ onClose, onSubmitted }: Props) {
+export function NewJobDialog({ onClose, onSubmitted, initialSource }: Props) {
   const api = useApi();
   const [form, setForm] = useState<NewJobForm>({
-    source: '',
+    source: initialSource ?? '',
     start: '',
     end: '',
     translate: true,
@@ -48,6 +50,11 @@ export function NewJobDialog({ onClose, onSubmitted }: Props) {
     },
     [api],
   );
+
+  // Opened from a feed item: the link is already there, so read the video straight away.
+  useEffect(() => {
+    if (initialSource) void runProbe(initialSource);
+  }, []); // only on mount
 
   // Recompute the estimate when the probe or the range changes.
   useEffect(() => {

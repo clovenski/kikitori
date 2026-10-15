@@ -15,6 +15,7 @@ function setup(
     pickMedia: BgtApi['dialog']['pickMedia'];
     pickGlossary: BgtApi['dialog']['pickGlossary'];
     extra: Partial<BgtApi>;
+    initialSource: string;
   }> = {},
 ) {
   const submit = vi.fn(over.submit ?? (async () => ({ ok: true as const, value: { id: 1 } as never })));
@@ -35,7 +36,7 @@ function setup(
   const onSubmitted = vi.fn();
   render(
     <ApiProvider api={api}>
-      <NewJobDialog onClose={onClose} onSubmitted={onSubmitted} />
+      <NewJobDialog onClose={onClose} onSubmitted={onSubmitted} initialSource={over.initialSource} />
     </ApiProvider>,
   );
   return { submit, onClose, onSubmitted };
@@ -44,6 +45,14 @@ function setup(
 const url = 'https://www.youtube.com/watch?v=7SHNxjFuw10';
 
 describe('NewJobDialog', () => {
+  it('opens filled in and probed when given an initial source (the Process hand-off)', async () => {
+    const probe = vi.fn(async () => ({ ok: true as const, value: { title: 'From the feed', durationMs: 300_000 } }));
+    setup({ probe, initialSource: url });
+    expect((screen.getByLabelText('YouTube link or file path') as HTMLInputElement).value).toBe(url);
+    expect(await screen.findByText('From the feed')).toBeTruthy();
+    expect(probe).toHaveBeenCalledTimes(1);
+  });
+
   it('probes the URL on blur and shows the title, duration and estimate', async () => {
     setup();
     const input = screen.getByLabelText('YouTube link or file path');
