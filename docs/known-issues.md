@@ -50,7 +50,7 @@ Helper records are only acted on when their owner process is gone. If this proce
 
 - **Only releases made after the updater was added can update themselves.** Earlier installs (0.1.0, 0.2.0) have no updater; install the first version that has it by hand.
 - **The installer is unsigned, so an update is trusted by the checksum in `latest.yml`** (served from the GitHub release over HTTPS), not by a signature. Anyone who can publish a release to the repository can ship code to every install. Signing the installer and setting `win.publisherName` makes the updater verify the signature too.
-- **Not tested end to end:** the restart that runs the installer (`quitAndInstall`). Checking and downloading were run against a local update server with the packaged app; installing one over a real install was not.
+- **Update install tested only with an idle app:** a 0.3.0 install checked, downloaded and installed a 1.0.0 build from a local update server through `quitAndInstall` (silent install, relaunched on the new version about 10 seconds later). It was not tried with a job running, and not against a real GitHub release.
 - **Closing the app does not install a downloaded update:** only "Restart and update" does (`autoInstallOnAppQuit` is off, on purpose). The next start finds the version again and offers the restart.
 - **A release goes live for everyone at once:** the workflow publishes straight to "Latest" (no draft or staged rollout), so a bad build is offered to every install within minutes. Delete the release (and tag) to stop it; installs that already downloaded it keep it until they restart.
 - **Pre-releases are ignored** (`allowPrerelease` is off), so there is no beta channel.
