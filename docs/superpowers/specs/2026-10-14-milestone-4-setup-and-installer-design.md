@@ -1,7 +1,7 @@
 # Milestone 4 Design: First-Run Setup and Installer
 
-Date: 2026-10-15
-Status: Draft, awaiting review
+Date: 2026-10-14
+Status: Awaiting review (licences of all downloaded components checked against their Hugging Face and GitHub pages)
 Builds on: Milestones 1 to 3, merged on `master`. Related: `docs/known-issues.md`.
 
 ## 1. Intent
