@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { closeSync, ftruncateSync, mkdirSync, openSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { findComponent, markerPath, type Lock, type LockComponent, type LockEntry } from '../../src/core/tools/lock';
 
@@ -68,7 +68,10 @@ export function installFake(lock: Lock, resources: string, ids: readonly string[
       } else {
         const file = path.join(resources, f.dest);
         mkdirSync(path.dirname(file), { recursive: true });
-        writeFileSync(file, Buffer.alloc(f.size));
+        // Extend instead of writing zeros: tests pretend to install multi-GB models, which must not take seconds.
+        const fd = openSync(file, 'w');
+        ftruncateSync(fd, f.size);
+        closeSync(fd);
       }
     }
   }
