@@ -49,6 +49,7 @@ process.env.KTR_RESOURCES_DIR = paths.resourcesDir;
 process.env.KTR_DATA_DIR = paths.dataDir;
 process.env.KTR_OUTPUT_DIR = paths.outDir;
 if (paths.userData) app.setPath('userData', paths.userData);
+app.setAppUserModelId('com.joeltengco.kikitori'); // same as appId in electron-builder.yml; lets the Windows taskbar use the window icon in dev
 
 const REFERER = 'https://bgt.local/';
 protocol.registerSchemesAsPrivileged([
@@ -83,6 +84,8 @@ function createWindow(): BrowserWindow {
     height: 880,
     show: !smoke,
     backgroundColor: '#14161a',
+    // The packaged exe carries its icon (electron-builder.yml); build/ is not shipped, so only dev needs this.
+    ...(app.isPackaged ? {} : { icon: path.join(app.getAppPath(), 'build/icon.ico') }),
     webPreferences: {
       preload: path.join(import.meta.dirname, '../preload/index.cjs'),
       contextIsolation: true,
