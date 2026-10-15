@@ -1,4 +1,5 @@
 import { readdirSync, rmSync } from 'node:fs';
+import { setTimeout as sleep } from 'node:timers/promises';
 import path from 'node:path';
 import { BgtError } from '../errors';
 import { formatClockMs } from '../time';
@@ -9,6 +10,8 @@ export interface Section {
   endMs: number;
 }
 
+const tailLines = (text: string, n: number) =>
+  text.trim().split(/\r?\n/).filter(Boolean).slice(-n).join(' | ');
 const lastLine = (text: string) => text.trim().split(/\r?\n/).filter(Boolean).pop() ?? '';
 
 export function buildProbeArgs(url: string): string[] {
@@ -88,28 +91,42 @@ export async function downloadAudio(a: {
   workDir: string;
   section: Section | null;
   signal?: AbortSignal;
+  /** Total tries; YouTube media URLs fail intermittently (ffmpeg gets a 403) and the next try works. */
+  attempts?: number;
+  backoffMs?: number;
+  /** Injectable for tests. */
+  run?: typeof runProcess;
 }): Promise<string> {
-  // Stale files from an interrupted earlier attempt must not be mistaken for this download.
-  for (const name of readdirSync(a.workDir)) {
-    if (name.startsWith('source.')) rmSync(path.join(a.workDir, name), { force: true });
-  }
-
+  const attempts = a.attempts ?? 3;
+  const run = a.run ?? runProcess;
   const args = buildDownloadArgs({
     url: a.url,
     outTemplate: path.join(a.workDir, 'source.%(ext)s'),
     ffmpegPath: a.ffmpegPath,
     section: a.section,
   });
-  const r = await runProcess(a.ytdlpPath, args, { signal: a.signal });
-  if (r.code !== 0) {
-    throw new BgtError('DownloadFailed', `yt-dlp failed: ${lastLine(r.stderr)}. ${HINT}`);
-  }
 
-  const found = readdirSync(a.workDir).find(
-    (n) => n.startsWith('source.') && !n.endsWith('.part') && !n.endsWith('.ytdl'),
-  );
-  if (!found) throw new BgtError('DownloadFailed', 'yt-dlp finished but produced no audio file.');
-  return path.join(a.workDir, found);
+  let lastError = '';
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    // Stale or partial files from an earlier attempt must not be mistaken for this download.
+    for (const name of readdirSync(a.workDir)) {
+      if (name.startsWith('source.')) rmSync(path.join(a.workDir, name), { force: true });
+    }
+
+    // An abort rejects here and is never retried.
+    const r = await run(a.ytdlpPath, args, { signal: a.signal });
+    if (r.code === 0) {
+      const found = readdirSync(a.workDir).find(
+        (n) => n.startsWith('source.') && !n.endsWith('.part') && !n.endsWith('.ytdl'),
+      );
+      if (found) return path.join(a.workDir, found);
+      lastError = 'yt-dlp finished but produced no audio file';
+    } else {
+      lastError = tailLines(r.stderr, 3);
+    }
+    if (attempt < attempts) await sleep((a.backoffMs ?? 2000) * attempt, undefined, { signal: a.signal });
+  }
+  throw new BgtError('DownloadFailed', `yt-dlp failed after ${attempts} attempts: ${lastError}. ${HINT}`);
 }
 
 export async function updateYtDlp(ytdlpPath: string): Promise<string> {

@@ -15,6 +15,7 @@ import { CHANNELS } from '../shared/ipc';
 import { createHandlers } from './handlers';
 import { broadcast, registerIpc } from './ipc';
 import { buildMediaResponse, parseMediaUrl, resolveMediaPath } from './media';
+import { denyAllPermissions, runShutdown, runStartup, shouldConfirmQuit } from './lifecycle';
 import { isAllowedNavigation } from './navigation';
 import { JobQueue } from './queue';
 import { runSubmission } from './run-submission';
@@ -30,6 +31,25 @@ protocol.registerSchemesAsPrivileged([
 
 let queue: JobQueue | null = null;
 let quitting = false;
+
+let quitConfirmed = false;
+
+/** Asks before quitting while a job runs. Used by the close button and by File > Exit alike. */
+function confirmQuit(parent: BrowserWindow | undefined): boolean {
+  if (quitConfirmed || quitting || !queue || !shouldConfirmQuit(queue.list())) return true;
+  const options = {
+    type: 'question' as const,
+    buttons: ['Keep running', 'Quit and resume later'],
+    defaultId: 0,
+    cancelId: 0,
+    message: 'A job is still running.',
+    detail: 'If you quit now it is paused and can be resumed the next time you open the app.',
+  };
+  const choice = parent ? dialog.showMessageBoxSync(parent, options) : dialog.showMessageBoxSync(options);
+  if (choice === 0) return false;
+  quitConfirmed = true; // the window closing next must not ask a second time
+  return true;
+}
 
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
@@ -55,18 +75,7 @@ function createWindow(): BrowserWindow {
     if (!isAllowedNavigation(url, appUrl)) e.preventDefault();
   });
   win.on('close', (e) => {
-    if (quitting || !queue) return;
-    const running = queue.list().some((s) => s.state === 'running');
-    if (!running) return;
-    const choice = dialog.showMessageBoxSync(win, {
-      type: 'question',
-      buttons: ['Keep running', 'Quit and resume later'],
-      defaultId: 0,
-      cancelId: 0,
-      message: 'A job is still running.',
-      detail: 'If you quit now it is paused and can be resumed the next time you open the app.',
-    });
-    if (choice === 0) e.preventDefault();
+    if (!confirmQuit(win)) e.preventDefault();
   });
   if (process.env.ELECTRON_RENDERER_URL) void win.loadURL(process.env.ELECTRON_RENDERER_URL);
   else void win.loadFile(path.join(import.meta.dirname, '../renderer/index.html'));
@@ -75,6 +84,7 @@ function createWindow(): BrowserWindow {
 
 function configureSession(): void {
   const ses = session.defaultSession;
+  denyAllPermissions(ses);
   // The YouTube embed refuses requests without a plausible referrer (player error 153).
   ses.webRequest.onBeforeSendHeaders({ urls: ['https://*.youtube.com/*', 'https://*.youtube-nocookie.com/*'] }, (details, cb) => {
     details.requestHeaders.Referer = REFERER;
@@ -97,7 +107,7 @@ function configureSession(): void {
   }
 }
 
-void app.whenReady().then(async () => {
+void app.whenReady().then(() => runStartup(async () => {
   if (!app.requestSingleInstanceLock()) {
     app.quit();
     return;
@@ -196,19 +206,26 @@ void app.whenReady().then(async () => {
 
   app.on('before-quit', (event) => {
     if (quitting) return;
+    if (!confirmQuit(BrowserWindow.getAllWindows()[0])) {
+      event.preventDefault();
+      return;
+    }
     quitting = true;
     event.preventDefault();
-    void (async () => {
-      try {
-        await queue?.shutdown();
-        await pool.stopAll();
-      } finally {
-        db.close();
-        app.exit(0);
-      }
-    })();
+    void runShutdown(
+      [
+        { name: 'queue', run: async () => void (await queue?.shutdown()) },
+        { name: 'models', run: () => pool.stopAll() },
+        { name: 'database', run: async () => db.close() },
+      ],
+      10_000,
+      (m) => console.log(m),
+    ).finally(() => app.exit(0));
   });
-});
+}, (failure) => {
+  dialog.showErrorBox(failure.title, failure.detail);
+  app.exit(1);
+}));
 
 app.on('second-instance', () => {
   const win = BrowserWindow.getAllWindows()[0];
