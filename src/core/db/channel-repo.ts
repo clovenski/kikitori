@@ -115,6 +115,15 @@ export class ChannelStore {
     return added;
   }
 
+  /** Every video this channel has shown (dismissed ones too) with the tab it came from, oldest first. */
+  knownVideos(channelId: number): Map<string, FeedTab> {
+    const rows = this.db.prepare('SELECT video_id, tab FROM feed_items WHERE channel_id = ? ORDER BY rowid').all(channelId) as {
+      video_id: string;
+      tab: FeedTab;
+    }[];
+    return new Map(rows.map((r) => [r.video_id, r.tab]));
+  }
+
   /** Not-dismissed items, newest first; items from one check keep the order the listing gave them. */
   listFeed(): FeedRow[] {
     const rows = this.db

@@ -88,6 +88,19 @@ describe('feed', () => {
     expect(store.listFeed().map((f) => f.videoId)).toEqual(['bbbbbbbbbbb']);
   });
 
+  it('knownVideos lists every video a channel has shown with its tab, dismissed ones included', () => {
+    const a = store.addChannel(chan('UCa'));
+    const b = store.addChannel(chan('UCb'));
+    store.addItems(a.id, [item('aaaaaaaaaaa'), item('bbbbbbbbbbb', 'streams')]);
+    store.addItems(b.id, [item('ccccccccccc')]);
+    store.dismiss('aaaaaaaaaaa');
+    expect([...store.knownVideos(a.id)]).toEqual([
+      ['aaaaaaaaaaa', 'videos'],
+      ['bbbbbbbbbbb', 'streams'],
+    ]);
+    expect(store.knownVideos(99).size).toBe(0);
+  });
+
   it('dismissAll can be limited to one channel', () => {
     const a = store.addChannel(chan('UCa'));
     const b = store.addChannel(chan('UCb'));

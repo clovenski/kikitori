@@ -67,6 +67,18 @@ export async function addChannel(deps: ChannelDeps, input: string, signal?: Abor
   return deps.store.getChannel(channel.id) as Channel;
 }
 
+/**
+ * What is new in one tab's listing. Listings are newest first, so a video is new when it comes before the first one the
+ * channel already showed; the older videos that the bigger check window reaches are not new, just unseen. A tab with
+ * nothing known yet (it failed at the first fill) starts with the same few videos a fresh channel gets.
+ */
+function newInTab(items: NewFeedItem[], tab: ChannelTab, known: Map<string, ChannelTab>): NewFeedItem[] {
+  const own = items.filter((i) => i.tab === tab);
+  const anchor = own.findIndex((i) => known.has(i.videoId));
+  if (anchor >= 0) return own.slice(0, anchor);
+  return [...known.values()].includes(tab) ? own : own.slice(0, INITIAL_PER_TAB);
+}
+
 /** Looks for videos the channel has not shown before. Errors are recorded on the channel, never thrown (except aborts). */
 export async function checkChannel(
   deps: ChannelDeps,
@@ -75,7 +87,9 @@ export async function checkChannel(
 ): Promise<{ added: number; error: string | null }> {
   try {
     const listed = await listBoth(deps, channel.url, CHECK_PER_TAB, signal);
-    const added = deps.store.addItems(channel.id, listed.items);
+    const known = deps.store.knownVideos(channel.id);
+    const fresh = TABS.flatMap((tab) => newInTab(listed.items, tab, known));
+    const added = deps.store.addItems(channel.id, fresh);
     deps.store.recordCheck(channel.id, null);
     return { added, error: null };
   } catch (err) {

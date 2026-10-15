@@ -10,6 +10,7 @@ along. It also works on audio and video files you already have.
 - **Local and free:** speech recognition, translation and summaries all run on your own computer. Nothing you
   process is sent anywhere, and there is nothing to pay for.
 - **Made for long videos:** streams and long recordings are handled in chunks and can be resumed.
+- **Follows your channels:** add a YouTube channel and its new videos and finished live streams appear in a feed (checked while the app is open); one click sends any of them to a new job.
 - **Set up in one click:** the first-run wizard checks your hardware (NVIDIA GPU or plain CPU) and downloads what it needs.
 
 ![Kikitori playing a video with Japanese and English subtitles next to a clickable transcript](docs/images/job.png)

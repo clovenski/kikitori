@@ -2,7 +2,7 @@
 
 Things that are known, understood, and deliberately not fixed yet. None of them loses data, kills the wrong process, or leaves the app unusable. Each entry says what happens, why it was left, and what a fix would look like.
 
-Last reviewed: after Milestone 4 (2026-10-14).
+Last reviewed: after Milestone 5 (2026-10-14).
 
 ## Desktop app
 
@@ -40,6 +40,15 @@ Helper records are only acted on when their owner process is gone. If this proce
 - **Setup details, left for later:** cancelling an on-demand download keeps the chosen feature in the settings, which hides Tools > "Add translation and summaries" until it is installed; switching tier inside an unfinished first-run wizard keeps the first tier's partial files; the CLI in a CPU-only checkout that never opened the app assumes the GPU tier; `pnpm setup:tools` replaces a self-updated yt-dlp with the pinned one; "Update yt-dlp" is also offered for errors it cannot fix (private or members-only video).
 - **In the spec, not built:** a RAM warning below 8 GB on the CPU path, component versions on the Tools page, the uninstaller's note about kept models, versions in THIRD_PARTY_NOTICES, a component check when a queued job resumes, and refreshing the Tools list after a failed download.
 - **Not proven yet:** the two GitHub workflows (there is no repository to run them on), the offline error message end to end (it is unit-tested), and the on-demand download prompt in a real window (unit-tested).
+
+## Channel watching (Milestone 5)
+
+- **Checks only run while the app is open** (about 15 seconds after start, then every 30 minutes, or Refresh). Nothing is checked in the background, and there are no notifications.
+- **The feed has no upload dates.** YouTube's flat listing does not give them, so the feed is ordered by when Kikitori first saw a video, newest first.
+- **A new channel starts with up to 5 videos from each of its Videos and Streams tabs.** For an older or one-off video, paste its link into New job. Later checks add only videos that came out since (a video counts as new when it comes before the first one already shown).
+- **Live and upcoming streams appear after they end.** Shorts, playlists and non-YouTube channels are not followed.
+- **Many channels check one after another** with a pause between them, so a large list can take a while.
+- **Processed videos stay in the feed** (with "Open in library") until they are dismissed.
 
 ## Translation quality (Milestone 2)
 

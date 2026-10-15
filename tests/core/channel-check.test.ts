@@ -17,6 +17,7 @@ const listing = (items: ChannelListing['items'], id = UC): ChannelListing => ({
 let store: ChannelStore;
 let calls: { url: string; tab: ChannelTab; limit: number }[];
 let behavior: (tab: ChannelTab) => ChannelListing | Error;
+let honorLimit = false; // yt-dlp returns at most `limit` entries from the top of a tab
 const deps = (): ChannelDeps => ({
   store,
   ytdlpPath: () => 'yt-dlp.exe',
@@ -25,15 +26,17 @@ const deps = (): ChannelDeps => ({
     calls.push({ url: a.url, tab: a.tab, limit: a.limit });
     const r = behavior(a.tab);
     if (r instanceof Error) throw r;
-    return r;
+    return honorLimit ? { ...r, items: r.items.slice(0, a.limit) } : r;
   },
 });
 
 beforeEach(() => {
   const db = new Database(':memory:');
   migrate(db);
-  store = new ChannelStore(db);
+  let tick = 0;
+  store = new ChannelStore(db, () => new Date(Date.UTC(2026, 0, 1, 0, 0, tick++)).toISOString());
   calls = [];
+  honorLimit = false;
   behavior = (tab) => listing(tab === 'videos' ? videos('v', 8, 'videos') : videos('s', 8, 'streams'));
 });
 
@@ -92,7 +95,7 @@ describe('checkChannel', () => {
   it('lists 15 per tab, adds only unseen videos and stamps the check', async () => {
     const c = await addChannel(deps(), '@example');
     calls = [];
-    behavior = (tab) => listing([...(tab === 'videos' ? videos('v', 8, 'videos') : videos('s', 8, 'streams')), ...videos(tab === 'videos' ? 'n' : 'm', 2, tab)]);
+    behavior = (tab) => listing([...videos(tab === 'videos' ? 'n' : 'm', 2, tab), ...(tab === 'videos' ? videos('v', 8, 'videos') : videos('s', 8, 'streams'))]);
     const r = await checkChannel(deps(), c);
     expect(r).toEqual({ added: 4, error: null });
     expect(calls.map((x) => x.limit)).toEqual([CHECK_PER_TAB, CHECK_PER_TAB]);
@@ -134,5 +137,64 @@ describe('checkChannel', () => {
     };
     await expect(checkChannel(deps(), c, controller.signal)).rejects.toMatchObject({ name: 'AbortError' });
     expect(store.getChannel(c.id)?.lastError).toBeNull();
+  });
+});
+
+describe('checkChannel after the first fill', () => {
+  const twenty = (tab: ChannelTab) => listing(videos(tab === 'videos' ? 'v' : 's', 20, tab));
+
+  it('does not pull in the older videos that the bigger check window now reaches', async () => {
+    honorLimit = true;
+    behavior = twenty;
+    const c = await addChannel(deps(), '@example');
+    expect(store.listFeed()).toHaveLength(2 * INITIAL_PER_TAB);
+    expect(await checkChannel(deps(), c)).toEqual({ added: 0, error: null });
+    expect(store.listFeed()).toHaveLength(2 * INITIAL_PER_TAB);
+  });
+
+  it('adds only what was published since, newest first, and stops at the first video it knew', async () => {
+    honorLimit = true;
+    behavior = twenty;
+    const c = await addChannel(deps(), '@example');
+    behavior = (tab) => listing([...videos(tab === 'videos' ? 'n' : 'm', 2, tab), ...twenty(tab).items]);
+    expect(await checkChannel(deps(), c)).toEqual({ added: 4, error: null });
+    const ids = store.listFeed().map((f) => f.videoId);
+    expect(ids.slice(0, 4).sort()).toEqual(['m0000000000', 'm0000000001', 'n0000000000', 'n0000000001']);
+    expect(ids).toHaveLength(2 * INITIAL_PER_TAB + 4);
+  });
+
+  it('still stops at a known video when the newest one was removed from the channel', async () => {
+    honorLimit = true;
+    behavior = twenty;
+    const c = await addChannel(deps(), '@example');
+    behavior = (tab) => listing([...videos(tab === 'videos' ? 'n' : 'm', 1, tab), ...twenty(tab).items.slice(1)]);
+    expect(await checkChannel(deps(), c)).toEqual({ added: 2, error: null });
+  });
+
+  it('a dismissed video still marks where the known part begins', async () => {
+    honorLimit = true;
+    behavior = twenty;
+    const c = await addChannel(deps(), '@example');
+    store.dismissAll();
+    expect(await checkChannel(deps(), c)).toEqual({ added: 0, error: null });
+    expect(store.listFeed()).toEqual([]);
+  });
+
+  it('takes everything in the window when more than a window of videos came out since the last check', async () => {
+    honorLimit = true;
+    behavior = twenty;
+    const c = await addChannel(deps(), '@example');
+    behavior = (tab) => listing(videos(tab === 'videos' ? 'n' : 'm', 20, tab));
+    expect(await checkChannel(deps(), c)).toEqual({ added: 2 * CHECK_PER_TAB, error: null });
+  });
+
+  it('a tab that had nothing at the first fill starts with 5 when it begins to work, not 15', async () => {
+    honorLimit = true;
+    behavior = (tab) => (tab === 'videos' ? twenty(tab) : new BgtError('DownloadFailed', 'temporary failure'));
+    const c = await addChannel(deps(), '@example');
+    expect(store.listFeed().filter((f) => f.tab === 'streams')).toHaveLength(0);
+    behavior = twenty;
+    expect(await checkChannel(deps(), c)).toEqual({ added: INITIAL_PER_TAB, error: null });
+    expect(store.listFeed().filter((f) => f.tab === 'streams')).toHaveLength(INITIAL_PER_TAB);
   });
 });
