@@ -18,6 +18,7 @@ video with subtitles that follow along. Everything runs locally and costs nothin
   a clickable transcript and a timestamped summary.
 - **Long videos handled in chunks**, resumable after a restart, with a 30-minute default cap per job (set a start and end to pick the part you want).
 - **Skim mode** for a summary without a full translation, and an optional glossary file for names and terms.
+- **Channels** (new in 0.2): follow YouTube channels and see their new videos and finished live streams in a feed, checked while the app is open. One click sends a video to a new job.
 - **Subtitle files** (`.srt`, Japanese, English and bilingual) and a Markdown summary written to `Documents\Kikitori`.
 
 ### What the setup downloads
