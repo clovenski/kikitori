@@ -68,7 +68,7 @@ export async function runCommand(source: string, opts: RunCliOptions): Promise<v
     console.log(`\nSubtitles: ${result.srtPath}`);
     console.log(`Raw data:  ${result.jsonPath}`);
     if (result.status === 'done' && llmWanted) {
-      resumeHint = `to continue, run "bgt translate ${result.jobId}" (add --summarize, and --glossary if you used one).`;
+      resumeHint = `to continue, run "kikitori translate ${result.jobId}" (add --summarize, and --glossary if you used one).`;
       await runStagesForJob(result.jobId, { ...opts, out: opts.out }, controller.signal, handle);
     } else if (result.status !== 'done' && llmWanted) {
       console.log('Skipping translation/summary because some chunks failed. Re-run the command to retry them.');

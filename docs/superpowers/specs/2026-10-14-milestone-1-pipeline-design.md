@@ -11,7 +11,7 @@ Part of the larger "Local Japanese YouTube Understanding App" project (Electron 
 - **Who:** the author first (Windows 11, i7-13700K, RTX 3080 with 12 GB VRAM), then strangers installing from GitHub in later milestones.
 - **Why transcribe instead of using YouTube captions:** YouTube auto-captions are inaccurate, and translating them would inherit the errors.
 - **Success criteria:**
-  1. `bgt run <url> --start --end` produces a JA `.srt` for a 5-10 minute section of a real creator VOD.
+  1. `kikitori run <url> --start --end` produces a JA `.srt` for a 5-10 minute section of a real creator VOD.
   2. The user judges the transcript an acceptable draft on stream-style audio (game sound, music, overlapping speech).
   3. Killing the process mid-job and re-running resumes without redoing completed chunks.
   4. All core code is free of Electron and React imports so Milestone 3 can reuse it unchanged.
@@ -37,7 +37,7 @@ Part of the larger "Local Japanese YouTube Understanding App" project (Electron 
 ## 3. Project structure
 
 ```
-bg-auto-translator/
+kikitori/
 ├─ src/
 │  ├─ core/                  # pure Node/TS, never imports electron or react
 │  │  ├─ types.ts            # Segment, Chunk, Job
@@ -47,7 +47,7 @@ bg-auto-translator/
 │  │  ├─ tools/              # yt-dlp, ffmpeg, whisper.cpp wrappers, path resolution, fetch logic
 │  │  ├─ subtitles/          # SRT writer
 │  │  └─ db/                 # schema, migrations, repo
-│  ├─ cli/                   # `bgt` entrypoint
+│  ├─ cli/                   # `kikitori` entrypoint
 │  ├─ main/  preload/  renderer/   # empty until Milestone 3
 ├─ resources/                # downloaded binaries and models (gitignored)
 ├─ scripts/                  # fetch-tools entrypoint
@@ -66,9 +66,9 @@ summarize(segments) -> Summary               // M2
 
 ## 4. Pipeline
 
-CLI: `bgt run <url|file> [--start 1:20:00 --end 1:50:00] [--model large-v3] [--out dir] [--max-minutes N] [--keep-work]`
+CLI: `kikitori run <url|file> [--start 1:20:00 --end 1:50:00] [--model large-v3] [--out dir] [--max-minutes N] [--keep-work]`
 
-Other commands: `bgt doctor` (tool paths, versions, CUDA check), `bgt update-ytdlp`.
+Other commands: `kikitori doctor` (tool paths, versions, CUDA check), `kikitori update-ytdlp`.
 
 1. **Job creation.** Insert a `jobs` row (source, range, settings). Re-running the same job id resumes it.
 2. **Fetch.** yt-dlp downloads audio only, using `--download-sections` for a time range. ffmpeg converts to 16 kHz mono WAV. Local files skip yt-dlp and go straight to ffmpeg.
@@ -101,7 +101,7 @@ Translation and summary tables are added in Milestone 2.
 
 - Typed errors: `ToolMissing`, `DownloadFailed`, `TranscribeFailed`, `OverCap`.
 - A failed chunk is retried twice, then marked `failed`. The job continues and reports missing chunks at the end. Re-running processes only the non-`done` chunks.
-- `DownloadFailed` suggests `bgt update-ytdlp` or passing a local file.
+- `DownloadFailed` suggests `kikitori update-ytdlp` or passing a local file.
 - Ctrl+C terminates the child process and leaves the job resumable.
 - Working files live in `work/<jobId>/`, removed on success unless `--keep-work`.
 

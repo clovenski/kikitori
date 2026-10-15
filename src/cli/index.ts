@@ -7,7 +7,7 @@ import { llmCommand } from './llm';
 import { runCommand } from './run';
 
 const program = new Command();
-program.name('bgt').description('Transcribe Japanese YouTube videos locally with whisper.cpp');
+program.name('kikitori').description('Transcribe Japanese YouTube videos locally with whisper.cpp');
 
 program
   .command('run')

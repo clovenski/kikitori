@@ -67,7 +67,7 @@ export async function runSummarizeStage(a: {
   }
   if (incomplete) {
     // Do not build sections or the overview from a partial set; the next run fills the gaps first.
-    log('Summary: some windows failed. Re-run "bgt summarize" to retry them.');
+    log('Summary: some windows failed. Re-run "kikitori summarize" to retry them.');
     stages.setStage(jobId, 'summarize', 'failed');
     return;
   }

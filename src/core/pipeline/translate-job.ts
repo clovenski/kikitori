@@ -51,7 +51,7 @@ export async function runTranslateStage(a: {
   }
   const stillBlank = segments.filter((s) => (translated.get(s.id) ?? '') === '').length;
   if (stillBlank > 0) {
-    log(`Translation: ${stillBlank} line${stillBlank === 1 ? '' : 's'} could not be translated. Re-run "bgt translate" to retry them.`);
+    log(`Translation: ${stillBlank} line${stillBlank === 1 ? '' : 's'} could not be translated. Re-run "kikitori translate" to retry them.`);
   }
   stages.setStage(jobId, 'translate', stillBlank > 0 ? 'failed' : 'done');
 }

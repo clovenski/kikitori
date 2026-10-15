@@ -12,7 +12,7 @@ If the queue step of shutdown times out in the middle of a translation or summar
 - **Fix:** make `ModelPool.use()` refuse once `stopAll()` has been called for shutdown.
 
 ### Startup resets a job a CLI is running
-At startup the app turns every job still marked `running` into `pending` ("Not finished"). If you are running `bgt run` in a terminal at that moment, that job briefly shows as "Not finished" in the library.
+At startup the app turns every job still marked `running` into `pending` ("Not finished"). If you are running `kikitori run` in a terminal at that moment, that job briefly shows as "Not finished" in the library.
 - **Why it is left:** cosmetic, only when the CLI and the app are used at the same time; the CLI sets the final status itself.
 - **Fix:** record the owning process on a running job and only reset jobs whose owner is gone (the same check the child-process cleanup uses).
 

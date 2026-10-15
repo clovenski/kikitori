@@ -7,7 +7,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "bgt": "tsx src/cli/index.ts",
+    "kikitori": "tsx src/cli/index.ts",
     "setup:tools": "tsx scripts/fetch-tools.ts",
     "pin:tools": "tsx scripts/pin-tools.ts",
     "test": "vitest run",

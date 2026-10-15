@@ -9,7 +9,7 @@ Builds on: `2026-10-14-milestone-1-pipeline-design.md` (implemented and merged o
 - **Outcome:** from the Japanese transcript segments already stored in SQLite, produce English subtitles (English-only and bilingual SRT) and a hierarchical, timestamped English summary. Local and free by default.
 - **Who:** the author first (RTX 3080, 12 GB VRAM), later strangers on varied hardware.
 - **Success criteria:**
-  1. `bgt run <url> --translate --summarize` yields `job-N.en.srt`, `job-N.bi.srt` and `job-N.summary.md` for the two Milestone 1 test videos, and the author finds the English useful.
+  1. `kikitori run <url> --translate --summarize` yields `job-N.en.srt`, `job-N.bi.srt` and `job-N.summary.md` for the two Milestone 1 test videos, and the author finds the English useful.
   2. A recurring name or term is rendered consistently across chunks (glossary works).
   3. Killing the process mid-translation and re-running resumes without re-translating finished batches.
   4. Whisper and the LLM never occupy VRAM at the same time.
@@ -68,14 +68,14 @@ Segment ids are stable because segments are only replaced per chunk; translation
 
 ## 6. CLI
 
-- `bgt run <source> ... [--translate] [--summarize] [--skim] [--glossary <file>]`
-- `bgt translate <jobId> [--glossary <file>]` and `bgt summarize <jobId>` for finished jobs.
+- `kikitori run <source> ... [--translate] [--summarize] [--skim] [--glossary <file>]`
+- `kikitori translate <jobId> [--glossary <file>]` and `kikitori summarize <jobId>` for finished jobs.
 - `--glossary` file: JSON object mapping Japanese terms to English.
 - Time estimates continue to print before each stage once a speed is known.
 
 ## 7. Tool fetching
 
-`tools.lock.json` and `scripts/pin-tools.ts` gain: the llama.cpp Windows CUDA release asset (and, if that release ships the CUDA runtime as a separate zip, that zip), `Hy-MT2-7B-Q4_K_M.gguf`, and the general model GGUF. Checksums come from the Hugging Face tree API (LFS oid) and the GitHub release metadata, as in Milestone 1. `bgt doctor` reports the new binaries and models and whether `llama-server` can be launched.
+`tools.lock.json` and `scripts/pin-tools.ts` gain: the llama.cpp Windows CUDA release asset (and, if that release ships the CUDA runtime as a separate zip, that zip), `Hy-MT2-7B-Q4_K_M.gguf`, and the general model GGUF. Checksums come from the Hugging Face tree API (LFS oid) and the GitHub release metadata, as in Milestone 1. `kikitori doctor` reports the new binaries and models and whether `llama-server` can be launched.
 
 ## 8. Error handling
 

@@ -54,7 +54,7 @@ export async function runStagesForJob(
     const job = handle.deps.repo.getJob(jobId);
     if (!job) throw new BgtError('InvalidInput', `There is no job ${jobId}.`);
     if (job.status !== 'done') {
-      throw new BgtError('InvalidInput', `Job ${jobId} has not finished transcribing. Re-run its "bgt run" command first.`);
+      throw new BgtError('InvalidInput', `Job ${jobId} has not finished transcribing. Re-run its "kikitori run" command first.`);
     }
     const written = await runLlmStages(
       {

@@ -29,7 +29,7 @@ async function main() {
       });
     }
   }
-  console.log('Done. Run "pnpm bgt doctor" to verify.');
+  console.log('Done. Run "pnpm kikitori doctor" to verify.');
 }
 
 main().catch((err) => {

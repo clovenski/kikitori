@@ -38,7 +38,7 @@ checked against pinned checksums.
 pnpm install
 pnpm setup:tools           # downloads the GPU set into resources/ (add --tier cpu for the CPU set)
 pnpm dev:app               # run the desktop app
-pnpm bgt run <url> --translate --summarize
+pnpm kikitori run <url> --translate --summarize
 pnpm test && pnpm typecheck && pnpm lint
 pnpm build:installer       # dist/Kikitori-Setup-<version>.exe
 ```

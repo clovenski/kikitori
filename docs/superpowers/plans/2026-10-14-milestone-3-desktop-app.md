@@ -245,7 +245,7 @@ Expected: all Milestone 1 and 2 tests PASS unchanged in meaning (198 tests plus 
 
 - [ ] **Step 7: Verify the CLI still reads the existing database**
 
-Run: `pnpm bgt doctor`
+Run: `pnpm kikitori doctor`
 Expected: same output as before (database is opened lazily by `run`; this just checks nothing import-time broke). Then `node -e "const {DatabaseSync}=require('node:sqlite');const d=new DatabaseSync('data/bgt.sqlite',{readOnly:true});console.log(d.prepare('select count(*) c from jobs').get())"` prints the existing job count (2 or more).
 
 - [ ] **Step 8: Commit**
@@ -1159,7 +1159,7 @@ app.on('window-all-closed', () => app.quit());
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BG Auto Translator</title>
+    <title>Kikitori</title>
   </head>
   <body>
     <div id="root"></div>
@@ -1197,7 +1197,7 @@ createRoot(document.getElementById('root') as HTMLElement).render(
 `src/app/renderer/App.tsx`:
 ```tsx
 export function App() {
-  return <h1>BG Auto Translator</h1>;
+  return <h1>Kikitori</h1>;
 }
 ```
 
@@ -3397,7 +3397,7 @@ export function App() {
     <div className="app">
       <header className="topbar">
         <button className="brand" onClick={() => setRoute({ name: 'library' })}>
-          BG Auto Translator
+          Kikitori
         </button>
         <button className="primary" onClick={() => setNewJobOpen(true)}>
           New job
@@ -4980,7 +4980,7 @@ This task needs the author's eyes for the parts a script cannot judge (the embed
 
 ## Commands
 - `pnpm setup:tools` downloads yt-dlp, whisper.cpp, llama.cpp and the models into `resources/` (see `tools.lock.json`).
-- `pnpm bgt run <url|file> [--translate --summarize --skim]` is the command-line pipeline.
+- `pnpm kikitori run <url|file> [--translate --summarize --skim]` is the command-line pipeline.
 - `pnpm dev:app` starts the desktop app with hot reload. `pnpm build:app` builds it; `pnpm smoke:app` launches the build headless and checks the window and IPC bridge.
 - `pnpm test`, `pnpm typecheck`, `pnpm lint` (BGT_INTEGRATION=1 enables the tests that use the real binaries and models).
 

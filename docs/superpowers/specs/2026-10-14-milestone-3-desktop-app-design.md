@@ -10,7 +10,7 @@ Builds on: Milestone 1 (transcription) and Milestone 2 (translation, summaries),
 - **Who:** the author first; strangers later (installers and the first-run wizard are Milestone 4).
 - **Scope chosen:** the complete viewing loop (library, new job, queue with live progress, job page with player, overlay, transcript, summary) with minimal settings.
 - **Success criteria:**
-  1. Submitting a URL from the app produces the same results as `bgt run ... --translate --summarize`, and the finished job opens in the app.
+  1. Submitting a URL from the app produces the same results as `kikitori run ... --translate --summarize`, and the finished job opens in the app.
   2. The job page plays the video with an overlay that follows playback within ~150 ms; clicking a transcript line or a summary timestamp seeks the video.
   3. Jobs `2` and `3` already in `data/bgt.sqlite` appear in the library and play without reprocessing.
   4. Cancel stops the current job and its child processes (`whisper-cli`, `llama-server`, `yt-dlp`, `ffmpeg`); quitting the app leaves no orphaned processes; a job interrupted by a crash or quit is offered as Resume.

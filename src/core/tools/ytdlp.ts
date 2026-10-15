@@ -61,7 +61,7 @@ export function buildDownloadArgs(a: {
 }
 
 const HINT =
-  'YouTube changes often: try "pnpm bgt update-ytdlp", or download the audio yourself and pass the file path instead.';
+  'YouTube changes often: try "pnpm kikitori update-ytdlp", or download the audio yourself and pass the file path instead.';
 
 export async function probeVideo(a: {
   ytdlpPath: string;

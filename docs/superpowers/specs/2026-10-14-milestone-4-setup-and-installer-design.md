@@ -28,7 +28,7 @@ Builds on: Milestones 1 to 3, merged on `master`. Related: `docs/known-issues.md
 | Installer | One per-user NSIS installer from `electron-builder`; no admin rights; nothing but the app, the lock file and notices inside it |
 | Signing | None. The README documents the SmartScreen warning |
 | Licence | MIT, copyright "Joel Tengco" (confirmed) |
-| Packaged data location | `%APPDATA%\\BG Auto Translator` for tools, models, database and settings; `Documents\\BG Auto Translator` for subtitles and summaries |
+| Packaged data location | `%APPDATA%\\Kikitori` for tools, models, database and settings; `Documents\\Kikitori` for subtitles and summaries |
 | Development | Unchanged: the project's `data/`, `resources/`, `output/`. The wizard stays out of the way if the needed components are already present |
 
 ## 3. Tiers and components
@@ -78,7 +78,7 @@ The transcription model name used in jobs follows the tier: `large-v3` on GPU, `
 
 ## 6. Main process and IPC
 
-- **Packaged paths:** before any core code runs, `main` sets `BGT_PROJECT_ROOT` to `process.resourcesPath` (where `tools.lock.json` and the notices are shipped via `extraResources`), `BGT_RESOURCES_DIR`, `BGT_DATA_DIR`, and a new `BGT_OUTPUT_DIR` from the locations in section 2, and calls `app.setName('BG Auto Translator')`. `BGT_USER_DATA` overrides the base folder (used to test with an empty profile).
+- **Packaged paths:** before any core code runs, `main` sets `BGT_PROJECT_ROOT` to `process.resourcesPath` (where `tools.lock.json` and the notices are shipped via `extraResources`), `BGT_RESOURCES_DIR`, `BGT_DATA_DIR`, and a new `BGT_OUTPUT_DIR` from the locations in section 2, and calls `app.setName('Kikitori')`. `BGT_USER_DATA` overrides the base folder (used to test with an empty profile).
 - **`SetupService`:** one install at a time; holds state (`idle | installing | failed | done`), current component and file, aggregate progress.
 - **IPC additions:** `setup.state()`, `setup.detect()`, `setup.plan({ tier, features })`, `setup.start({ tier, features })`, `setup.cancel()`, `setup.repair()`, `setup.updateYtDlp()`, `setup.openNotices()`; pushed event `setup:progress`. Existing handlers stay.
 - **On demand:** `queue.submit` (and `runSubmission`) check `requiredComponents`; a missing one returns a typed `SetupRequired` error with the component list and size. The renderer asks "Download the translation model (4.7 GB)?", runs `setup.start` for just those components, then resubmits.
@@ -94,7 +94,7 @@ The transcription model name used in jobs follows the tier: `large-v3` on GPU, `
 
 ## 8. Installer and release
 
-- `electron-builder.yml`: `appId`, `productName: BG Auto Translator`, output `dist/`, `files: out/**`, `extraResources: tools.lock.json, THIRD_PARTY_NOTICES.md, LICENSE`, Windows target `nsis` x64, `oneClick: false`, `perMachine: false`, `allowToChangeInstallationDirectory: true`, desktop and Start menu shortcuts, `deleteAppDataOnUninstall: false` (downloaded models survive an uninstall, and the uninstaller says where they are). A simple generated placeholder icon (`build/icon.ico`) that the author can replace.
+- `electron-builder.yml`: `appId`, `productName: Kikitori`, output `dist/`, `files: out/**`, `extraResources: tools.lock.json, THIRD_PARTY_NOTICES.md, LICENSE`, Windows target `nsis` x64, `oneClick: false`, `perMachine: false`, `allowToChangeInstallationDirectory: true`, desktop and Start menu shortcuts, `deleteAppDataOnUninstall: false` (downloaded models survive an uninstall, and the uninstaller says where they are). A simple generated placeholder icon (`build/icon.ico`) that the author can replace.
 - `package.json` gains `description`, `author`, `license`, `homepage`; scripts `build:installer` and `smoke:installed`.
 - **CI** (`.github/workflows`): `ci.yml` on push and pull request runs install (frozen lockfile), tests, typecheck, lint, `build:app` and the smoke test on `windows-latest` with Node 24; `release.yml` on tags `v*` additionally builds the installer, writes `SHA256SUMS.txt` and publishes with `gh release create --generate-notes` (`contents: write`). The integration tests that need models never run in CI.
 - No code signing; the README states the SmartScreen steps ("More info", "Run anyway").

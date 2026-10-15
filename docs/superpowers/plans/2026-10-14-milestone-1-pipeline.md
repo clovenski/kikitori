@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** A `bgt` CLI that turns a Japanese YouTube URL (or local audio/video file) plus an optional time range into a resumable, chunked whisper.cpp transcription written as a Japanese SRT.
+**Goal:** A `kikitori` CLI that turns a Japanese YouTube URL (or local audio/video file) plus an optional time range into a resumable, chunked whisper.cpp transcription written as a Japanese SRT.
 
 **Architecture:** An Electron-free core in `src/core/` (pipeline, SQLite state, tool wrappers, whisper.cpp backend) behind the `Transcriber` / `Translator` / `Summarizer` interfaces. A thin `commander` CLI in `src/cli/` wires real dependencies into `runJob`. Every process (yt-dlp, ffmpeg, whisper-cli) is spawned without a shell; per-chunk state lives in SQLite so a killed run resumes.
 
@@ -30,7 +30,7 @@
 - `electron`, `electron-vite`, `react` are **not installed** in Milestone 1 (no code uses them; multi-hundred-MB download). They are added in Milestone 3. The folder layout and ESLint boundary rule are in place now.
 - ffmpeg is resolved from `resources/bin` then `PATH` only; auto-download is deferred to Milestone 4 (the user already has ffmpeg on PATH).
 - One extra error code, `InvalidInput`, for bad timestamps/ranges/sources (spec lists four).
-- The CLI is run as `pnpm bgt ...` (a `bin` entry is not published yet).
+- The CLI is run as `pnpm kikitori ...` (a `bin` entry is not published yet).
 
 ## Review Focus
 
@@ -95,13 +95,13 @@ Expected: prints a version number (10.x or later).
 
 ```json
 {
-  "name": "bg-auto-translator",
+  "name": "kikitori",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "engines": { "node": ">=22" },
   "scripts": {
-    "bgt": "tsx src/cli/index.ts",
+    "kikitori": "tsx src/cli/index.ts",
     "setup:tools": "tsx scripts/fetch-tools.ts",
     "pin:tools": "tsx scripts/pin-tools.ts",
     "test": "vitest run",
@@ -2062,7 +2062,7 @@ export function buildDownloadArgs(a: {
 }
 
 const HINT =
-  'YouTube changes often: try "pnpm bgt update-ytdlp", or download the audio yourself and pass the file path instead.';
+  'YouTube changes often: try "pnpm kikitori update-ytdlp", or download the audio yourself and pass the file path instead.';
 
 export async function getDurationMs(a: {
   ytdlpPath: string;
@@ -2521,7 +2521,7 @@ export async function downloadFile(
   onProgress?: (received: number, total: number) => void,
 ): Promise<void> {
   mkdirSync(path.dirname(dest), { recursive: true });
-  const res = await fetch(url, { redirect: 'follow', headers: { 'User-Agent': 'bg-auto-translator' } });
+  const res = await fetch(url, { redirect: 'follow', headers: { 'User-Agent': 'kikitori' } });
   if (!res.ok || !res.body) {
     throw new BgtError('DownloadFailed', `GET ${url} failed with HTTP ${res.status}.`);
   }
@@ -2622,7 +2622,7 @@ async function main() {
       }
     });
   }
-  console.log('Done. Run "pnpm bgt doctor" to verify.');
+  console.log('Done. Run "pnpm kikitori doctor" to verify.');
 }
 
 main().catch((err) => {
@@ -2639,7 +2639,7 @@ import path from 'node:path';
 import type { Lock, LockEntry } from '../src/core/tools/lock';
 import { projectRoot } from '../src/core/tools/paths';
 
-const headers = { 'User-Agent': 'bg-auto-translator', Accept: 'application/json' };
+const headers = { 'User-Agent': 'kikitori', Accept: 'application/json' };
 
 async function getJson<T>(url: string): Promise<T> {
   const res = await fetch(url, { headers });
@@ -3404,7 +3404,7 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 - Produces:
   - `isUrl(source: string): boolean`
   - `createRealDeps(a: { dataDir: string; model: string; log: (m: string) => void }): { deps: PipelineDeps; workRoot: string; close(): void }`
-  - CLI: `bgt run <source> [--start t] [--end t] [--model name] [--out dir] [--max-minutes n] [--keep-work]`, `bgt doctor`, `bgt update-ytdlp`. Exit codes: 0 done, 2 some chunks failed, 130 interrupted, 1 error.
+  - CLI: `kikitori run <source> [--start t] [--end t] [--model name] [--out dir] [--max-minutes n] [--keep-work]`, `kikitori doctor`, `kikitori update-ytdlp`. Exit codes: 0 done, 2 some chunks failed, 130 interrupted, 1 error.
 
 - [ ] **Step 1: Write the failing test (pure helper)**
 
@@ -3651,7 +3651,7 @@ import { doctorCommand } from './doctor';
 import { runCommand } from './run';
 
 const program = new Command();
-program.name('bgt').description('Transcribe Japanese YouTube videos locally with whisper.cpp');
+program.name('kikitori').description('Transcribe Japanese YouTube videos locally with whisper.cpp');
 
 program
   .command('run')
@@ -3695,9 +3695,9 @@ Expected: ALL pass.
 
 Smoke the CLI surface (tools are not installed yet, so errors are expected and must be clear):
 ```bash
-pnpm bgt --help
-pnpm bgt run "x.wav" --start 90:xx
-pnpm bgt doctor
+pnpm kikitori --help
+pnpm kikitori run "x.wav" --start 90:xx
+pnpm kikitori doctor
 ```
 Expected: help lists `run`, `doctor`, `update-ytdlp`; the second prints `InvalidInput: Invalid time "90:xx"...` and exits 1; `doctor` prints MISSING rows for yt-dlp, whisper-cli, and models and exits 1 (ffmpeg shows OK).
 
@@ -3705,7 +3705,7 @@ Expected: help lists `run`, `doctor`, `update-ytdlp`; the second prints `Invalid
 
 ```bash
 git add src/core/pipeline/real-deps.ts src/cli tests/core/real-deps.test.ts
-git commit -m "feat: real dependency wiring and bgt CLI (run, doctor, update-ytdlp)
+git commit -m "feat: real dependency wiring and kikitori CLI (run, doctor, update-ytdlp)
 
 Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 ```
@@ -3738,7 +3738,7 @@ Expected: progress for each entry, then `Done.` Re-running prints `up to date` f
 
 - [ ] **Step 3: Doctor**
 
-Run: `pnpm bgt doctor`
+Run: `pnpm kikitori doctor`
 Expected: all rows `OK`, including `whisper VAD flag  --vad supported` and an `INFO GPU` row naming the RTX 3080.
 **If the VAD row is MISSING, stop and report to the user** (the pinned whisper.cpp build lacks `--vad`; the spec requires it).
 
@@ -3824,7 +3824,7 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 
 Ask the user for one or two VOD URLs from their followed creators and a 5-10 minute section of each. Then run, for each:
 ```bash
-pnpm bgt run "<url>" --start <H:MM:SS> --end <H:MM:SS> --keep-work
+pnpm kikitori run "<url>" --start <H:MM:SS> --end <H:MM:SS> --keep-work
 ```
 Report to the user: the time estimate printed, the actual wall time, and the output path `output/job-<id>.ja.srt`. Ask them to read the SRT beside the video and judge: accuracy of the speech, hallucinations over music or game audio, missing speech, timestamp alignment with the video.
 

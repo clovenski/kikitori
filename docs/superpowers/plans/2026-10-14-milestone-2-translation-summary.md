@@ -2983,7 +2983,7 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
   - `loadGlossaryFile(file: string): Record<string, string>` (JSON object of string to string; anything else throws `InvalidInput` naming the file)
   - `createRealModelPool(a: { log: (m: string) => void; lockFile?: string }): ModelPool` (roles map to lock ids `model-general` / `model-translate`, context sizes 8192 / 4096; starts `llama-server` via `resolveTool('llama-server')`)
   - `createRealDeps` now returns `{ deps, stages, workRoot, close }`
-  - CLI: `bgt run ... --translate --summarize --skim --glossary <file>`; `bgt translate <jobId> [--glossary f] [--out dir]`; `bgt summarize <jobId> [--out dir]`. `--skim` with `--translate` is `InvalidInput`. LLM stages run only after a fully successful transcription.
+  - CLI: `kikitori run ... --translate --summarize --skim --glossary <file>`; `kikitori translate <jobId> [--glossary f] [--out dir]`; `kikitori summarize <jobId> [--out dir]`. `--skim` with `--translate` is `InvalidInput`. LLM stages run only after a fully successful transcription.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -3177,7 +3177,7 @@ export async function runStagesForJob(
     const job = handle.deps.repo.getJob(jobId);
     if (!job) throw new BgtError('InvalidInput', `There is no job ${jobId}.`);
     if (job.status !== 'done') {
-      throw new BgtError('InvalidInput', `Job ${jobId} has not finished transcribing. Re-run its "bgt run" command first.`);
+      throw new BgtError('InvalidInput', `Job ${jobId} has not finished transcribing. Re-run its "kikitori run" command first.`);
     }
     const written = await runLlmStages(
       {
@@ -3290,9 +3290,9 @@ import { projectRoot, resourcesDir } from '../core/tools/paths';
 Run:
 ```bash
 pnpm typecheck && pnpm lint && pnpm test
-pnpm bgt --help
-pnpm bgt run x.wav --skim --translate
-pnpm bgt translate abc
+pnpm kikitori --help
+pnpm kikitori run x.wav --skim --translate
+pnpm kikitori translate abc
 ```
 Expected: checks pass; help lists `run`, `doctor`, `update-ytdlp`, `translate`, `summarize`; the second prints `InvalidInput: --skim skips full translation...`; the third prints `InvalidInput: "abc" is not a job id.`
 
@@ -3330,7 +3330,7 @@ import path from 'node:path';
 import { loadLock, type Lock, type LockEntry } from '../src/core/tools/lock';
 import { projectRoot } from '../src/core/tools/paths';
 
-const headers = { 'User-Agent': 'bg-auto-translator', Accept: 'application/json' };
+const headers = { 'User-Agent': 'kikitori', Accept: 'application/json' };
 
 async function getJson<T>(url: string): Promise<T> {
   const res = await fetch(url, { headers });
@@ -3503,7 +3503,7 @@ Expected: the four old entries report `up to date`; `llama.cpp`, `llama-cudart`,
 
 - [ ] **Step 4: Doctor, then start the real server once by hand**
 
-Run: `pnpm bgt doctor`
+Run: `pnpm kikitori doctor`
 Expected: all rows `OK`, including `llama-server`, `model-translate`, `model-general`.
 
 Then verify the server starts on the GPU (writes to the scratchpad nothing; output only):
@@ -3568,8 +3568,8 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 
 The two Milestone 1 jobs are in `data/bgt.sqlite` (job 2: the 9-minute video; job 3: minutes 20 to 28 of the long one). Run:
 ```bash
-pnpm bgt translate 2 --summarize
-pnpm bgt translate 3 --summarize
+pnpm kikitori translate 2 --summarize
+pnpm kikitori translate 3 --summarize
 ```
 Report: the time each took (and the model-start log lines), the output paths (`output/job-2.en.srt`, `.bi.srt`, `.summary.md`, same for job 3), the glossary the model extracted (`sqlite3` is not required: print it with a one-off `node -e` using better-sqlite3 against `data/bgt.sqlite`, table `glossary`), and the count of blank translations if any. Ask the author to read the bilingual SRT beside the video and the summary, and judge: wrong or inconsistent names, mistranslated slang, hallucinated lines, summary usefulness.
 
@@ -3605,6 +3605,6 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 | Migration 2 tables; translations dropped with re-transcribed segments | 3 |
 | Outputs `.en.srt`, `.bi.srt`, `.summary.md`, offsets | 10 |
 | New error codes; Ctrl+C stops server | 1, 6, 12 |
-| CLI `--translate --summarize --skim --glossary`, `bgt translate`, `bgt summarize` | 12 |
+| CLI `--translate --summarize --skim --glossary`, `kikitori translate`, `kikitori summarize` | 12 |
 | `doctor` reports new binaries and models | 12 |
 | Unit tests with fakes, resume tests, fake server tests, opt-in integration test, manual quality check | 3 to 13 |

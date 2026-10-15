@@ -4,7 +4,7 @@
 
 **Goal:** A stranger installs `Setup.exe` from a GitHub Release (no admin, no terminal) and a first-run wizard downloads the right tools and models for their hardware.
 
-**Architecture:** `tools.lock.json` becomes schema v2: named components (per tier, per feature) of pinned, checksummed files. A pure-core `setup` module (hardware detection, plan, resumable downloads, installer, settings) is wrapped by a main-process `SetupService` that exposes IPC; the renderer gets a wizard, a Tools dialog and an on-demand download prompt. The packaged app keeps tools, models, database and settings in `%APPDATA%\BG Auto Translator`; electron-builder produces one per-user NSIS installer; GitHub Actions builds and publishes it on a `v*` tag.
+**Architecture:** `tools.lock.json` becomes schema v2: named components (per tier, per feature) of pinned, checksummed files. A pure-core `setup` module (hardware detection, plan, resumable downloads, installer, settings) is wrapped by a main-process `SetupService` that exposes IPC; the renderer gets a wizard, a Tools dialog and an on-demand download prompt. The packaged app keeps tools, models, database and settings in `%APPDATA%\Kikitori`; electron-builder produces one per-user NSIS installer; GitHub Actions builds and publishes it on a `v*` tag.
 
 **Tech Stack:** TypeScript, Electron 44, electron-vite, React 19, vitest, `node:sqlite`, `extract-zip`, electron-builder (NSIS), GitHub Actions.
 
@@ -16,7 +16,7 @@
 - `src/core` stays free of Electron and React (ESLint enforces it). The renderer may import only types plus `core/time`, `core/errors`, `core/youtube`, `core/source-text` (this plan adds `core/bytes`). `src/app/shared` may only import types.
 - Every downloaded file is pinned in `tools.lock.json` with an HTTPS URL, `sha256` and `size`; nothing is redistributed by this project; never ship API keys; never commit downloaded media, models or transcripts.
 - Tiers: `gpu` = NVIDIA with at least 7500 MB VRAM (8 GB cards report 8188 to 8192) and driver major 551 or newer; otherwise `cpu` with a stated reason; the user can override.
-- Packaged locations: tools and models `%APPDATA%\BG Auto Translator\resources`, database/settings/work `%APPDATA%\BG Auto Translator\data`, subtitles and summaries `Documents\BG Auto Translator`; `BGT_USER_DATA` overrides the base folder; development keeps the project's `resources/`, `data/`, `output/`.
+- Packaged locations: tools and models `%APPDATA%\Kikitori\resources`, database/settings/work `%APPDATA%\Kikitori\data`, subtitles and summaries `Documents\Kikitori`; `BGT_USER_DATA` overrides the base folder; development keeps the project's `resources/`, `data/`, `output/`.
 - GPU tier about 14 GB, CPU tier about 4.5 GB; transcription model `large-v3` (GPU) and `large-v3-turbo-q5_0` (CPU); translation `Hy-MT2-7B` / `Hy-MT2-1.8B` Q4_K_M; general `Qwen3-8B` / `Qwen3-4B` Q4_K_M.
 - ffmpeg: Gyan `GyanD/codexffmpeg` tag `9.0.2`, asset `ffmpeg-9.0.2-essentials_build.zip`, downloaded on first run, not redistributed.
 - Licence MIT, copyright "Joel Tengco". Commit messages end with `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>` (pass it as a second `-m`).
@@ -28,7 +28,7 @@ Failure modes the spec implies that no single task's happy path covers (each get
 
 1. A download server that ignores `Range`, answers `416`, drops the connection or stalls must still end with a file whose checksum matches (Task 5).
 2. yt-dlp replaces itself with `yt-dlp -U`, so its size and checksum change; that must never make the wizard reappear or Repair delete it. A development checkout that has everything installed must not show the wizard, a fresh profile must (Tasks 1, 2, 4, 8).
-3. On the CPU tier the probe, the CLI and `bgt translate` must not require the GPU model file `ggml-large-v3.bin` (Tasks 7, 9).
+3. On the CPU tier the probe, the CLI and `kikitori translate` must not require the GPU model file `ggml-large-v3.bin` (Tasks 7, 9).
 4. A nearly full disk is refused before anything is downloaded with a message that names the shortfall, and a failed extraction leaves no "installed" marker (Tasks 5, 6).
 5. Quitting or cancelling during setup keeps the `.part` files and the next start resumes; an offline machine gets a plain-language message (Tasks 5, 8, 9).
 
@@ -395,7 +395,7 @@ import { META } from './lock-meta';
 /** Gyan keeps a permanent release tag per version; bump by hand and run with --update. */
 const FFMPEG_TAG = '9.0.2';
 
-const headers = { 'User-Agent': 'bg-auto-translator', Accept: 'application/json' };
+const headers = { 'User-Agent': 'kikitori', Accept: 'application/json' };
 
 async function getJson<T>(url: string): Promise<T> {
   const res = await fetch(url, { headers });
@@ -620,7 +620,7 @@ const MAP: Record<string, string[]> = {
 
 /** Total size from a one-byte ranged request. */
 async function sizeOf(url: string): Promise<number> {
-  const res = await fetch(url, { headers: { Range: 'bytes=0-0', 'User-Agent': 'bg-auto-translator' }, redirect: 'follow' });
+  const res = await fetch(url, { headers: { Range: 'bytes=0-0', 'User-Agent': 'kikitori' }, redirect: 'follow' });
   const total = /\/(\d+)$/.exec(res.headers.get('content-range') ?? '')?.[1];
   await res.body?.cancel();
   if (!total) throw new Error(`No size for ${url} (HTTP ${res.status})`);
@@ -761,7 +761,7 @@ async function main() {
       });
     }
   }
-  console.log('Done. Run "pnpm bgt doctor" to verify.');
+  console.log('Done. Run "pnpm kikitori doctor" to verify.');
 }
 
 main().catch((err) => {
@@ -1700,7 +1700,7 @@ async function transfer(url: string, part: string, opts: DownloadOptions): Promi
     const res = await fetch(url, {
       redirect: 'follow',
       signal,
-      headers: { 'User-Agent': 'bg-auto-translator', ...(start > 0 ? { Range: `bytes=${start}-` } : {}) },
+      headers: { 'User-Agent': 'kikitori', ...(start > 0 ? { Range: `bytes=${start}-` } : {}) },
     });
     if (res.status === 416) {
       rmSync(part, { force: true });
@@ -2423,7 +2423,7 @@ and the id list with `for (const id of [\`model-translate-${tier}\`, \`model-gen
 
 - [ ] **Step 8: Verify and commit**
 
-Run: `pnpm typecheck && pnpm lint && pnpm test` — Expected: all green. Then `pnpm bgt doctor` — Expected: still reports the author's GPU install (ffmpeg from PATH is fine).
+Run: `pnpm typecheck && pnpm lint && pnpm test` — Expected: all green. Then `pnpm kikitori doctor` — Expected: still reports the author's GPU install (ffmpeg from PATH is fine).
 
 ```bash
 git add -A && git commit -m "feat: tier-aware runtime, ffmpeg from resources, skip name list without the summaries model, no retry of permanent yt-dlp errors" -m "Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
@@ -2534,12 +2534,12 @@ describe('resolveAppPaths', () => {
 
   it('a packaged app keeps tools and data in AppData, subtitles in Documents, and the lock file next to the app', () => {
     const p = resolveAppPaths({ ...base, packaged: true, env: {} });
-    const profile = path.join(base.appData, 'BG Auto Translator');
+    const profile = path.join(base.appData, 'Kikitori');
     expect(p).toEqual({
       projectRoot: base.resourcesPath,
       resourcesDir: path.join(profile, 'resources'),
       dataDir: path.join(profile, 'data'),
-      outDir: path.join(base.documents, 'BG Auto Translator'),
+      outDir: path.join(base.documents, 'Kikitori'),
       userData: profile,
     });
   });
@@ -2795,7 +2795,7 @@ export interface AppPaths {
 
 export function resolveAppPaths(a: AppPathsInput): AppPaths {
   const { env } = a;
-  const profile = env.BGT_USER_DATA ?? (a.packaged ? path.join(a.appData, 'BG Auto Translator') : null);
+  const profile = env.BGT_USER_DATA ?? (a.packaged ? path.join(a.appData, 'Kikitori') : null);
   const base = profile ?? a.appPath;
   return {
     projectRoot: env.BGT_PROJECT_ROOT ?? (a.packaged ? a.resourcesPath : a.appPath),
@@ -2803,7 +2803,7 @@ export function resolveAppPaths(a: AppPathsInput): AppPaths {
     dataDir: env.BGT_DATA_DIR ?? path.join(base, 'data'),
     outDir:
       env.BGT_OUTPUT_DIR ??
-      (a.packaged && !env.BGT_USER_DATA ? path.join(a.documents, 'BG Auto Translator') : path.join(base, 'output')),
+      (a.packaged && !env.BGT_USER_DATA ? path.join(a.documents, 'Kikitori') : path.join(base, 'output')),
     userData: profile,
   };
 }
@@ -3492,7 +3492,7 @@ export function stateFor(over: Partial<SetupState> = {}, installed: string[] = [
     tier: 'gpu',
     features: { translation: true, summaries: true },
     components: Object.keys(SIZES).map((id) => info(id, installed.includes(id))),
-    resourcesDir: 'C:/Users/me/AppData/Roaming/BG Auto Translator/resources',
+    resourcesDir: 'C:/Users/me/AppData/Roaming/Kikitori/resources',
     ...over,
   };
 }
@@ -3626,7 +3626,7 @@ const toChoose = async () => {
 describe('Wizard', () => {
   it('starts with a welcome that states what is downloaded and the personal-use terms', () => {
     renderWizard();
-    expect(screen.getByRole('heading', { name: 'Welcome to BG Auto Translator' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Welcome to Kikitori' })).toBeTruthy();
     expect(screen.getByText(/personal use/i)).toBeTruthy();
     fireEvent.click(screen.getByText('Licence notices'));
   });
@@ -3747,14 +3747,14 @@ function renderApp(needsWizard: boolean) {
 describe('App first-run gating', () => {
   it('shows the wizard instead of the library when setup is needed', async () => {
     renderApp(true);
-    expect(await screen.findByRole('heading', { name: 'Welcome to BG Auto Translator' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Welcome to Kikitori' })).toBeTruthy();
     expect(screen.queryByText('New job')).toBeNull();
   });
 
   it('shows the library when setup is done', async () => {
     renderApp(false);
     expect(await screen.findByText('New job')).toBeTruthy();
-    expect(screen.queryByRole('heading', { name: 'Welcome to BG Auto Translator' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Welcome to Kikitori' })).toBeNull();
   });
 
   it('keeps the wizard open until the user chooses to continue, then opens the new-job dialog', async () => {
@@ -3939,7 +3939,7 @@ export function Wizard({ onFinished }: Props) {
   if (step === 'welcome') {
     return (
       <div className="wizard">
-        <h1>Welcome to BG Auto Translator</h1>
+        <h1>Welcome to Kikitori</h1>
         <div className="card">
           <p>It turns Japanese videos into English subtitles and summaries, entirely on this computer. Nothing you process is sent anywhere.</p>
           <p>
@@ -4104,7 +4104,7 @@ export function App() {
     <div className="app">
       <header className="topbar">
         <button className="brand" onClick={() => setRoute({ name: 'library' })}>
-          BG Auto Translator
+          Kikitori
         </button>
         <button className="primary" onClick={() => setNewJobOpen(true)}>
           New job
@@ -4668,7 +4668,7 @@ git add -A && git commit -m "feat(renderer): Tools dialog, on-demand download pr
 - Test: `tests/core/notices.test.ts`
 
 **Interfaces:**
-- Produces: `pnpm build:installer` (writes `dist/BG-Auto-Translator-Setup-<version>.exe`), `pnpm smoke:installed <path-to-exe>`, `pnpm make:icon`.
+- Produces: `pnpm build:installer` (writes `dist/Kikitori-Setup-<version>.exe`), `pnpm smoke:installed <path-to-exe>`, `pnpm make:icon`.
 
 - [ ] **Step 1: Write the failing test** — `tests/core/notices.test.ts`:
 
@@ -4737,7 +4737,7 @@ SOFTWARE.
 ````markdown
 # Third-party notices
 
-BG Auto Translator is MIT licensed (see `LICENSE`). The installer contains only the app. On first run the app
+Kikitori is MIT licensed (see `LICENSE`). The installer contains only the app. On first run the app
 **downloads** the programs and models below from their publishers; this project does not redistribute them.
 Each keeps its own licence. Exact versions and checksums are pinned in `tools.lock.json`.
 
@@ -4775,7 +4775,7 @@ and the rights of the people who made the videos.
 - [ ] **Step 5: `README.md`**
 
 ````markdown
-# BG Auto Translator
+# Kikitori
 
 Understand Japanese YouTube videos without speaking Japanese: it transcribes the audio on your own computer,
 translates it to English and writes a timestamped summary, shown next to the video with synced subtitles.
@@ -4786,7 +4786,7 @@ Everything runs locally and costs nothing.
 
 ## Install (Windows 10 or 11, 64-bit)
 
-1. Download `BG-Auto-Translator-Setup-<version>.exe` from the Releases page. Check it against `SHA256SUMS.txt`
+1. Download `Kikitori-Setup-<version>.exe` from the Releases page. Check it against `SHA256SUMS.txt`
    if you like (`Get-FileHash <file>` in PowerShell).
 2. Run it. **Windows SmartScreen will warn** ("Windows protected your PC") because the installer is not signed:
    click **More info**, then **Run anyway**. No administrator rights are needed.
@@ -4796,8 +4796,8 @@ Everything runs locally and costs nothing.
    You can leave out Translation and Summaries; they are downloaded the first time you need them.
 4. Paste a YouTube link (or drop an audio/video file) and press **Add to queue**.
 
-Downloaded tools and models live in `%APPDATA%\BG Auto Translator`; subtitles and summaries are written to
-`Documents\BG Auto Translator`. Uninstalling keeps them, so delete the first folder yourself to free the space.
+Downloaded tools and models live in `%APPDATA%\Kikitori`; subtitles and summaries are written to
+`Documents\Kikitori`. Uninstalling keeps them, so delete the first folder yourself to free the space.
 Antivirus programs sometimes flag yt-dlp or the model runtimes; they are downloaded from their publishers and
 checked against pinned checksums.
 
@@ -4807,9 +4807,9 @@ checked against pinned checksums.
 pnpm install
 pnpm setup:tools           # downloads the GPU set into resources/ (add --tier cpu for the CPU set)
 pnpm dev:app               # run the desktop app
-pnpm bgt run <url> --translate --summarize
+pnpm kikitori run <url> --translate --summarize
 pnpm test && pnpm typecheck && pnpm lint
-pnpm build:installer       # dist/BG-Auto-Translator-Setup-<version>.exe
+pnpm build:installer       # dist/Kikitori-Setup-<version>.exe
 ```
 
 `BGT_USER_DATA=<folder>` runs the app against an empty profile (it then shows the first-run wizard).
@@ -4832,8 +4832,8 @@ Then move `react`, `react-dom` and `commander` from `dependencies` to `devDepend
 - [ ] **Step 7: `electron-builder.yml`**
 
 ```yaml
-appId: com.joeltengco.bgautotranslator
-productName: BG Auto Translator
+appId: com.joeltengco.kikitori
+productName: Kikitori
 copyright: Copyright (c) 2026 Joel Tengco
 directories:
   output: dist
@@ -4854,14 +4854,14 @@ win:
     - target: nsis
       arch: [x64]
   icon: build/icon.ico
-  artifactName: BG-Auto-Translator-Setup-${version}.exe
+  artifactName: Kikitori-Setup-${version}.exe
 nsis:
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: BG Auto Translator
+  shortcutName: Kikitori
   deleteAppDataOnUninstall: false
 ```
 
@@ -4952,7 +4952,7 @@ import { join } from 'node:path';
 
 const exe = process.argv[2];
 if (!exe || !existsSync(exe)) {
-  console.error('Usage: pnpm smoke:installed "<path to BG Auto Translator.exe>"');
+  console.error('Usage: pnpm smoke:installed "<path to Kikitori.exe>"');
   process.exit(2);
 }
 const profile = mkdtempSync(join(tmpdir(), 'bgt-profile-'));
@@ -4968,17 +4968,17 @@ process.exit(text === 'SMOKE OK wizard=true' ? 0 : 1);
 
 Run: `pnpm vitest run tests/core/notices.test.ts && pnpm typecheck && pnpm lint && pnpm test` — Expected: PASS.
 
-Run: `pnpm build:installer` — Expected: `dist/BG-Auto-Translator-Setup-0.1.0.exe` exists (about 80 to 120 MB). If electron-builder cannot find production dependencies under pnpm, add `node-linker=hoisted` to a new `.npmrc`, run `pnpm install` and rebuild.
+Run: `pnpm build:installer` — Expected: `dist/Kikitori-Setup-0.1.0.exe` exists (about 80 to 120 MB). If electron-builder cannot find production dependencies under pnpm, add `node-linker=hoisted` to a new `.npmrc`, run `pnpm install` and rebuild.
 
 Run (PowerShell):
 
 ```powershell
 $dir = Join-Path $env:TEMP 'bgt-install-test'
 Remove-Item $dir -Recurse -Force -ErrorAction SilentlyContinue
-Start-Process -FilePath (Resolve-Path 'dist\BG-Auto-Translator-Setup-0.1.0.exe') -ArgumentList '/S', "/D=$dir" -Wait
-Test-Path "$dir\BG Auto Translator.exe"; Test-Path "$dir\resources\tools.lock.json"; Test-Path "$dir\resources\THIRD_PARTY_NOTICES.md"
-node scripts/smoke-installed.mjs "$dir\BG Auto Translator.exe"
-Start-Process -FilePath "$dir\Uninstall BG Auto Translator.exe" -ArgumentList '/S', "_?=$dir" -Wait
+Start-Process -FilePath (Resolve-Path 'dist\Kikitori-Setup-0.1.0.exe') -ArgumentList '/S', "/D=$dir" -Wait
+Test-Path "$dir\Kikitori.exe"; Test-Path "$dir\resources\tools.lock.json"; Test-Path "$dir\resources\THIRD_PARTY_NOTICES.md"
+node scripts/smoke-installed.mjs "$dir\Kikitori.exe"
+Start-Process -FilePath "$dir\Uninstall Kikitori.exe" -ArgumentList '/S', "_?=$dir" -Wait
 Remove-Item $dir -Recurse -Force -ErrorAction SilentlyContinue
 ```
 
@@ -5052,14 +5052,14 @@ jobs:
         shell: pwsh
         run: |
           Set-Location dist
-          Get-ChildItem BG-Auto-Translator-Setup-*.exe | ForEach-Object {
+          Get-ChildItem Kikitori-Setup-*.exe | ForEach-Object {
             "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)"
           } | Set-Content SHA256SUMS.txt -Encoding ascii
       - name: Publish
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create "$GITHUB_REF_NAME" dist/BG-Auto-Translator-Setup-*.exe dist/SHA256SUMS.txt --generate-notes --title "$GITHUB_REF_NAME"
+        run: gh release create "$GITHUB_REF_NAME" dist/Kikitori-Setup-*.exe dist/SHA256SUMS.txt --generate-notes --title "$GITHUB_REF_NAME"
 ```
 
 The model-dependent integration tests are skipped without `BGT_INTEGRATION=1`, so CI never downloads models.
@@ -5097,8 +5097,8 @@ Tell the user, in one message, that the next steps open real app windows and run
 
 Run: `pnpm setup:tools` (adds ffmpeg to `resources/ffmpeg`, re-hashes the existing downloads, nothing else is downloaded).
 Run: `pnpm smoke:app` — Expected: `SMOKE OK wizard=false` and `data/settings.json` now exists with `"tier": "gpu"` and `"setupCompleted": true` (the dev-profile auto-detection).
-Run: `pnpm bgt doctor` — Expected: no `MISSING` lines; `INFO tier gpu`.
-Run a short real job through the CLI: `pnpm bgt run "https://www.youtube.com/watch?v=7SHNxjFuw10" --start 0:00 --end 1:00 --translate --summarize --out output`
+Run: `pnpm kikitori doctor` — Expected: no `MISSING` lines; `INFO tier gpu`.
+Run a short real job through the CLI: `pnpm kikitori run "https://www.youtube.com/watch?v=7SHNxjFuw10" --start 0:00 --end 1:00 --translate --summarize --out output`
 Expected: finishes with job id 4, writes `output/job-4.en.srt`, `.bi.srt`, `.summary.md`.
 Then clean the test data from the author's real library, as agreed: run the scratchpad `cleanup.cjs` from earlier milestones (it deletes jobs 4 and higher, all submissions and their output files). If it no longer exists, delete the rows with `job_id` or `id` 4 and above from `jobs`, `segments`, `translations`, `glossary`, `summaries`, `stages` and all rows of `submissions` in `data/bgt.sqlite`, and delete `output/job-N.*` for N of 4 and above. Confirm only jobs 1 to 3 remain.
 
@@ -5141,7 +5141,7 @@ async function until(re, ms = 3_600_000) {
 }
 
 if (phase === 'wizard') {
-  await until(/Welcome to BG Auto Translator/);
+  await until(/Welcome to Kikitori/);
   await click('Continue');
   await until(/Download size/);
   await evaluate("document.querySelectorAll('input[name=tier]')[1].click()"); // CPU only
