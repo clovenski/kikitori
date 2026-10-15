@@ -1,5 +1,5 @@
 import { cleanSource } from '../../../core/source-text';
-import { parseTimestamp, resolveRange } from '../../../core/time';
+import { MAX_MINUTES_LIMIT, parseTimestamp, resolveRange } from '../../../core/time';
 import type { SubmitRequest } from '../../shared/ipc';
 
 export interface NewJobForm {
@@ -11,6 +11,9 @@ export interface NewJobForm {
   skim: boolean;
   glossaryPath: string | null;
 }
+
+// The app puts no length limit on a job; the core still wants a number, so send a week.
+const UNCAPPED_MINUTES = MAX_MINUTES_LIMIT;
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -33,7 +36,7 @@ export function buildSubmitRequest(
     return { ok: false, error: message(e) };
   }
 
-  const maxMinutes = 30;
+  const maxMinutes = UNCAPPED_MINUTES;
   if (durationMs !== null) {
     try {
       resolveRange({ startMs, endMs, durationMs, maxMinutes });

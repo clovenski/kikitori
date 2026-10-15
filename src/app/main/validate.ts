@@ -1,6 +1,7 @@
 import type { SubmissionOptions } from '../../core/db/submission-repo';
 import { BgtError } from '../../core/errors';
 import { cleanSource } from '../../core/source-text';
+import { MAX_MINUTES_LIMIT } from '../../core/time';
 import type { SetupSelection, SubmitRequest } from '../shared/ipc';
 
 const invalid = (message: string) => new BgtError('InvalidInput', message);
@@ -35,8 +36,8 @@ export function parseSubmissionOptions(raw: unknown): SubmissionOptions {
   const skim = o.skim === true;
   if (skim && translate) throw invalid('Skim skips full translation, so it cannot be combined with Translate.');
   const maxMinutes = o.maxMinutes === undefined ? 30 : o.maxMinutes;
-  if (typeof maxMinutes !== 'number' || !Number.isFinite(maxMinutes) || maxMinutes < 1 || maxMinutes > 600) {
-    throw invalid('maxMinutes must be between 1 and 600.');
+  if (typeof maxMinutes !== 'number' || !Number.isFinite(maxMinutes) || maxMinutes < 1 || maxMinutes > MAX_MINUTES_LIMIT) {
+    throw invalid(`maxMinutes must be between 1 and ${MAX_MINUTES_LIMIT}.`);
   }
   const model = o.model === undefined ? 'large-v3' : o.model;
   if (typeof model !== 'string' || !/^[a-z0-9][a-z0-9._-]*$/i.test(model)) throw invalid('Invalid model name.');

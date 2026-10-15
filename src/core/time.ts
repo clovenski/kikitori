@@ -42,6 +42,9 @@ export function formatClockMs(ms: number): string {
   return `${formatClock(ms)}.${String(milli).padStart(3, '0')}`;
 }
 
+/** Largest `maxMinutes` accepted anywhere (one week); the desktop app sends this to mean "no cap". */
+export const MAX_MINUTES_LIMIT = 7 * 24 * 60;
+
 export interface RangeInput {
   startMs: number;
   endMs: number | null;

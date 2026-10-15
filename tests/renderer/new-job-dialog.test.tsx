@@ -156,14 +156,13 @@ describe('NewJobDialog', () => {
     expect(screen.getAllByText('video is private').length).toBeGreaterThan(0);
   });
 
-  it('probes first when the user clicks Add right after typing (no blur yet), and enforces the length cap', async () => {
+  it('probes first when the user clicks Add right after typing (no blur yet), and accepts a long video', async () => {
     const t = setup({ probe: async () => ({ ok: true as const, value: { title: 'Long stream', durationMs: 40 * 60_000 } }) });
     fireEvent.change(screen.getByLabelText('YouTube link or file path'), { target: { value: url } });
     await act(async () => {
       fireEvent.click(screen.getByText('Add to queue'));
     });
-    expect(t.submit).not.toHaveBeenCalled(); // 40 minutes without a range exceeds the 30 minute cap
-    expect(screen.getByText(/30 min limit/)).toBeTruthy();
+    expect(t.submit).toHaveBeenCalledTimes(1);
   });
 
   it('probes the same source again after a failed probe, so a transient error is not a dead end', async () => {

@@ -22,7 +22,7 @@ describe('buildSubmitRequest', () => {
         source: 'https://www.youtube.com/watch?v=7SHNxjFuw10',
         startMs: 0,
         endMs: null,
-        options: { translate: true, summarize: true, skim: false, glossaryPath: undefined, maxMinutes: 30, model: 'large-v3' },
+        options: { translate: true, summarize: true, skim: false, glossaryPath: undefined, maxMinutes: 10080, model: 'large-v3' },
       },
     });
   });
@@ -56,9 +56,9 @@ describe('buildSubmitRequest', () => {
     expect(fail(buildSubmitRequest(form({ start: '5:00', end: '2:00' }), null))).toMatch(/end/i);
   });
 
-  it('enforces the 30 minute cap and the video length once the duration is known', () => {
-    expect(buildSubmitRequest(form(), 40 * 60_000)).toMatchObject({ ok: false });
-    expect(fail(buildSubmitRequest(form(), 40 * 60_000))).toMatch(/30 min limit/);
+  it('puts no length cap on a long video, but still checks the range against the video length', () => {
+    expect(buildSubmitRequest(form(), 40 * 60_000).ok).toBe(true);
+    expect(buildSubmitRequest(form(), 5 * 60 * 60_000).ok).toBe(true);
     expect(fail(buildSubmitRequest(form({ start: '20:00' }), 600_000))).toMatch(/start/i);
     expect(buildSubmitRequest(form({ start: '10:00', end: '35:00' }), 40 * 60_000).ok).toBe(true);
   });
