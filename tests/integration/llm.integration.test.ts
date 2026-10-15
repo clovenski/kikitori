@@ -4,8 +4,8 @@ import { createRealModelPool } from '../../src/core/pipeline/real-llm';
 import { parseGlossaryJson } from '../../src/core/llm/parse';
 import { glossaryMessages } from '../../src/core/llm/prompts';
 
-// Opt in with BGT_INTEGRATION=1. Requires `pnpm setup:tools` (about 10 GB of models).
-describe.skipIf(!process.env.BGT_INTEGRATION)('real llama-server', () => {
+// Opt in with KTR_INTEGRATION=1. Requires `pnpm setup:tools` (about 10 GB of models).
+describe.skipIf(!process.env.KTR_INTEGRATION)('real llama-server', () => {
   it('translates Japanese lines with Hy-MT2 and extracts glossary JSON with the general model', async () => {
     const pool = createRealModelPool({ log: () => {}, tier: () => 'gpu' });
     try {

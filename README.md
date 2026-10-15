@@ -63,5 +63,5 @@ pnpm test && pnpm typecheck && pnpm lint
 pnpm build:installer       # dist/Kikitori-Setup-<version>.exe
 ```
 
-`BGT_USER_DATA=<folder>` runs the app against an empty profile (it then shows the first-run wizard).
+`KTR_USER_DATA=<folder>` runs the app against an empty profile (it then shows the first-run wizard).
 Third-party components and licenses: `THIRD_PARTY_NOTICES.md`. Project license: MIT.

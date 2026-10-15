@@ -1409,7 +1409,7 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 - Produces:
   - `interface RunResult { code: number | null; stdout: string; stderr: string }`
   - `runProcess(cmd: string, args: string[], opts?: { signal?: AbortSignal; cwd?: string; onStderr?: (chunk: string) => void }): Promise<RunResult>` (no shell; rejects with `signal.reason` on abort and kills the process tree; `ENOENT` -> `ToolMissing`)
-  - `projectRoot(): string`, `resourcesDir(): string` (env `BGT_RESOURCES_DIR` overrides), `dataDir(): string` (env `BGT_DATA_DIR` overrides)
+  - `projectRoot(): string`, `resourcesDir(): string` (env `KTR_RESOURCES_DIR` overrides), `dataDir(): string` (env `KTR_DATA_DIR` overrides)
   - `type ToolName = 'yt-dlp' | 'ffmpeg' | 'whisper-cli'`
   - `exeName(name: string): string`
   - `findOnPath(exe: string, pathEnv?: string): string | null`
@@ -1626,11 +1626,11 @@ export function projectRoot(): string {
 }
 
 export function resourcesDir(): string {
-  return process.env.BGT_RESOURCES_DIR ?? path.join(projectRoot(), 'resources');
+  return process.env.KTR_RESOURCES_DIR ?? path.join(projectRoot(), 'resources');
 }
 
 export function dataDir(): string {
-  return process.env.BGT_DATA_DIR ?? path.join(projectRoot(), 'data');
+  return process.env.KTR_DATA_DIR ?? path.join(projectRoot(), 'data');
 }
 
 export type ToolName = 'yt-dlp' | 'ffmpeg' | 'whisper-cli';
@@ -3765,8 +3765,8 @@ import { createRealDeps } from '../../src/core/pipeline/real-deps';
 import { runJob } from '../../src/core/pipeline/run';
 import { resolveTool } from '../../src/core/tools/paths';
 
-// Opt in with BGT_INTEGRATION=1. Requires `pnpm setup:tools` and ffmpeg.
-describe.skipIf(!process.env.BGT_INTEGRATION)('real binaries', () => {
+// Opt in with KTR_INTEGRATION=1. Requires `pnpm setup:tools` and ffmpeg.
+describe.skipIf(!process.env.KTR_INTEGRATION)('real binaries', () => {
   let root: string;
   let source: string;
 
@@ -3808,7 +3808,7 @@ describe.skipIf(!process.env.BGT_INTEGRATION)('real binaries', () => {
 });
 ```
 
-Run: `BGT_INTEGRATION=1 pnpm test tests/integration`
+Run: `KTR_INTEGRATION=1 pnpm test tests/integration`
 Expected: PASS. Also run `pnpm test` without the variable: the integration test is skipped, everything else passes.
 
 - [ ] **Step 6: Commit**

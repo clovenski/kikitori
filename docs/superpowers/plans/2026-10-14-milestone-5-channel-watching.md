@@ -2169,7 +2169,7 @@ No product code changes unless a check fails; a failure is fixed test-first in t
 
 - [ ] **Step 2: Warn the user** before any window opens: the next step opens a real app window on a throwaway profile and talks to YouTube through yt-dlp; ask them not to click in it.
 
-- [ ] **Step 3: Drive the real app on a throwaway profile.** Create the profile folder in the scratchpad with `data/settings.json` containing `{"version":1,"tier":"gpu","features":{"translation":true,"summaries":true},"setupCompleted":true}`, and launch Electron (path from `node -e "console.log(require('electron'))"` run in the repo) with `BGT_USER_DATA=<profile>`, `BGT_RESOURCES_DIR=<repo>\resources` and `--remote-debugging-port=9555`. Write the scratchpad driver `drive-channels.mjs` (same CDP helpers as the earlier `shot.mjs`: connect to the page target, `Runtime.evaluate`, a `click(text)` that finds a button by its text, `until(regex)` polling `document.body.innerText`) and run these checks, printing each result:
+- [ ] **Step 3: Drive the real app on a throwaway profile.** Create the profile folder in the scratchpad with `data/settings.json` containing `{"version":1,"tier":"gpu","features":{"translation":true,"summaries":true},"setupCompleted":true}`, and launch Electron (path from `node -e "console.log(require('electron'))"` run in the repo) with `KTR_USER_DATA=<profile>`, `KTR_RESOURCES_DIR=<repo>\resources` and `--remote-debugging-port=9555`. Write the scratchpad driver `drive-channels.mjs` (same CDP helpers as the earlier `shot.mjs`: connect to the page target, `Runtime.evaluate`, a `click(text)` that finds a button by its text, `until(regex)` polling `document.body.innerText`) and run these checks, printing each result:
 
 1. Click Channels; type `@NintendoJP` into the add field and click Follow; wait until the feed has items. Via `window.bgt.channels.feed()` print the count and how many have `tab === 'streams'`. Expect at most 5 per tab (at most 10) and at least one item.
 2. Add the same channel by its id (`UCkH3CcMfqww9RsZvPRPkAJA`): expect the error "You already follow this channel."
@@ -2181,7 +2181,7 @@ No product code changes unless a check fails; a failure is fixed test-first in t
 8. Print the badge number on the Channels button and check it equals the number of feed items without a job.
 9. Close the app and confirm no `yt-dlp.exe` process is left running (`Get-Process yt-dlp -ErrorAction SilentlyContinue`).
 
-Delete the throwaway profile afterwards. The author's own `data/` is never touched because of `BGT_USER_DATA`.
+Delete the throwaway profile afterwards. The author's own `data/` is never touched because of `KTR_USER_DATA`.
 
 - [ ] **Step 4: Documentation** — in `README.md` add a bullet to the feature list near the top: `- **Follows your channels:** add a YouTube channel and its new videos and finished live streams appear in a feed (checked while the app is open); one click sends any of them to a new job.` In `docs/known-issues.md` set "Last reviewed" to after Milestone 5 and add a section "Channel watching (Milestone 5)" listing: checks only run while the app is open; the feed has no upload dates and is ordered by when Kikitori first saw a video; a new channel starts with up to 5 videos from each of its Videos and Streams tabs; live and upcoming streams appear after they end; Shorts, playlists and non-YouTube channels are not followed; very large numbers of channels check one after another and can take a while; processed videos stay in the feed until dismissed.
 

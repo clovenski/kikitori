@@ -4,15 +4,15 @@ import { fileURLToPath } from 'node:url';
 import { BgtError } from '../errors';
 
 export function projectRoot(): string {
-  return process.env.BGT_PROJECT_ROOT ?? fileURLToPath(new URL('../../../', import.meta.url));
+  return process.env.KTR_PROJECT_ROOT ?? fileURLToPath(new URL('../../../', import.meta.url));
 }
 
 export function resourcesDir(): string {
-  return process.env.BGT_RESOURCES_DIR ?? path.join(projectRoot(), 'resources');
+  return process.env.KTR_RESOURCES_DIR ?? path.join(projectRoot(), 'resources');
 }
 
 export function dataDir(): string {
-  return process.env.BGT_DATA_DIR ?? path.join(projectRoot(), 'data');
+  return process.env.KTR_DATA_DIR ?? path.join(projectRoot(), 'data');
 }
 
 export type ToolName = 'yt-dlp' | 'ffmpeg' | 'whisper-cli' | 'llama-server';

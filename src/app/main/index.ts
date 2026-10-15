@@ -44,10 +44,10 @@ const paths = resolveAppPaths({
   documents: app.getPath('documents'),
   env: process.env,
 });
-process.env.BGT_PROJECT_ROOT = paths.projectRoot;
-process.env.BGT_RESOURCES_DIR = paths.resourcesDir;
-process.env.BGT_DATA_DIR = paths.dataDir;
-process.env.BGT_OUTPUT_DIR = paths.outDir;
+process.env.KTR_PROJECT_ROOT = paths.projectRoot;
+process.env.KTR_RESOURCES_DIR = paths.resourcesDir;
+process.env.KTR_DATA_DIR = paths.dataDir;
+process.env.KTR_OUTPUT_DIR = paths.outDir;
 if (paths.userData) app.setPath('userData', paths.userData);
 
 const REFERER = 'https://bgt.local/';
@@ -273,7 +273,7 @@ void app.whenReady().then(() => runStartup(async () => {
         if (reply[0] === 'pong' && reply[1]?.ok === true && reply[2]?.ok === true) {
           const line = `SMOKE OK wizard=${reply[2].value.needsWizard}`;
           console.log(line);
-          if (process.env.BGT_SMOKE_OUT) writeFileSync(process.env.BGT_SMOKE_OUT, line); // packaged GUI apps may not show stdout
+          if (process.env.KTR_SMOKE_OUT) writeFileSync(process.env.KTR_SMOKE_OUT, line); // packaged GUI apps may not show stdout
           app.exit(0);
         } else {
           console.error(`SMOKE FAIL: ${JSON.stringify(reply)}`);

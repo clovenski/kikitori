@@ -32,21 +32,21 @@ describe('resolveAppPaths', () => {
     });
   });
 
-  it('BGT_USER_DATA moves everything, including the output, into one folder (empty-profile testing)', () => {
-    const p = resolveAppPaths({ ...base, packaged: true, env: { BGT_USER_DATA: 'D:/profile' } });
+  it('KTR_USER_DATA moves everything, including the output, into one folder (empty-profile testing)', () => {
+    const p = resolveAppPaths({ ...base, packaged: true, env: { KTR_USER_DATA: 'D:/profile' } });
     expect(p.resourcesDir).toBe(path.join('D:/profile', 'resources'));
     expect(p.outDir).toBe(path.join('D:/profile', 'output'));
     expect(p.userData).toBe('D:/profile');
-    const dev = resolveAppPaths({ ...base, packaged: false, env: { BGT_USER_DATA: 'D:/profile' } });
+    const dev = resolveAppPaths({ ...base, packaged: false, env: { KTR_USER_DATA: 'D:/profile' } });
     expect(dev.projectRoot).toBe('C:/proj');
     expect(dev.dataDir).toBe(path.join('D:/profile', 'data'));
   });
 
-  it('the individual BGT_* variables still win', () => {
+  it('the individual KTR_* variables still win', () => {
     const p = resolveAppPaths({
       ...base,
       packaged: true,
-      env: { BGT_PROJECT_ROOT: 'X', BGT_RESOURCES_DIR: 'R', BGT_DATA_DIR: 'D', BGT_OUTPUT_DIR: 'O' },
+      env: { KTR_PROJECT_ROOT: 'X', KTR_RESOURCES_DIR: 'R', KTR_DATA_DIR: 'D', KTR_OUTPUT_DIR: 'O' },
     });
     expect([p.projectRoot, p.resourcesDir, p.dataDir, p.outDir]).toEqual(['X', 'R', 'D', 'O']);
   });

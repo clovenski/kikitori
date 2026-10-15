@@ -114,7 +114,7 @@ Closing the window while a job runs asks for confirmation; quitting aborts the r
 ## 12. Risks and open items
 
 - **YouTube embed in Electron** is the main unknown (referrer, error 153, per-video embedding bans). Mitigated by the session referrer, reader mode and "Open on YouTube"; verified manually with the author's videos.
-- **Bundling `src/core`:** `paths.ts` derives the project root from `import.meta.url`. In the bundled main process this must be replaced by explicit directories passed in at startup (environment variables already supported: `BGT_RESOURCES_DIR`, `BGT_DATA_DIR`).
+- **Bundling `src/core`:** `paths.ts` derives the project root from `import.meta.url`. In the bundled main process this must be replaced by explicit directories passed in at startup (environment variables already supported: `KTR_RESOURCES_DIR`, `KTR_DATA_DIR`).
 - **`node:sqlite` is flagged experimental**; usage is limited to simple statements, and the adapter isolates any future API change.
 - **Electron binary download** during `pnpm install` adds a large one-time download.
 - Subtitle sync accuracy is bounded by the IFrame API's `getCurrentTime()` resolution (~100 to 250 ms); acceptable for reading.

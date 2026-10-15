@@ -11,7 +11,7 @@ if (!exe || !existsSync(exe)) {
 }
 const profile = mkdtempSync(join(tmpdir(), 'bgt-profile-'));
 const out = join(profile, 'smoke.txt');
-const r = spawnSync(exe, ['--smoke'], { env: { ...process.env, BGT_USER_DATA: profile, BGT_SMOKE_OUT: out }, timeout: 90_000 });
+const r = spawnSync(exe, ['--smoke'], { env: { ...process.env, KTR_USER_DATA: profile, KTR_SMOKE_OUT: out }, timeout: 90_000 });
 const text = existsSync(out) ? readFileSync(out, 'utf8').trim() : '';
 rmSync(profile, { recursive: true, force: true });
 console.log(text || `no result (exit ${r.status})`);

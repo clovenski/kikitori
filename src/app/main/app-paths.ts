@@ -24,15 +24,15 @@ export interface AppPaths {
 
 export function resolveAppPaths(a: AppPathsInput): AppPaths {
   const { env } = a;
-  const profile = env.BGT_USER_DATA ?? (a.packaged ? path.join(a.appData, 'Kikitori') : null);
+  const profile = env.KTR_USER_DATA ?? (a.packaged ? path.join(a.appData, 'Kikitori') : null);
   const base = profile ?? a.appPath;
   return {
-    projectRoot: env.BGT_PROJECT_ROOT ?? (a.packaged ? a.resourcesPath : a.appPath),
-    resourcesDir: env.BGT_RESOURCES_DIR ?? path.join(base, 'resources'),
-    dataDir: env.BGT_DATA_DIR ?? path.join(base, 'data'),
+    projectRoot: env.KTR_PROJECT_ROOT ?? (a.packaged ? a.resourcesPath : a.appPath),
+    resourcesDir: env.KTR_RESOURCES_DIR ?? path.join(base, 'resources'),
+    dataDir: env.KTR_DATA_DIR ?? path.join(base, 'data'),
     outDir:
-      env.BGT_OUTPUT_DIR ??
-      (a.packaged && !env.BGT_USER_DATA ? path.join(a.documents, 'Kikitori') : path.join(base, 'output')),
+      env.KTR_OUTPUT_DIR ??
+      (a.packaged && !env.KTR_USER_DATA ? path.join(a.documents, 'Kikitori') : path.join(base, 'output')),
     userData: profile,
   };
 }

@@ -3523,8 +3523,8 @@ import { createRealModelPool } from '../../src/core/pipeline/real-llm';
 import { parseGlossaryJson } from '../../src/core/llm/parse';
 import { glossaryMessages } from '../../src/core/llm/prompts';
 
-// Opt in with BGT_INTEGRATION=1. Requires `pnpm setup:tools` (about 10 GB of models).
-describe.skipIf(!process.env.BGT_INTEGRATION)('real llama-server', () => {
+// Opt in with KTR_INTEGRATION=1. Requires `pnpm setup:tools` (about 10 GB of models).
+describe.skipIf(!process.env.KTR_INTEGRATION)('real llama-server', () => {
   it('translates Japanese lines with Hy-MT2 and extracts glossary JSON with the general model', async () => {
     const pool = createRealModelPool({ log: () => {} });
     try {
@@ -3549,7 +3549,7 @@ describe.skipIf(!process.env.BGT_INTEGRATION)('real llama-server', () => {
 
 ```
 
-Run: `BGT_INTEGRATION=1 pnpm test tests/integration/llm`
+Run: `KTR_INTEGRATION=1 pnpm test tests/integration/llm`
 Expected: PASS. If `out[0]` lacks `Yurimaru` or a line is empty, adjust `translationMessages` wording (terminology block format) in `src/core/llm/prompts.ts`, update the matching assertions in `tests/core/llm-prompts.test.ts`, and re-run all tests.
 
 Run without the variable: `pnpm test && pnpm typecheck && pnpm lint`

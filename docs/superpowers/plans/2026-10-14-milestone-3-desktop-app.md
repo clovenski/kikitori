@@ -41,7 +41,7 @@ src/core/db/{schema,repo,stage-repo,index}.ts   # adapter types, migration 3, li
 src/core/youtube.ts              # parseYoutubeId (pure)
 src/core/progress.ts             # ProgressEvent
 src/core/pipeline/{run,real-deps,stages,glossary-job,translate-job,summarize-job}.ts   # probe, progress, onJob, shared db
-src/core/tools/{ytdlp,paths}.ts  # probeVideo (title), BGT_PROJECT_ROOT
+src/core/tools/{ytdlp,paths}.ts  # probeVideo (title), KTR_PROJECT_ROOT
 src/app/shared/ipc.ts            # BgtApi and payload types (types only) + CHANNELS
 src/app/main/{index,handlers,ipc,queue,run-submission,library-service,validate,media}.ts
 src/app/preload/index.ts
@@ -779,7 +779,7 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
   - `PipelineDeps.progress?(e: ProgressEvent): void`; `RunParams.onJob?(job: JobRow): void` (called once the job row exists, before any work)
   - `progress?: (e: ProgressEvent) => void` argument on `runGlossaryStage`, `runTranslateStage`, `runSummarizeStage`, and `StageContext.progress?`
   - `createRealDeps` accepts optional `db?: Database`; when given, it is used and `close()` does not close it.
-  - `projectRoot()` honors `BGT_PROJECT_ROOT`.
+  - `projectRoot()` honors `KTR_PROJECT_ROOT`.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -854,12 +854,12 @@ Append to `tests/core/summarize-job.test.ts` inside its `describe`:
 Append to `tests/core/paths.test.ts` (new `describe` at the end of the file; add `projectRoot` to the import from `../../src/core/tools/paths`):
 ```ts
 describe('projectRoot', () => {
-  it('honors BGT_PROJECT_ROOT', () => {
-    process.env.BGT_PROJECT_ROOT = path.join(os.tmpdir(), 'somewhere');
+  it('honors KTR_PROJECT_ROOT', () => {
+    process.env.KTR_PROJECT_ROOT = path.join(os.tmpdir(), 'somewhere');
     try {
       expect(projectRoot()).toBe(path.join(os.tmpdir(), 'somewhere'));
     } finally {
-      delete process.env.BGT_PROJECT_ROOT;
+      delete process.env.KTR_PROJECT_ROOT;
     }
   });
 });
@@ -887,7 +887,7 @@ export interface ProgressEvent {
 `src/core/tools/paths.ts`: change `projectRoot` to
 ```ts
 export function projectRoot(): string {
-  return process.env.BGT_PROJECT_ROOT ?? fileURLToPath(new URL('../../../', import.meta.url));
+  return process.env.KTR_PROJECT_ROOT ?? fileURLToPath(new URL('../../../', import.meta.url));
 }
 ```
 
@@ -1099,7 +1099,7 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 
 const smoke = process.argv.includes('--smoke');
 // `import.meta.url`-based root discovery in src/core does not work from a bundle.
-process.env.BGT_PROJECT_ROOT ??= app.getAppPath();
+process.env.KTR_PROJECT_ROOT ??= app.getAppPath();
 
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
@@ -2552,7 +2552,7 @@ import { runSubmission } from './run-submission';
 
 const smoke = process.argv.includes('--smoke');
 // `import.meta.url`-based root discovery in src/core does not work from a bundle.
-process.env.BGT_PROJECT_ROOT ??= app.getAppPath();
+process.env.KTR_PROJECT_ROOT ??= app.getAppPath();
 
 const REFERER = 'https://bgt.local/';
 protocol.registerSchemesAsPrivileged([
@@ -2633,7 +2633,7 @@ void app.whenReady().then(async () => {
   configureSession();
 
   const dir = dataDir();
-  const outDir = path.resolve(process.env.BGT_OUTPUT_DIR ?? path.join(app.getAppPath(), 'output'));
+  const outDir = path.resolve(process.env.KTR_OUTPUT_DIR ?? path.join(app.getAppPath(), 'output'));
   const db = openDb(path.join(dir, 'bgt.sqlite'));
   const repo = new Repo(db);
   const stages = new StageRepo(db);
@@ -4982,7 +4982,7 @@ This task needs the author's eyes for the parts a script cannot judge (the embed
 - `pnpm setup:tools` downloads yt-dlp, whisper.cpp, llama.cpp and the models into `resources/` (see `tools.lock.json`).
 - `pnpm kikitori run <url|file> [--translate --summarize --skim]` is the command-line pipeline.
 - `pnpm dev:app` starts the desktop app with hot reload. `pnpm build:app` builds it; `pnpm smoke:app` launches the build headless and checks the window and IPC bridge.
-- `pnpm test`, `pnpm typecheck`, `pnpm lint` (BGT_INTEGRATION=1 enables the tests that use the real binaries and models).
+- `pnpm test`, `pnpm typecheck`, `pnpm lint` (KTR_INTEGRATION=1 enables the tests that use the real binaries and models).
 
 ## Layout
 - `src/core` pipeline, database, tool wrappers; no Electron or React imports.
@@ -4993,7 +4993,7 @@ This task needs the author's eyes for the parts a script cannot judge (the embed
 - [ ] **Step 2: Automated checks**
 
 Run: `pnpm test && pnpm typecheck && pnpm lint && pnpm build:app && pnpm smoke:app`
-Expected: all green and `SMOKE OK`. Also `BGT_INTEGRATION=1 pnpm test tests/integration` still passes (the real database adapter and LLM path).
+Expected: all green and `SMOKE OK`. Also `KTR_INTEGRATION=1 pnpm test tests/integration` still passes (the real database adapter and LLM path).
 
 - [ ] **Step 3: Existing jobs open in the app (needs the author)**
 
@@ -5027,7 +5027,7 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 | `node:sqlite` adapter; `better-sqlite3` removed; tests still green | 1 |
 | Migration 3: `jobs.title/video_id`, `submissions` | 2 |
 | `parseYoutubeId`, probe with title, title/video id stored | 3 |
-| Progress events, `onJob`, shared DB handle, `BGT_PROJECT_ROOT` | 4 |
+| Progress events, `onJob`, shared DB handle, `KTR_PROJECT_ROOT` | 4 |
 | electron-vite scaffold, sandboxed preload, smoke test, lint boundaries | 5 |
 | IPC contract, argument validation, library/job detail service | 6 |
 | Sequential queue: cancel, resume, startup recovery, shutdown | 7 |

@@ -78,7 +78,7 @@ The transcription model name used in jobs follows the tier: `large-v3` on GPU, `
 
 ## 6. Main process and IPC
 
-- **Packaged paths:** before any core code runs, `main` sets `BGT_PROJECT_ROOT` to `process.resourcesPath` (where `tools.lock.json` and the notices are shipped via `extraResources`), `BGT_RESOURCES_DIR`, `BGT_DATA_DIR`, and a new `BGT_OUTPUT_DIR` from the locations in section 2, and calls `app.setName('Kikitori')`. `BGT_USER_DATA` overrides the base folder (used to test with an empty profile).
+- **Packaged paths:** before any core code runs, `main` sets `KTR_PROJECT_ROOT` to `process.resourcesPath` (where `tools.lock.json` and the notices are shipped via `extraResources`), `KTR_RESOURCES_DIR`, `KTR_DATA_DIR`, and a new `KTR_OUTPUT_DIR` from the locations in section 2, and calls `app.setName('Kikitori')`. `KTR_USER_DATA` overrides the base folder (used to test with an empty profile).
 - **`SetupService`:** one install at a time; holds state (`idle | installing | failed | done`), current component and file, aggregate progress.
 - **IPC additions:** `setup.state()`, `setup.detect()`, `setup.plan({ tier, features })`, `setup.start({ tier, features })`, `setup.cancel()`, `setup.repair()`, `setup.updateYtDlp()`, `setup.openNotices()`; pushed event `setup:progress`. Existing handlers stay.
 - **On demand:** `queue.submit` (and `runSubmission`) check `requiredComponents`; a missing one returns a typed `SetupRequired` error with the component list and size. The renderer asks "Download the translation model (4.7 GB)?", runs `setup.start` for just those components, then resubmits.
@@ -118,7 +118,7 @@ The transcription model name used in jobs follows the tier: `large-v3` on GPU, `
 
 - **Unit (Node):** `parseNvidiaSmi` and `decideTier` (no GPU, low VRAM, old driver, multi-GPU, malformed output); `buildPlan` and `requiredComponents` (tiers, features, already-installed parts, glossary skip rule); resumable download against a local HTTP server (full, resume from `.part`, server ignoring Range, stall, abort, redirect); installer sequencing with a fake downloader (checksum failure retry, disk-space refusal, extraction failure cleanup, cancel); settings atomic write and dev auto-detection; lock schema validation (sizes, licenses, notices coverage); packaged path resolution.
 - **Component (jsdom):** wizard steps and transitions, opt-out sizes, tier switch warning, failure and retry, on-demand prompt, Tools page actions.
-- **Local build verification:** `build:installer`, silent install into a temp folder, launch with `BGT_USER_DATA` pointing at an empty folder and `--smoke`, confirm the wizard is the first screen.
+- **Local build verification:** `build:installer`, silent install into a temp folder, launch with `KTR_USER_DATA` pointing at an empty folder and `--smoke`, confirm the wizard is the first screen.
 - **Real run (author's machine):** force the CPU tier with real downloads into an empty profile and run the wizard to completion, interrupt a download and resume it, corrupt a model and Repair, then transcribe, translate and summarize a short video with the CPU components. Repeat the GPU tier on the author's existing profile to confirm nothing regressed.
 
 ## 12. Risks and open items

@@ -109,7 +109,7 @@ Translation and summary tables are added in Milestone 2.
 
 - **Unit (vitest, no binaries):** SRT writer, time-range parsing, chunk planner, overlap dedupe, hallucination filter.
 - **Resume test:** a fake `Transcriber` plus a mid-job kill; asserts completed chunks are skipped on re-run.
-- **Integration (off by default, `BGT_INTEGRATION=1`):** real binaries on a few seconds of generated audio. No real media is committed.
+- **Integration (off by default, `KTR_INTEGRATION=1`):** real binaries on a few seconds of generated audio. No real media is committed.
 - **Accuracy:** manual, judged by the user against their creator clips.
 
 ## 9. Out of scope for Milestone 1

@@ -102,7 +102,7 @@ Renderer:
 
 - **Unit (Node):** `normalizeChannelInput` (every URL form, rejects), `parseChannelListing` (live/upcoming/premiere filtering, id validation, channel info), `listChannelTab` with a fake runner (arguments, failure messages), `ChannelStore` (add/duplicate/remove cascade, `addItems` idempotence and dismissed stay dismissed, counts), `checkChannel`/`addChannel` with a fake lister (initial limit of 5, later 15, one tab failing, both failing), `ChannelWatcher` with fake timers (start delay, interval, single flight, skips, error handling, stop), migration 4 on an existing database with jobs, handler validation.
 - **Component (jsdom):** `ChannelsScreen` (add, error, remove confirmation, feed actions, processed items, badge count, hint), `NewJobDialog` with `initialSource`.
-- **Real run (author's machine, public channel):** add a real channel, see up to 5 + 5 items, Refresh finds nothing new, Dismiss and Dismiss all persist across a restart, Process opens the dialog with the URL probed and filled in, a followed channel that is offline-failing shows its error, and the existing job flow still works. Test data is removed from the author's library afterwards (a separate `BGT_USER_DATA` profile is used so the real database is untouched).
+- **Real run (author's machine, public channel):** add a real channel, see up to 5 + 5 items, Refresh finds nothing new, Dismiss and Dismiss all persist across a restart, Process opens the dialog with the URL probed and filled in, a followed channel that is offline-failing shows its error, and the existing job flow still works. Test data is removed from the author's library afterwards (a separate `KTR_USER_DATA` profile is used so the real database is untouched).
 
 ## 9. Risks and open items
 

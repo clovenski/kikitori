@@ -16,7 +16,7 @@
 - `src/core` stays free of Electron and React (ESLint enforces it). The renderer may import only types plus `core/time`, `core/errors`, `core/youtube`, `core/source-text` (this plan adds `core/bytes`). `src/app/shared` may only import types.
 - Every downloaded file is pinned in `tools.lock.json` with an HTTPS URL, `sha256` and `size`; nothing is redistributed by this project; never ship API keys; never commit downloaded media, models or transcripts.
 - Tiers: `gpu` = NVIDIA with at least 7500 MB VRAM (8 GB cards report 8188 to 8192) and driver major 551 or newer; otherwise `cpu` with a stated reason; the user can override.
-- Packaged locations: tools and models `%APPDATA%\Kikitori\resources`, database/settings/work `%APPDATA%\Kikitori\data`, subtitles and summaries `Documents\Kikitori`; `BGT_USER_DATA` overrides the base folder; development keeps the project's `resources/`, `data/`, `output/`.
+- Packaged locations: tools and models `%APPDATA%\Kikitori\resources`, database/settings/work `%APPDATA%\Kikitori\data`, subtitles and summaries `Documents\Kikitori`; `KTR_USER_DATA` overrides the base folder; development keeps the project's `resources/`, `data/`, `output/`.
 - GPU tier about 14 GB, CPU tier about 4.5 GB; transcription model `large-v3` (GPU) and `large-v3-turbo-q5_0` (CPU); translation `Hy-MT2-7B` / `Hy-MT2-1.8B` Q4_K_M; general `Qwen3-8B` / `Qwen3-4B` Q4_K_M.
 - ffmpeg: Gyan `GyanD/codexffmpeg` tag `9.0.2`, asset `ffmpeg-9.0.2-essentials_build.zip`, downloaded on first run, not redistributed.
 - License MIT, copyright "Joel Tengco". Commit messages end with `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>` (pass it as a second `-m`).
@@ -2544,21 +2544,21 @@ describe('resolveAppPaths', () => {
     });
   });
 
-  it('BGT_USER_DATA moves everything, including the output, into one folder (empty-profile testing)', () => {
-    const p = resolveAppPaths({ ...base, packaged: true, env: { BGT_USER_DATA: 'D:/profile' } });
+  it('KTR_USER_DATA moves everything, including the output, into one folder (empty-profile testing)', () => {
+    const p = resolveAppPaths({ ...base, packaged: true, env: { KTR_USER_DATA: 'D:/profile' } });
     expect(p.resourcesDir).toBe(path.join('D:/profile', 'resources'));
     expect(p.outDir).toBe(path.join('D:/profile', 'output'));
     expect(p.userData).toBe('D:/profile');
-    const dev = resolveAppPaths({ ...base, packaged: false, env: { BGT_USER_DATA: 'D:/profile' } });
+    const dev = resolveAppPaths({ ...base, packaged: false, env: { KTR_USER_DATA: 'D:/profile' } });
     expect(dev.projectRoot).toBe('C:/proj');
     expect(dev.dataDir).toBe(path.join('D:/profile', 'data'));
   });
 
-  it('the individual BGT_* variables still win', () => {
+  it('the individual KTR_* variables still win', () => {
     const p = resolveAppPaths({
       ...base,
       packaged: true,
-      env: { BGT_PROJECT_ROOT: 'X', BGT_RESOURCES_DIR: 'R', BGT_DATA_DIR: 'D', BGT_OUTPUT_DIR: 'O' },
+      env: { KTR_PROJECT_ROOT: 'X', KTR_RESOURCES_DIR: 'R', KTR_DATA_DIR: 'D', KTR_OUTPUT_DIR: 'O' },
     });
     expect([p.projectRoot, p.resourcesDir, p.dataDir, p.outDir]).toEqual(['X', 'R', 'D', 'O']);
   });
@@ -2795,15 +2795,15 @@ export interface AppPaths {
 
 export function resolveAppPaths(a: AppPathsInput): AppPaths {
   const { env } = a;
-  const profile = env.BGT_USER_DATA ?? (a.packaged ? path.join(a.appData, 'Kikitori') : null);
+  const profile = env.KTR_USER_DATA ?? (a.packaged ? path.join(a.appData, 'Kikitori') : null);
   const base = profile ?? a.appPath;
   return {
-    projectRoot: env.BGT_PROJECT_ROOT ?? (a.packaged ? a.resourcesPath : a.appPath),
-    resourcesDir: env.BGT_RESOURCES_DIR ?? path.join(base, 'resources'),
-    dataDir: env.BGT_DATA_DIR ?? path.join(base, 'data'),
+    projectRoot: env.KTR_PROJECT_ROOT ?? (a.packaged ? a.resourcesPath : a.appPath),
+    resourcesDir: env.KTR_RESOURCES_DIR ?? path.join(base, 'resources'),
+    dataDir: env.KTR_DATA_DIR ?? path.join(base, 'data'),
     outDir:
-      env.BGT_OUTPUT_DIR ??
-      (a.packaged && !env.BGT_USER_DATA ? path.join(a.documents, 'Kikitori') : path.join(base, 'output')),
+      env.KTR_OUTPUT_DIR ??
+      (a.packaged && !env.KTR_USER_DATA ? path.join(a.documents, 'Kikitori') : path.join(base, 'output')),
     userData: profile,
   };
 }
@@ -3289,7 +3289,7 @@ import { SetupService } from './setup-service';
 
 (and extend the existing `import { dataDir } from '../../core/tools/paths';` instead of adding a second import from that module).
 
-2. Replace the two lines `// \`import.meta.url\`-based root discovery ...` and `process.env.BGT_PROJECT_ROOT ??= app.getAppPath();` with:
+2. Replace the two lines `// \`import.meta.url\`-based root discovery ...` and `process.env.KTR_PROJECT_ROOT ??= app.getAppPath();` with:
 
 ```ts
 // Every location is decided before any core code reads it (`import.meta.url` root discovery does not work from a bundle).
@@ -3301,14 +3301,14 @@ const paths = resolveAppPaths({
   documents: app.getPath('documents'),
   env: process.env,
 });
-process.env.BGT_PROJECT_ROOT = paths.projectRoot;
-process.env.BGT_RESOURCES_DIR = paths.resourcesDir;
-process.env.BGT_DATA_DIR = paths.dataDir;
-process.env.BGT_OUTPUT_DIR = paths.outDir;
+process.env.KTR_PROJECT_ROOT = paths.projectRoot;
+process.env.KTR_RESOURCES_DIR = paths.resourcesDir;
+process.env.KTR_DATA_DIR = paths.dataDir;
+process.env.KTR_OUTPUT_DIR = paths.outDir;
 if (paths.userData) app.setPath('userData', paths.userData);
 ```
 
-3. Replace `const outDir = path.resolve(process.env.BGT_OUTPUT_DIR ?? path.join(app.getAppPath(), 'output'));` with `const outDir = path.resolve(paths.outDir);`.
+3. Replace `const outDir = path.resolve(process.env.KTR_OUTPUT_DIR ?? path.join(app.getAppPath(), 'output'));` with `const outDir = path.resolve(paths.outDir);`.
 
 4. Replace the lines `const pool = createRealModelPool({ log: (m) => console.log(m) });` and `const probeDeps = ...` with:
 
@@ -3364,7 +3364,7 @@ if (paths.userData) app.setPath('userData', paths.userData);
         if (reply[0] === 'pong' && reply[1]?.ok === true && reply[2]?.ok === true) {
           const line = `SMOKE OK wizard=${reply[2].value.needsWizard}`;
           console.log(line);
-          if (process.env.BGT_SMOKE_OUT) writeFileSync(process.env.BGT_SMOKE_OUT, line); // packaged GUI apps may not show stdout
+          if (process.env.KTR_SMOKE_OUT) writeFileSync(process.env.KTR_SMOKE_OUT, line); // packaged GUI apps may not show stdout
           app.exit(0);
         } else {
 ```
@@ -4812,7 +4812,7 @@ pnpm test && pnpm typecheck && pnpm lint
 pnpm build:installer       # dist/Kikitori-Setup-<version>.exe
 ```
 
-`BGT_USER_DATA=<folder>` runs the app against an empty profile (it then shows the first-run wizard).
+`KTR_USER_DATA=<folder>` runs the app against an empty profile (it then shows the first-run wizard).
 Third-party components and licenses: `THIRD_PARTY_NOTICES.md`. Project license: MIT.
 ````
 
@@ -4957,7 +4957,7 @@ if (!exe || !existsSync(exe)) {
 }
 const profile = mkdtempSync(join(tmpdir(), 'bgt-profile-'));
 const out = join(profile, 'smoke.txt');
-const r = spawnSync(exe, ['--smoke'], { env: { ...process.env, BGT_USER_DATA: profile, BGT_SMOKE_OUT: out }, timeout: 90_000 });
+const r = spawnSync(exe, ['--smoke'], { env: { ...process.env, KTR_USER_DATA: profile, KTR_SMOKE_OUT: out }, timeout: 90_000 });
 const text = existsSync(out) ? readFileSync(out, 'utf8').trim() : '';
 rmSync(profile, { recursive: true, force: true });
 console.log(text || `no result (exit ${r.status})`);
@@ -5062,7 +5062,7 @@ jobs:
         run: gh release create "$GITHUB_REF_NAME" dist/Kikitori-Setup-*.exe dist/SHA256SUMS.txt --generate-notes --title "$GITHUB_REF_NAME"
 ```
 
-The model-dependent integration tests are skipped without `BGT_INTEGRATION=1`, so CI never downloads models.
+The model-dependent integration tests are skipped without `KTR_INTEGRATION=1`, so CI never downloads models.
 
 - [ ] **Step 3: Check the YAML parses**
 
@@ -5177,15 +5177,15 @@ Run (PowerShell), with `<scratch>` the scratchpad directory:
 
 ```powershell
 pnpm build:app
-$env:BGT_USER_DATA = "<scratch>\cpu-profile"
-Remove-Item $env:BGT_USER_DATA -Recurse -Force -ErrorAction SilentlyContinue
+$env:KTR_USER_DATA = "<scratch>\cpu-profile"
+Remove-Item $env:KTR_USER_DATA -Recurse -Force -ErrorAction SilentlyContinue
 Start-Process -FilePath (Resolve-Path node_modules\.bin\electron.cmd) -ArgumentList '.', '--remote-debugging-port=9333' -PassThru
 node <scratch>\drive-cpu.mjs 9333 wizard
 ```
 
 Expected: the driver prints the Welcome text, then `Download size: 4.2 GB` (CPU selection), then progress lines, then `WIZARD DONE`. `<scratch>\cpu-profile\resources` holds `bin\yt-dlp.exe`, `ffmpeg\...`, `whisper\...`, `llama\...`, `models\ggml-large-v3-turbo-q5_0.bin`, `Hy-MT2-1.8B-Q4_K_M.gguf`, `Qwen3-4B-Q4_K_M.gguf`; `data\settings.json` says `"tier": "cpu"` and `"setupCompleted": true`. If the download dies early (network), re-run the wizard: it must resume from `.part` files.
 
-Then run the job phase: `node <scratch>\drive-cpu.mjs 9333 job` — Expected: the submission ends `done`; `<scratch>\cpu-profile\output` contains `job-1.en.srt`, `job-1.bi.srt` and `job-1.summary.md`; the Japanese and English text is plausible (read the files). Record the wall-clock time of the 2-minute range (transcription, translation, summary) for the README and known-issues; do not guess numbers. Close the app. The author's `data/` is untouched because of `BGT_USER_DATA`.
+Then run the job phase: `node <scratch>\drive-cpu.mjs 9333 job` — Expected: the submission ends `done`; `<scratch>\cpu-profile\output` contains `job-1.en.srt`, `job-1.bi.srt` and `job-1.summary.md`; the Japanese and English text is plausible (read the files). Record the wall-clock time of the 2-minute range (transcription, translation, summary) for the README and known-issues; do not guess numbers. Close the app. The author's `data/` is untouched because of `KTR_USER_DATA`.
 
 - [ ] **Step 5: Interrupt, resume, corrupt, repair**
 

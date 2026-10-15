@@ -7,8 +7,8 @@ import { createRealDeps } from '../../src/core/pipeline/real-deps';
 import { runJob } from '../../src/core/pipeline/run';
 import { resolveTool } from '../../src/core/tools/paths';
 
-// Opt in with BGT_INTEGRATION=1. Requires `pnpm setup:tools` and ffmpeg.
-describe.skipIf(!process.env.BGT_INTEGRATION)('real binaries', () => {
+// Opt in with KTR_INTEGRATION=1. Requires `pnpm setup:tools` and ffmpeg.
+describe.skipIf(!process.env.KTR_INTEGRATION)('real binaries', () => {
   let root: string;
   let source: string;
 

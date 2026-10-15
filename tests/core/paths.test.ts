@@ -52,12 +52,12 @@ describe('resolveTool', () => {
 });
 
 describe('projectRoot', () => {
-  it('honors BGT_PROJECT_ROOT', () => {
-    process.env.BGT_PROJECT_ROOT = path.join(os.tmpdir(), 'somewhere');
+  it('honors KTR_PROJECT_ROOT', () => {
+    process.env.KTR_PROJECT_ROOT = path.join(os.tmpdir(), 'somewhere');
     try {
       expect(projectRoot()).toBe(path.join(os.tmpdir(), 'somewhere'));
     } finally {
-      delete process.env.BGT_PROJECT_ROOT;
+      delete process.env.KTR_PROJECT_ROOT;
     }
   });
 });

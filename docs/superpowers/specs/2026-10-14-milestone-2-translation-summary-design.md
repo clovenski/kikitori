@@ -89,7 +89,7 @@ Segment ids are stable because segments are only replaced per chunk; translation
 - **Unit (no binaries):** prompt builders; parsers (numbered lines with missing, extra or merged lines; code fences; `<think>` blocks; glossary JSON); window splitting; bilingual SRT; glossary merge precedence; migration 2.
 - **Stage tests with a fake LLM server** (a Node HTTP server speaking the chat API): translate resumes after an abort without redoing finished batches; a count-mismatch reply triggers retry then line-by-line fallback; an empty-transcript job translates and summarizes without error; summaries add a section level above 12 windows.
 - **Server manager test** with a fake `llama-server` script: health polling, startup failure message, stop kills the tree.
-- **Integration (opt-in, `BGT_INTEGRATION=1`):** real `llama-server` and models on a few Japanese lines.
+- **Integration (opt-in, `KTR_INTEGRATION=1`):** real `llama-server` and models on a few Japanese lines.
 - **Quality:** judged manually by the author on the two Milestone 1 test videos.
 
 ## 10. Out of scope
