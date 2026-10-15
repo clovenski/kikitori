@@ -16,9 +16,10 @@ video with subtitles that follow along. Everything runs locally and costs nothin
 - **Transcription, translation and summaries**, all local: Whisper for speech, Hy-MT2 for translation, Qwen3 for names and summaries.
 - **A library** of everything you have processed, with a job page that plays the video with synced Japanese and English subtitles,
   a clickable transcript and a timestamped summary.
-- **Long videos handled in chunks**, resumable after a restart, with a 30-minute default cap per job (set a start and end to pick the part you want).
+- **Long videos handled in chunks**, resumable after a restart, with no cap on length (set a start and end to pick the part you want).
 - **Skim mode** for a summary without a full translation, and an optional glossary file for names and terms.
 - **Channels** (new in 0.2): follow YouTube channels and see their new videos and finished live streams in a feed, checked while the app is open. One click sends a video to a new job.
+- **Updates** (new in 0.3): the app tells you when a newer version is out. Nothing downloads until you press Download, and nothing installs until you press Restart and update. Installs of 0.2.0 or older have to be updated by hand once, with this installer.
 - **Subtitle files** (`.srt`, Japanese, English and bilingual) and a Markdown summary written to `Documents\Kikitori`.
 
 ### What the setup downloads
