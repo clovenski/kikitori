@@ -30,6 +30,7 @@ import { UpdateService } from './update-service';
 import { createUpdaterPort } from './updater';
 import { buildMediaResponse, parseMediaUrl, resolveMediaPath } from './media';
 import { denyAllPermissions, runShutdown, runStartup, shouldConfirmQuit } from './lifecycle';
+import { applyAppMenu } from './menu';
 import { isAllowedNavigation } from './navigation';
 import { deleteJobFiles } from './job-files';
 import { JobQueue } from './queue';
@@ -143,6 +144,7 @@ void app.whenReady().then(() => runStartup(async () => {
     return;
   }
   configureSession();
+  applyAppMenu(!process.env.ELECTRON_RENDERER_URL); // that variable is set only by the dev server
 
   const dir = dataDir();
   // Before anything can start: kill helpers an earlier crash left behind, then record this run's helpers.
