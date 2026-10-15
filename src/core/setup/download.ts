@@ -14,6 +14,8 @@ export interface DownloadOptions {
   /** Tries per call, counting the first. */
   attempts?: number;
   backoffMs?: number;
+  /** Runs on the finished `.part` before it is renamed. Throwing a BgtError fails the download without a retry. */
+  verify?(part: string): Promise<void>;
 }
 
 const hostOf = (url: string) => {
@@ -96,6 +98,7 @@ export async function downloadResumable(url: string, dest: string, opts: Downloa
     opts.signal?.throwIfAborted();
     try {
       await transfer(url, part, opts);
+      await opts.verify?.(part);
       renameSync(part, dest);
       return;
     } catch (err) {

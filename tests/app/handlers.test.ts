@@ -316,4 +316,13 @@ describe('handlers', () => {
     expect(t.repo.getJob(job.id)).toBeDefined();
     expect(t.deleteFiles).not.toHaveBeenCalled();
   });
+
+  it('job:delete refuses a job another process (the CLI) has marked running', async () => {
+    const t = setup();
+    const job = seedJob(t.repo, ['あ']);
+    t.repo.setJobStatus(job.id, 'running');
+    expect(await t.handlers['job:delete'](job.id)).toMatchObject({ ok: false, error: { code: 'InvalidInput', message: expect.stringMatching(/still running/) } });
+    expect(t.repo.getJob(job.id)).toBeDefined();
+    expect(t.deleteFiles).not.toHaveBeenCalled();
+  });
 });

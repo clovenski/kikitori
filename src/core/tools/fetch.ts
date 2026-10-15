@@ -23,11 +23,17 @@ export async function downloadFile(
   dest: string,
   onProgress?: (received: number, total: number) => void,
   signal?: AbortSignal,
+  expectedSha256?: { id: string; sha256: string },
 ): Promise<void> {
-  await downloadResumable(url, dest, { onProgress, signal });
+  await downloadResumable(url, dest, {
+    onProgress,
+    signal,
+    // Checked before the rename, so quitting mid-check cannot leave an unverified file under its final name.
+    verify: expectedSha256 && ((part) => verified(part, expectedSha256)),
+  });
 }
 
-async function verified(file: string, entry: LockEntry): Promise<void> {
+async function verified(file: string, entry: { id: string; sha256: string }): Promise<void> {
   const actual = await sha256File(file);
   if (actual !== entry.sha256) {
     rmSync(file, { force: true });
@@ -50,8 +56,7 @@ export async function fetchEntry(
       return;
     }
     log(`${entry.id}: downloading ${entry.version}`);
-    await downloadFile(entry.url, dest, onProgress, signal);
-    await verified(dest, entry);
+    await downloadFile(entry.url, dest, onProgress, signal, entry);
     return;
   }
 
@@ -62,8 +67,7 @@ export async function fetchEntry(
   }
   log(`${entry.id}: downloading ${entry.version}`);
   const zip = path.join(resources, `${entry.id}.zip`);
-  await downloadFile(entry.url, zip, onProgress, signal);
-  await verified(zip, entry);
+  await downloadFile(entry.url, zip, onProgress, signal, entry);
   if (!entry.merge) rmSync(dest, { recursive: true, force: true });
   mkdirSync(dest, { recursive: true });
   try {

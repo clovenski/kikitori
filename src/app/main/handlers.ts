@@ -89,6 +89,10 @@ export function createHandlers(d: HandlerDeps) {
         const id = parseId(arg, 'job id');
         const job = d.repo.getJob(id);
         if (!job) throw new BgtError('InvalidInput', `There is no job ${id}.`);
+        // `kikitori run` in a terminal marks its job running without going through this app's queue.
+        if (job.status === 'running') {
+          throw new BgtError('InvalidInput', 'This job is still running. Wait for it to finish, then delete it.');
+        }
         d.queue.removeJob(id); // throws while the job runs, before anything is lost
         d.repo.deleteJob(id);
         d.deleteJobFiles(id, job.outDir ?? d.defaultOutDir);

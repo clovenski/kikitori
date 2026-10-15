@@ -326,7 +326,7 @@ void app.whenReady().then(() => runStartup(async () => {
         { name: 'channels', run: () => watcher.stop() },
         { name: 'setup', run: () => setup.cancel() },
         { name: 'queue', run: async () => void (await queue?.shutdown()) },
-        { name: 'models', run: () => pool.stopAll() },
+        { name: 'models', run: () => pool.close() },
         { name: 'database', run: async () => db.close() },
       ],
       10_000,

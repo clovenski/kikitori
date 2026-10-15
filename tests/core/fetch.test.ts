@@ -69,5 +69,6 @@ describe('fetchEntry', () => {
   it('rejects and removes a download whose checksum does not match', async () => {
     await expect(fetchEntry(entry({ sha256: 'deadbeef' }), dir, () => {})).rejects.toThrow(/checksum/i);
     expect(existsSync(path.join(dir, 'models', 'm.bin'))).toBe(false);
+    expect(existsSync(path.join(dir, 'models', 'm.bin.part'))).toBe(false);
   });
 });

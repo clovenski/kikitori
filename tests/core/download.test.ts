@@ -4,6 +4,7 @@ import type { AddressInfo } from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { BgtError } from '../../src/core/errors';
 import { downloadResumable } from '../../src/core/setup/download';
 
 const payload = Buffer.from(Array.from({ length: 300_000 }, (_, i) => i % 251));
@@ -123,6 +124,20 @@ describe('downloadResumable', () => {
       code: 'DownloadFailed',
       message: expect.stringContaining('HTTP 404'),
     });
+    expect(requests).toHaveLength(1);
+  });
+
+  it('verifies the finished .part before renaming it, and does not retry a rejected one', async () => {
+    const dest = path.join(dir, 'f.bin');
+    let seen = 0;
+    const verify = async (part: string) => {
+      seen = readFileSync(part).length;
+      expect(existsSync(dest)).toBe(false);
+      throw new BgtError('DownloadFailed', 'bad checksum');
+    };
+    await expect(downloadResumable(`${base}/f`, dest, { ...opts, verify })).rejects.toThrow('bad checksum');
+    expect(seen).toBe(payload.length);
+    expect(existsSync(dest)).toBe(false);
     expect(requests).toHaveLength(1);
   });
 
