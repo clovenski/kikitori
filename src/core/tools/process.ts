@@ -1,5 +1,7 @@
 import { spawn, type ChildProcess } from 'node:child_process';
+import path from 'node:path';
 import { BgtError } from '../errors';
+import { activeChildRegistry } from './children';
 
 export interface RunResult {
   code: number | null;
@@ -45,6 +47,11 @@ export function runProcess(cmd: string, args: string[], opts: RunOptions = {}): 
       windowsHide: true,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
+    const registry = activeChildRegistry();
+    if (child.pid !== undefined) registry?.register(child.pid, path.basename(cmd));
+    const forget = () => {
+      if (child.pid !== undefined) registry?.unregister(child.pid);
+    };
     let stdout = '';
     let stderr = '';
     child.stdout.setEncoding('utf8');
@@ -65,6 +72,7 @@ export function runProcess(cmd: string, args: string[], opts: RunOptions = {}): 
     signal?.addEventListener('abort', onAbort, { once: true });
 
     child.on('error', (err: NodeJS.ErrnoException) => {
+      forget();
       signal?.removeEventListener('abort', onAbort);
       reject(
         err.code === 'ENOENT'
@@ -73,6 +81,7 @@ export function runProcess(cmd: string, args: string[], opts: RunOptions = {}): 
       );
     });
     child.on('close', (code) => {
+      forget();
       signal?.removeEventListener('abort', onAbort);
       // Killed because of an abort: that is a rejection, whichever of close/taskkill finishes first.
       if (signal?.aborted) void (killing ?? Promise.resolve()).then(() => reject(signal.reason));

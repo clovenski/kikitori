@@ -2,6 +2,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { disableChildRegistry, enableChildRegistry } from '../../src/core/tools/children';
 import { runProcess } from '../../src/core/tools/process';
 
 const node = process.execPath;
@@ -63,6 +64,28 @@ describe('runProcess', () => {
       } catch {
         /* already dead */
       }
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('records a running child in the child registry and forgets it when it ends', async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'bgt-reg-'));
+    const reg = enableChildRegistry(path.join(dir, 'children.json'));
+    try {
+      const pending = runProcess(node, ['-e', 'setTimeout(() => {}, 700)']);
+      await new Promise((r) => setTimeout(r, 300));
+      const during = reg.list();
+      expect(during).toHaveLength(1);
+      expect(during[0].name).toBe(path.basename(node));
+      expect(during[0].owner).toBe(process.pid);
+      await pending;
+      expect(reg.list()).toEqual([]);
+
+      const failing = runProcess('definitely-not-a-real-binary-xyz', []);
+      await expect(failing).rejects.toBeDefined();
+      expect(reg.list()).toEqual([]);
+    } finally {
+      disableChildRegistry();
       rmSync(dir, { recursive: true, force: true });
     }
   });

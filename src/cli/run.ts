@@ -4,6 +4,7 @@ import { createRealDeps } from '../core/pipeline/real-deps';
 import { runJob } from '../core/pipeline/run';
 import { dataDir } from '../core/tools/paths';
 import { parseTimestamp } from '../core/time';
+import { trackChildren } from './tracking';
 import { prepareLlmOptions, runStagesForJob, wantsLlm } from './llm';
 
 export interface RunCliOptions {
@@ -31,6 +32,7 @@ export async function runCommand(source: string, opts: RunCliOptions): Promise<v
 
   let closeDeps: (() => void) | undefined;
   try {
+    await trackChildren();
     const maxMinutes = Number(opts.maxMinutes);
     if (!Number.isFinite(maxMinutes) || maxMinutes <= 0) {
       throw new BgtError('InvalidInput', `--max-minutes must be a positive number, got "${opts.maxMinutes}".`);

@@ -5,6 +5,7 @@ import { createRealDeps } from '../core/pipeline/real-deps';
 import { createRealModelPool } from '../core/pipeline/real-llm';
 import { runLlmStages, type StageOptions } from '../core/pipeline/stages';
 import { dataDir } from '../core/tools/paths';
+import { trackChildren } from './tracking';
 
 export interface LlmCliOptions {
   translate?: boolean;
@@ -80,6 +81,7 @@ export async function llmCommand(jobIdText: string, o: LlmCliOptions, mode: 'tra
   };
   process.once('SIGINT', onSigint);
   try {
+    await trackChildren();
     const jobId = Number(jobIdText);
     if (!Number.isInteger(jobId) || jobId < 1) throw new BgtError('InvalidInput', `"${jobIdText}" is not a job id.`);
     await runStagesForJob(jobId, { ...o, translate: mode === 'translate' ? true : o.translate, summarize: mode === 'summarize' ? true : o.summarize }, controller.signal);

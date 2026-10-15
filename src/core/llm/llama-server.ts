@@ -1,7 +1,9 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import net from 'node:net';
+import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { BgtError } from '../errors';
+import { activeChildRegistry } from '../tools/children';
 import { killTree } from '../tools/process';
 
 export interface LlamaServerConfig {
@@ -54,6 +56,11 @@ export class LlamaServer {
     const child = spawn(cfg.serverPath, buildServerArgs(cfg, port), {
       windowsHide: true,
       stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    const registry = activeChildRegistry();
+    if (child.pid !== undefined) registry?.register(child.pid, path.basename(cfg.serverPath));
+    child.once('close', () => {
+      if (child.pid !== undefined) registry?.unregister(child.pid);
     });
     let output = '';
     const collect = (d: string) => {

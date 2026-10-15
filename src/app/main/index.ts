@@ -9,6 +9,7 @@ import { SubmissionStore } from '../../core/db/submission-repo';
 import { createPerfStore } from '../../core/pipeline/estimate';
 import { createRealDeps } from '../../core/pipeline/real-deps';
 import { createRealModelPool } from '../../core/pipeline/real-llm';
+import { startChildTracking } from '../../core/tools/children';
 import { dataDir } from '../../core/tools/paths';
 import { CHANNELS } from '../shared/ipc';
 import { createHandlers } from './handlers';
@@ -104,6 +105,9 @@ void app.whenReady().then(async () => {
   configureSession();
 
   const dir = dataDir();
+  // Before anything can start: kill helpers an earlier crash left behind, then record this run's helpers.
+  const cleaned = await startChildTracking(path.join(dir, 'children.json'));
+  if (cleaned.killed.length > 0) console.log(`Cleaned up ${cleaned.killed.length} orphaned helper process(es).`);
   const outDir = path.resolve(process.env.BGT_OUTPUT_DIR ?? path.join(app.getAppPath(), 'output'));
   const db = openDb(path.join(dir, 'bgt.sqlite'));
   const repo = new Repo(db);
