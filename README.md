@@ -1,6 +1,10 @@
-# Kikitori
+<p align="center">
+  <img src="build/icon.png" alt="Kikitori logo" width="128" height="128">
+</p>
 
-*Understand Japanese videos, on your own computer.*
+<h1 align="center">Kikitori</h1>
+
+<p align="center"><em>Understand Japanese videos, on your own computer.</em></p>
 
 **Kikitori** (聞き取り) is Japanese for *catching what you hear*: picking the words out of speech as it goes by.
 That is what this app does for Japanese YouTube videos. It listens to the audio, writes down what is said, translates it
