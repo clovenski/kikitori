@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseEstimateArgs, parseId, parseSource, parseSubmitRequest } from '../../src/app/main/validate';
+import { parseEstimateArgs, parseId, parseSetupSelection, parseSource, parseSubmitRequest } from '../../src/app/main/validate';
 
 const good = {
   source: 'https://www.youtube.com/watch?v=7SHNxjFuw10',
@@ -64,5 +64,20 @@ describe('small parsers', () => {
     expect(parseEstimateArgs({ durationMs: 600_000, startMs: 0, endMs: null })).toEqual({ durationMs: 600_000, startMs: 0, endMs: null });
     expect(() => parseEstimateArgs({ durationMs: 0, startMs: 0, endMs: null })).toThrow(expect.objectContaining({ code: 'InvalidInput' }));
     expect(() => parseEstimateArgs('x')).toThrow(expect.objectContaining({ code: 'InvalidInput' }));
+  });
+});
+
+describe('parseSetupSelection', () => {
+  it('accepts a tier and two feature flags', () => {
+    expect(parseSetupSelection({ tier: 'cpu', features: { translation: true, summaries: false } })).toEqual({
+      tier: 'cpu',
+      features: { translation: true, summaries: false },
+    });
+  });
+
+  it('rejects anything else', () => {
+    for (const bad of [null, 'gpu', { tier: 'tpu', features: { translation: true, summaries: true } }, { tier: 'gpu' }, { tier: 'gpu', features: { translation: 1, summaries: true } }]) {
+      expect(() => parseSetupSelection(bad)).toThrow(expect.objectContaining({ code: 'InvalidInput' }));
+    }
   });
 });

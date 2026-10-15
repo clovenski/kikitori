@@ -6,6 +6,58 @@ import type { ProgressEvent } from '../../core/progress';
 export type { Submission, SubmissionOptions, SummaryRow, ProgressEvent, JobStatus };
 export type { SubmissionState } from '../../core/db/submission-repo';
 
+import type { InstallProgress } from '../../core/setup/installer';
+import type { Tier } from '../../core/tools/lock';
+
+export type { InstallProgress, Tier };
+
+export interface SetupFeatures {
+  translation: boolean;
+  summaries: boolean;
+}
+export interface SetupSelection {
+  tier: Tier;
+  features: SetupFeatures;
+}
+export interface SetupComponentInfo {
+  id: string;
+  title: string;
+  tier: 'all' | Tier;
+  sizeBytes: number;
+  installed: boolean;
+}
+export interface SetupState {
+  /** True when the first-run wizard must be shown (setup never finished, or a required tool is gone). */
+  needsWizard: boolean;
+  completed: boolean;
+  installing: boolean;
+  tier: Tier;
+  features: SetupFeatures;
+  components: SetupComponentInfo[];
+  resourcesDir: string;
+}
+export interface HardwareReport {
+  gpuName: string | null;
+  vramMb: number | null;
+  recommendedTier: Tier;
+  reason: string;
+  ramMb: number;
+  cores: number;
+  freeDiskBytes: number;
+}
+export interface SetupPlanView {
+  /** What would be installed for this view; `components` lists everything it needs, with install state. */
+  selection: SetupSelection;
+  components: SetupComponentInfo[];
+  missingBytes: number;
+  freeDiskBytes: number;
+}
+export interface SetupProgress {
+  phase: 'idle' | 'installing' | 'done' | 'failed' | 'cancelled';
+  progress: InstallProgress | null;
+  message: string | null;
+}
+
 export type Result<T> = { ok: true; value: T } | { ok: false; error: { code: string; message: string } };
 
 export interface LibraryItem {

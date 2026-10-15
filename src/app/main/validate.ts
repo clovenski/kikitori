@@ -1,7 +1,7 @@
 import type { SubmissionOptions } from '../../core/db/submission-repo';
 import { BgtError } from '../../core/errors';
 import { cleanSource } from '../../core/source-text';
-import type { SubmitRequest } from '../shared/ipc';
+import type { SetupSelection, SubmitRequest } from '../shared/ipc';
 
 const invalid = (message: string) => new BgtError('InvalidInput', message);
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -50,4 +50,14 @@ export function parseSubmitRequest(raw: unknown): SubmitRequest {
   const options: SubmissionOptions = { translate, summarize, skim, maxMinutes, model };
   if (typeof o.glossaryPath === 'string' && o.glossaryPath.trim() !== '') options.glossaryPath = o.glossaryPath.trim();
   return { source, startMs, endMs: endMs === undefined ? null : (endMs as number | null), options };
+}
+
+export function parseSetupSelection(raw: unknown): SetupSelection {
+  if (!isObject(raw)) throw invalid('Invalid setup request.');
+  const { tier, features } = raw;
+  if (tier !== 'gpu' && tier !== 'cpu') throw invalid('Invalid hardware tier.');
+  if (!isObject(features) || typeof features.translation !== 'boolean' || typeof features.summaries !== 'boolean') {
+    throw invalid('Invalid feature selection.');
+  }
+  return { tier, features: { translation: features.translation, summaries: features.summaries } };
 }

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { findComponent, markerPath, type Lock, type LockComponent, type LockEntry } from '../../src/core/tools/lock';
@@ -36,7 +37,8 @@ export function fakeLock(size = 10): Lock {
         id: `${id}-file`,
         version: '1',
         url: `https://example.com/${id}`,
-        sha256: 'a'.repeat(64),
+        // Distinct per component, like real pins: whisper-gpu and whisper-cpu share a folder and a marker file name.
+        sha256: createHash('sha256').update(id).digest('hex'),
         size,
         kind: zip ? 'zip' : 'file',
         dest: zip ?? (id === 'yt-dlp' ? 'bin/yt-dlp.exe' : `models/${id}.bin`),
