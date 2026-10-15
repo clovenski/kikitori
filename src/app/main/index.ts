@@ -26,6 +26,8 @@ import { createHandlers } from './handlers';
 import { broadcast, registerIpc } from './ipc';
 import { resolveAppPaths } from './app-paths';
 import { SetupService } from './setup-service';
+import { UpdateService } from './update-service';
+import { createUpdaterPort } from './updater';
 import { buildMediaResponse, parseMediaUrl, resolveMediaPath } from './media';
 import { denyAllPermissions, runShutdown, runStartup, shouldConfirmQuit } from './lifecycle';
 import { isAllowedNavigation } from './navigation';
@@ -185,6 +187,15 @@ void app.whenReady().then(() => runStartup(async () => {
     onChanged: () => broadcast(CHANNELS.channelsChanged, null),
     log: (m) => console.log(m),
   });
+  const updates = new UpdateService({
+    updater: createUpdaterPort(),
+    // Only an installed app has something to replace; a dev run or the smoke test must not look.
+    enabled: app.isPackaged && !smoke,
+    // A running job gets the same "Quit and resume later" question as closing the window.
+    canQuit: () => confirmQuit(BrowserWindow.getAllWindows()[0]),
+    emit: (state) => broadcast(CHANNELS.updatesChanged, state),
+    log: (m) => console.log(m),
+  });
   const pool = createRealModelPool({ log: (m) => console.log(m), tier });
   const probeDeps = () => createRealDeps({ dataDir: dir, model: model(), db, log: () => {} }).deps;
 
@@ -237,6 +248,7 @@ void app.whenReady().then(() => runStartup(async () => {
       ensureReady: (options) => ensureInstalled(lock, tier(), wantsOfOptions(options), resources),
       transcribeModel: model,
       channels: { store: channelStore, add: (input) => watcher.runTracked((signal) => followChannel(channelDeps, input, signal)), refresh: (id) => watcher.refresh(id) },
+      updates,
     }),
   );
 
@@ -275,6 +287,7 @@ void app.whenReady().then(() => runStartup(async () => {
   } else {
     queue.start();
     watcher.start();
+    updates.start();
   }
 
   app.on('before-quit', (event) => {
@@ -290,6 +303,7 @@ void app.whenReady().then(() => runStartup(async () => {
     event.preventDefault();
     void runShutdown(
       [
+        { name: 'updates', run: async () => updates.stop() },
         { name: 'channels', run: () => watcher.stop() },
         { name: 'setup', run: () => setup.cancel() },
         { name: 'queue', run: async () => void (await queue?.shutdown()) },

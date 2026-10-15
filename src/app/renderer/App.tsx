@@ -4,6 +4,7 @@ import { JobScreen } from './components/JobScreen';
 import { LibraryScreen } from './components/LibraryScreen';
 import { NewJobDialog } from './components/NewJobDialog';
 import { QueueStrip } from './components/QueueStrip';
+import { UpdateBanner } from './components/UpdateBanner';
 import { ToolsDialog } from './components/ToolsDialog';
 import { Wizard } from './components/Wizard';
 import { useApi, useChannels, useLibrary, useProgress, useQueue, useSetupState } from './lib/api';
@@ -70,6 +71,7 @@ export function App() {
         </div>
       </header>
       <main className="content">
+        <UpdateBanner />
         {note && (
           <div className="notice" role="status">
             {note} <button onClick={() => setNote(null)}>Dismiss</button>

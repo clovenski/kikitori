@@ -6,6 +6,7 @@ import { ApiProvider } from '../../src/app/renderer/lib/api';
 import type { BgtApi } from '../../src/app/shared/ipc';
 import { channel, fakeChannelsApi, feedItem } from './channel-fakes';
 import { fakeSetupApi, stateFor } from './setup-fakes';
+import { fakeUpdatesApi } from './update-fakes';
 
 afterEach(cleanup);
 
@@ -15,6 +16,7 @@ function renderApp(needsWizard: boolean, channelsOver: Parameters<typeof fakeCha
   const api = {
     setup: fake.setup,
     channels: ch.channels,
+    updates: fakeUpdatesApi().updates,
     ping: async () => 'pong',
     library: { list: async () => ({ ok: true as const, value: [] }) },
     queue: {

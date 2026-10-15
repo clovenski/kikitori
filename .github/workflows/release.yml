@@ -14,6 +14,12 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+      - name: Tag matches package.json
+        shell: bash
+        # The updater compares the version in latest.yml (built from package.json) with the installed one.
+        run: |
+          version=$(node -p "require('./package.json').version")
+          [ "v$version" = "$GITHUB_REF_NAME" ] || { echo "Tag $GITHUB_REF_NAME does not match package.json version $version"; exit 1; }
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm lint
@@ -33,5 +39,6 @@ jobs:
         run: |
           # The hand-written notes come first; the generated list of changes is appended after them.
           sed "s/VERSION/${GITHUB_REF_NAME#v}/g" .github/release-notes.md > "$RUNNER_TEMP/notes.md"
-          gh release create "$GITHUB_REF_NAME" dist/Kikitori-Setup-*.exe dist/SHA256SUMS.txt \
+          # latest.yml and the .blockmap are what installed copies read to find and fetch the update.
+          gh release create "$GITHUB_REF_NAME" dist/Kikitori-Setup-*.exe dist/Kikitori-Setup-*.exe.blockmap dist/latest.yml dist/SHA256SUMS.txt \
             --title "Kikitori ${GITHUB_REF_NAME#v}" --notes-file "$RUNNER_TEMP/notes.md" --generate-notes

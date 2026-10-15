@@ -15,6 +15,11 @@ extraResources:
     to: THIRD_PARTY_NOTICES.md
   - from: LICENSE
     to: LICENSE
+# Tells the app where to look for updates (embedded as app-update.yml) and makes the build write latest.yml.
+publish:
+  provider: github
+  owner: clovenski
+  repo: kikitori
 win:
   target:
     - target: nsis

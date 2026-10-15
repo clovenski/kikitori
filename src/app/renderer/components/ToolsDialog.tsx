@@ -40,6 +40,24 @@ export function ToolsDialog({ state, onClose, onChanged }: Props) {
     setMessage(r.ok ? r.value : r.error.message);
   };
 
+  const checkForUpdates = async () => {
+    setMessage('Checking for updates...');
+    const r = await api.updates.check();
+    if (!r.ok) return setMessage(`Could not check for updates: ${r.error.message}`);
+    const u = r.value;
+    setMessage(
+      u.phase === 'idle'
+        ? 'Kikitori is up to date.'
+        : u.phase === 'available'
+          ? `Kikitori ${u.version} is available.`
+          : u.phase === 'downloading'
+            ? `Downloading Kikitori ${u.version}...`
+            : u.phase === 'ready'
+              ? `Kikitori ${u.version} is ready to install.`
+              : `Could not download Kikitori ${u.version}.`,
+    );
+  };
+
   return (
     <div className="dialog-backdrop" role="presentation" onMouseDown={closeOnBackdrop(onClose)}>
       <div className="dialog" role="dialog" aria-label="Tools">
@@ -92,6 +110,7 @@ export function ToolsDialog({ state, onClose, onChanged }: Props) {
             <button disabled={busy} onClick={() => setConfirmSwitch(true)}>
               {`Switch to ${other === 'gpu' ? 'NVIDIA GPU' : 'CPU only'}`}
             </button>
+            <button onClick={() => void checkForUpdates()}>Check for updates</button>
             <button onClick={() => void api.setup.openNotices()}>License notices</button>
           </div>
         )}

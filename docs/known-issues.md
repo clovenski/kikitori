@@ -51,6 +51,14 @@ Helper records are only acted on when their owner process is gone. If this proce
 - **Processed videos stay in the feed** (with "Open in library") until they are dismissed.
 - **Left for later (from the Milestone 5 review):** two "Follow" requests for the same channel at once can show the database's raw "UNIQUE constraint" text for the second; following is not one transaction (a failure half way leaves a followed channel with no feed until the next check); Refresh shows nothing when a check cannot run (setup download, yt-dlp missing) and ignores errors from refresh, remove and dismiss; handles with combining marks (Devanagari, Thai) or a middle dot, and the older link forms `youtube.com/<name>` and `/Channel/UC...`, are rejected; a channel with no videos at all cannot be followed yet; a tab that fails on every check while the other works shows no error; "Checked N min ago" only updates when the data reloads; migration 4 is tested on a fresh database, not on a version 3 one with jobs; `refresh(id)` during a running check returns that check's result; the check broadcasts after every successful pass, not only when something changed; updating yt-dlp from Tools while a channel check runs is not coordinated.
 
+## Updates
+
+- **Only releases made after the updater was added can update themselves.** Earlier installs (0.1.0, 0.2.0) have no updater; install the first version that has it by hand.
+- **The installer is unsigned, so an update is trusted by the checksum in `latest.yml`** (served from the GitHub release over HTTPS), not by a signature. Anyone who can publish a release to the repository can ship code to every install. Signing the installer and setting `win.publisherName` makes the updater verify the signature too.
+- **Not tested end to end:** the restart that runs the installer (`quitAndInstall`). Checking and downloading were run against a local update server with the packaged app; installing one over a real install was not.
+- **Closing the app does not install a downloaded update:** only "Restart and update" does (`autoInstallOnAppQuit` is off, on purpose). The next start finds the version again and offers the restart.
+- **Pre-releases are ignored** (`allowPrerelease` is off), so there is no beta channel.
+
 ## Translation quality (Milestone 2)
 
 - **Glossary spellings:** the same person can get two English spellings when the Japanese forms differ (`じっぴーず` / `ジッピーズ`), and the model sometimes uses macrons ("Higemē"). A prompt line asking for plain letters would help; merging variants needs a small de-duplication step.

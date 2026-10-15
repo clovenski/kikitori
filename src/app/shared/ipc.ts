@@ -126,6 +126,14 @@ export interface FeedItem {
   queued: boolean;
 }
 
+/** Where the app update stands. Nothing is downloaded until the user asks (`available` waits for that). */
+export type UpdateState =
+  | { phase: 'idle' }
+  | { phase: 'available'; version: string }
+  | { phase: 'downloading'; version: string; percent: number }
+  | { phase: 'ready'; version: string }
+  | { phase: 'failed'; version: string; message: string };
+
 export interface QueueProgressEvent {
   submissionId: number;
   event: ProgressEvent;
@@ -181,6 +189,16 @@ export interface BgtApi {
     dismissAll(channelId?: number): Promise<Result<null>>;
     onChanged(cb: () => void): () => void;
   };
+  updates: {
+    state(): Promise<Result<UpdateState>>;
+    /** Looks for a newer version now. An error result means the check itself failed. */
+    check(): Promise<Result<UpdateState>>;
+    /** Starts the download in the background; progress arrives through `onChanged`. */
+    download(): Promise<Result<null>>;
+    /** Quits and installs the downloaded update. Does nothing if the user keeps a running job going. */
+    install(): Promise<Result<null>>;
+    onChanged(cb: (state: UpdateState) => void): () => void;
+  };
 }
 
 /** IPC channel names, shared by main and preload. */
@@ -217,4 +235,9 @@ export const CHANNELS = {
   feedDismiss: 'feed:dismiss',
   feedDismissAll: 'feed:dismissAll',
   channelsChanged: 'channels:changed',
+  updatesState: 'updates:state',
+  updatesCheck: 'updates:check',
+  updatesDownload: 'updates:download',
+  updatesInstall: 'updates:install',
+  updatesChanged: 'updates:changed',
 } as const;

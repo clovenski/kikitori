@@ -38,6 +38,12 @@ function setup(
     repair: vi.fn(),
     updateYtDlp: vi.fn(async () => 'updated'),
   };
+  const updates = {
+    state: vi.fn(() => ({ phase: 'idle' })),
+    check: vi.fn(async () => ({ phase: 'available', version: '0.3.0' })),
+    download: vi.fn(async () => {}),
+    install: vi.fn(() => true),
+  };
   const handlers = createHandlers({
     repo,
     stages,
@@ -55,8 +61,9 @@ function setup(
     ensureReady: over.ensureReady ?? (() => {}),
     transcribeModel: () => over.model ?? 'large-v3',
     channels: { store: channelStore, add: addChannel, refresh: refreshChannels },
+    updates: updates as unknown as HandlerDeps['updates'],
   });
-  return { handlers, repo, stages, queue, opened, service, channelStore, addChannel, refreshChannels };
+  return { updates, handlers, repo, stages, queue, opened, service, channelStore, addChannel, refreshChannels };
 }
 
 const options = { translate: false, summarize: false, skim: false, maxMinutes: 30, model: 'large-v3' };
@@ -71,6 +78,18 @@ describe('handlers', () => {
     expect(detail).toMatchObject({ ok: true, value: { item: { jobId: job.id } } });
     expect(await t.handlers['job:get'](999)).toMatchObject({ ok: false, error: { code: 'InvalidInput' } });
     expect(await t.handlers['job:get']('x')).toMatchObject({ ok: false, error: { code: 'InvalidInput' } });
+  });
+
+  it('update channels delegate to the service, and a failed check comes back as an error result', async () => {
+    const t = setup();
+    expect(await t.handlers['updates:state']()).toEqual({ ok: true, value: { phase: 'idle' } });
+    expect(await t.handlers['updates:check']()).toEqual({ ok: true, value: { phase: 'available', version: '0.3.0' } });
+    expect(await t.handlers['updates:download']()).toEqual({ ok: true, value: null });
+    expect(t.updates.download).toHaveBeenCalledTimes(1);
+    expect(await t.handlers['updates:install']()).toEqual({ ok: true, value: null });
+    expect(t.updates.install).toHaveBeenCalledTimes(1);
+    t.updates.check.mockRejectedValueOnce(new Error('offline'));
+    expect(await t.handlers['updates:check']()).toMatchObject({ ok: false, error: { message: 'offline' } });
   });
 
   it('queue:submit validates, queues and returns the submission', async () => {

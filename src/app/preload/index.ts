@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
-import { CHANNELS, type BgtApi, type QueueProgressEvent, type SetupProgress, type Submission } from '../shared/ipc';
+import { CHANNELS, type BgtApi, type QueueProgressEvent, type SetupProgress, type Submission, type UpdateState } from '../shared/ipc';
 
 const invoke = <T>(channel: string, arg?: unknown) => ipcRenderer.invoke(channel, arg) as Promise<T>;
 
@@ -54,6 +54,13 @@ const api: BgtApi = {
     dismiss: (videoId) => invoke(CHANNELS.feedDismiss, videoId),
     dismissAll: (channelId) => invoke(CHANNELS.feedDismissAll, channelId),
     onChanged: (cb) => subscribe<null>(CHANNELS.channelsChanged, () => cb()),
+  },
+  updates: {
+    state: () => invoke(CHANNELS.updatesState),
+    check: () => invoke(CHANNELS.updatesCheck),
+    download: () => invoke(CHANNELS.updatesDownload),
+    install: () => invoke(CHANNELS.updatesInstall),
+    onChanged: (cb) => subscribe<UpdateState>(CHANNELS.updatesChanged, cb),
   },
 };
 

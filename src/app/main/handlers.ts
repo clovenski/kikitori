@@ -12,6 +12,7 @@ import { buildFeed, toChannelInfo } from './channel-service';
 import { getJobDetail, listLibrary } from './library-service';
 import type { JobQueue } from './queue';
 import type { SetupService } from './setup-service';
+import type { UpdateService } from './update-service';
 import {
   parseChannelText,
   parseEstimateArgs,
@@ -46,6 +47,7 @@ export interface HandlerDeps {
     add(input: string): Promise<Channel>;
     refresh(id?: number): Promise<void>;
   };
+  updates: Pick<UpdateService, 'state' | 'check' | 'download' | 'install'>;
 }
 
 type Handler = (arg?: unknown) => Promise<Result<unknown>>;
@@ -154,6 +156,18 @@ export function createHandlers(d: HandlerDeps) {
     [CHANNELS.feedDismissAll]: (arg?: unknown) =>
       wrap(() => {
         d.channels.store.dismissAll(parseOptionalId(arg, 'channel id'));
+        return null;
+      }),
+    [CHANNELS.updatesState]: () => wrap(() => d.updates.state()),
+    [CHANNELS.updatesCheck]: () => wrap(() => d.updates.check()),
+    [CHANNELS.updatesDownload]: () =>
+      wrap(() => {
+        void d.updates.download(); // progress and failure arrive as state changes
+        return null;
+      }),
+    [CHANNELS.updatesInstall]: () =>
+      wrap(() => {
+        d.updates.install();
         return null;
       }),
   } satisfies Record<string, Handler>;

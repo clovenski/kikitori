@@ -99,6 +99,8 @@ input[type='text'], select { font: inherit; color: inherit; background: var(--pa
 .tools-list li { display: flex; justify-content: space-between; gap: 12px; }
 .dialog .install-list { margin: 0; }
 .content > .notice { margin-bottom: 12px; display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+.notice.update { border-color: var(--accent); }
+.notice .inline { display: flex; gap: 8px; align-items: center; }
 
 .channels { max-width: 900px; margin: 0 auto; display: grid; gap: 12px; }
 .channels h2, .channels h3 { margin: 0; }

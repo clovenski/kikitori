@@ -43,6 +43,10 @@ along. It also works on audio and video files you already have.
    You can leave out Translation and Summaries; they are downloaded the first time you need them.
 4. Paste a YouTube link (or drop an audio/video file) and press **Add to queue**.
 
+Once installed, the app checks GitHub for a newer release a little after it starts and every few hours. It only tells
+you (and **Tools > Check for updates** asks on demand): nothing is downloaded until you press **Download**, and
+nothing is installed until you press **Restart and update**.
+
 Downloaded tools and models live in `%APPDATA%\Kikitori`; subtitles and summaries are written to
 `Documents\Kikitori`. Uninstalling keeps them, so delete the first folder yourself to free the space.
 Antivirus programs sometimes flag yt-dlp or the model runtimes; they are downloaded from their publishers and

@@ -3,22 +3,25 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ToolsDialog } from '../../src/app/renderer/components/ToolsDialog';
 import { ApiProvider } from '../../src/app/renderer/lib/api';
+import type { BgtApi, UpdateState } from '../../src/app/shared/ipc';
 import { fakeSetupApi, stateFor } from './setup-fakes';
+import { fakeUpdatesApi } from './update-fakes';
 
 afterEach(cleanup);
 
 const GPU_BASE = ['yt-dlp', 'ffmpeg', 'vad', 'whisper-gpu', 'model-transcribe-gpu'];
 
-function renderTools(state = stateFor({}, GPU_BASE)) {
+function renderTools(state = stateFor({}, GPU_BASE), checkResult: UpdateState = { phase: 'idle' }) {
   const fake = fakeSetupApi({ state });
+  const up = fakeUpdatesApi({ phase: 'idle' }, checkResult);
   const onChanged = vi.fn();
   const onClose = vi.fn();
   render(
-    <ApiProvider api={fake.api}>
+    <ApiProvider api={{ ...fake.api, ...up.api } as BgtApi}>
       <ToolsDialog state={state} onChanged={onChanged} onClose={onClose} />
     </ApiProvider>,
   );
-  return { ...fake, onChanged, onClose };
+  return { ...fake, onChanged, onClose, up };
 }
 
 describe('ToolsDialog', () => {
@@ -27,6 +30,22 @@ describe('ToolsDialog', () => {
     expect(screen.getByText('Title yt-dlp').parentElement?.textContent).toContain('Installed');
     expect(screen.getByText('Title model-translate-gpu').parentElement?.textContent).toContain('Not installed');
     expect(screen.queryByText('Title model-translate-cpu')).toBeNull();
+  });
+
+  it('checks for updates and says what it found', async () => {
+    const t = renderTools();
+    fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }));
+    expect(await screen.findByText('Kikitori is up to date.')).toBeTruthy();
+    expect(t.up.updates.check).toHaveBeenCalledTimes(1);
+  });
+
+  it('names the new version when one is available, and shows a failed check', async () => {
+    const t = renderTools(stateFor({}, GPU_BASE), { phase: 'available', version: '0.3.0' });
+    fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }));
+    expect(await screen.findByText('Kikitori 0.3.0 is available.')).toBeTruthy();
+    t.up.updates.check.mockResolvedValueOnce({ ok: false, error: { code: 'Error', message: 'offline' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }));
+    expect(await screen.findByText('Could not check for updates: offline')).toBeTruthy();
   });
 
   it('closes on Escape and on a press outside the dialog, but not on a press inside it', () => {

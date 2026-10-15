@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
-import type { BgtApi, ChannelInfo, FeedItem, LibraryItem, ProgressEvent, Result, SetupProgress, SetupState, Submission } from '../../shared/ipc';
+import type { BgtApi, ChannelInfo, FeedItem, LibraryItem, ProgressEvent, Result, SetupProgress, SetupState, Submission, UpdateState } from '../../shared/ipc';
 
 const ApiContext = createContext<BgtApi | null>(null);
 
@@ -111,4 +111,26 @@ export function useChannels(submissions: Submission[]): { channels: ChannelInfo[
   useEffect(() => api.channels.onChanged(() => setTick((t) => t + 1)), [api]);
   const reload = useCallback(() => setTick((t) => t + 1), []);
   return { channels, feed, reload };
+}
+
+const NO_UPDATE: UpdateState = { phase: 'idle' };
+
+/** The app update's state; it changes when a check finds a version and while one downloads. */
+export function useUpdateState(): UpdateState {
+  const api = useApi();
+  const [state, setState] = useState<UpdateState>(NO_UPDATE);
+  useEffect(() => {
+    let alive = true;
+    void api.updates.state().then((r) => {
+      if (alive && r.ok) setState(r.value);
+    });
+    const off = api.updates.onChanged((next) => {
+      if (alive) setState(next);
+    });
+    return () => {
+      alive = false;
+      off();
+    };
+  }, [api]);
+  return state;
 }
