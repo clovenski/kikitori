@@ -64,6 +64,19 @@ describe('App first-run gating', () => {
   });
 });
 
+describe('App home button', () => {
+  it('has an icon Home button in the top bar that returns to the library from another screen', async () => {
+    renderApp(false);
+    fireEvent.click(await screen.findByRole('button', { name: /Channels/ }));
+    expect(await screen.findByText(/Follow a channel to see its new videos/)).toBeTruthy();
+    const home = screen.getByRole('button', { name: 'Home' });
+    expect(home.textContent).toBe('');
+    expect(home.querySelector('svg')).toBeTruthy();
+    fireEvent.click(home);
+    await waitFor(() => expect(screen.queryByText(/Follow a channel to see its new videos/)).toBeNull());
+  });
+});
+
 describe('App channels', () => {
   it('shows how many videos are new on the Channels button, not counting ones that already have a job or are queued', async () => {
     renderApp(false, {

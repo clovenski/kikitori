@@ -64,6 +64,11 @@ export function App() {
           Kikitori
         </button>
         <div className="inline">
+          <button className="icon" aria-label="Home" title="Home" onClick={() => setRoute({ name: 'library' })}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M2 7.5 8 2.5l6 5M3.5 6.5V13.5h3.5V10h2v3.5h3.5V6.5" />
+            </svg>
+          </button>
           <button onClick={() => setRoute({ name: 'channels' })}>
             Channels
             {newVideos > 0 && <span className="count">{newVideos}</span>}
