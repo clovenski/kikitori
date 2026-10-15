@@ -55,6 +55,12 @@ describe('LibraryScreen', () => {
     expect(onOpen).toHaveBeenCalledWith(1);
   });
 
+  it('labels a job that was stopped before finishing as "Not finished"', () => {
+    render(<LibraryScreen items={[item({ status: 'pending' })]} submissions={[]} onOpen={() => {}} onNew={() => {}} />);
+    expect(screen.getByText('Not finished')).toBeTruthy();
+    expect(screen.queryByText('pending')).toBeNull();
+  });
+
   it('shows queued and running submissions that have no job yet', () => {
     render(
       <LibraryScreen

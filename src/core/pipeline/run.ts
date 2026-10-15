@@ -112,7 +112,27 @@ async function processChunk(
   return false;
 }
 
+/**
+ * Runs the transcription pipeline. If it stops without finishing, the job is marked `pending` (paused by
+ * an abort, resumable) or `failed`, never left claiming to be `running`.
+ */
 export async function runJob(deps: PipelineDeps, params: RunParams): Promise<RunResult> {
+  let current: JobRow | null = null;
+  try {
+    return await runJobInner(deps, {
+      ...params,
+      onJob: (job) => {
+        current = job;
+        params.onJob?.(job);
+      },
+    });
+  } catch (err) {
+    if (current) deps.repo.setJobStatus((current as JobRow).id, params.signal?.aborted ? 'pending' : 'failed');
+    throw err;
+  }
+}
+
+async function runJobInner(deps: PipelineDeps, params: RunParams): Promise<RunResult> {
   const { repo, log } = deps;
   const { signal } = params;
 

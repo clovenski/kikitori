@@ -107,6 +107,7 @@ void app.whenReady().then(async () => {
   const outDir = path.resolve(process.env.BGT_OUTPUT_DIR ?? path.join(app.getAppPath(), 'output'));
   const db = openDb(path.join(dir, 'bgt.sqlite'));
   const repo = new Repo(db);
+  repo.resetRunningJobs(); // a crash or hard kill can leave jobs claiming to be running
   const stages = new StageRepo(db);
   const store = new SubmissionStore(db);
   const pool = createRealModelPool({ log: (m) => console.log(m) });

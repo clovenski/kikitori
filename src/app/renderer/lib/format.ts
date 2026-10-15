@@ -1,4 +1,4 @@
-import type { ProgressEvent, SubmissionState } from '../../shared/ipc';
+import type { JobStatus, ProgressEvent, SubmissionState } from '../../shared/ipc';
 
 export function formatClock(ms: number): string {
   const total = Math.max(0, Math.round(ms / 1000));
@@ -36,6 +36,14 @@ const STATES: Record<SubmissionState, string> = {
   interrupted: 'Interrupted',
 };
 export const stateLabel = (state: SubmissionState): string => STATES[state];
+
+const JOB_STATUSES: Record<JobStatus, string> = {
+  pending: 'Not finished',
+  running: 'Running',
+  done: 'Done',
+  failed: 'Failed',
+};
+export const jobStatusLabel = (status: JobStatus): string => JOB_STATUSES[status];
 
 export function progressPercent(e: ProgressEvent): number {
   if (e.total <= 0) return 0;

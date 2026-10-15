@@ -109,6 +109,7 @@ describe('runJob', () => {
     });
     expect(first.transcribed).toEqual(['chunk-000.wav', 'chunk-001.wav']);
     expect(repo.listChunks(1).map((c) => c.status)).toEqual(['done', 'pending']);
+    expect(repo.getJob(1)?.status).toBe('pending'); // paused, not left claiming to be running
 
     const second = makeFakeDeps(repo, { ...LONG, durationMs: 1_800_000 });
     const result = await runJob(second.deps, params());
@@ -220,6 +221,16 @@ describe('runJob', () => {
       { stage: 'transcribe', done: 1, total: 2 },
       { stage: 'transcribe', done: 2, total: 2 },
     ]);
+  });
+
+  it('marks the job failed when the pipeline throws something other than an abort', async () => {
+    const repo = memoryRepo();
+    const { deps } = makeFakeDeps(repo, { durationMs: 600_000 });
+    deps.fetchAudio = async () => {
+      throw new Error('download exploded');
+    };
+    await expect(runJob(deps, params({ endMs: null }))).rejects.toThrow('download exploded');
+    expect(repo.getJob(1)?.status).toBe('failed');
   });
 
   it('records the measured speed factor', async () => {

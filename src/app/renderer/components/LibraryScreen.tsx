@@ -1,5 +1,5 @@
 import type { LibraryItem, Submission } from '../../shared/ipc';
-import { formatClock, stateLabel } from '../lib/format';
+import { formatClock, jobStatusLabel, stateLabel } from '../lib/format';
 
 interface Props {
   items: LibraryItem[];
@@ -38,7 +38,7 @@ export function LibraryScreen({ items, submissions, onOpen, onNew }: Props) {
             <span className="meta">
               <span>{`${formatClock(item.rangeStartMs)} to ${formatClock(item.rangeEndMs)}`}</span>
               <span>{new Date(item.createdAt).toLocaleDateString()}</span>
-              {item.status !== 'done' && <span className={`badge state-${item.status}`}>{item.status}</span>}
+              {item.status !== 'done' && <span className={`badge state-${item.status}`}>{jobStatusLabel(item.status)}</span>}
               {item.hasTranslation && <span className="badge">EN</span>}
               {item.hasSummary && <span className="badge">Summary</span>}
             </span>

@@ -145,6 +145,11 @@ export class Repo {
     return rows.map(toJob).find((job) => job.settings.model === model);
   }
 
+  /** Startup recovery: a job still `running` was cut off by a crash or a hard kill. Returns how many. */
+  resetRunningJobs(): number {
+    return this.db.prepare("UPDATE jobs SET status = 'pending' WHERE status = 'running'").run().changes;
+  }
+
   setJobStatus(id: number, status: JobStatus): void {
     this.db.prepare('UPDATE jobs SET status = ? WHERE id = ?').run(status, id);
   }

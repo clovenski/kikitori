@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatClock, formatEta, progressPercent, stageLabel, stateLabel } from '../../src/app/renderer/lib/format';
+import { formatClock, formatEta, jobStatusLabel, progressPercent, stageLabel, stateLabel } from '../../src/app/renderer/lib/format';
 
 describe('format helpers', () => {
   it('formats clock times', () => {
@@ -17,6 +17,12 @@ describe('format helpers', () => {
   it('labels stages and states', () => {
     expect(stageLabel('translate')).toBe('Translating');
     expect(stateLabel('interrupted')).toBe('Interrupted');
+  });
+
+  it('labels job statuses for people', () => {
+    expect(jobStatusLabel('pending')).toBe('Not finished');
+    expect(jobStatusLabel('running')).toBe('Running');
+    expect(jobStatusLabel('failed')).toBe('Failed');
   });
 
   it('computes a bounded percentage', () => {

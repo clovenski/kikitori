@@ -50,6 +50,17 @@ describe('jobs', () => {
     expect(repo.getJob(job.id)).toEqual(job);
   });
 
+  it('resetRunningJobs turns jobs a crash left running into pending, and leaves the rest alone', () => {
+    const a = repo.createJob({ source: 'a', rangeStartMs: 0, rangeEndMs: 1, settings });
+    const b = repo.createJob({ source: 'b', rangeStartMs: 0, rangeEndMs: 1, settings });
+    const c = repo.createJob({ source: 'c', rangeStartMs: 0, rangeEndMs: 1, settings });
+    repo.setJobStatus(a.id, 'running');
+    repo.setJobStatus(b.id, 'done');
+    repo.setJobStatus(c.id, 'failed');
+    expect(repo.resetRunningJobs()).toBe(1);
+    expect([a, b, c].map((j) => repo.getJob(j.id)?.status)).toEqual(['pending', 'done', 'failed']);
+  });
+
   it('finds an unfinished job with the same source, range and model only', () => {
     const job = repo.createJob({ source: 's', rangeStartMs: 0, rangeEndMs: 1000, settings });
     expect(repo.findResumableJob('s', 0, 1000, 'large-v3')?.id).toBe(job.id);
