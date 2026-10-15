@@ -50,6 +50,8 @@ export interface SetupPlanView {
   selection: SetupSelection;
   components: SetupComponentInfo[];
   missingBytes: number;
+  /** Disk space the install needs: the missing bytes plus room to unpack the largest archive. */
+  requiredFreeBytes: number;
   freeDiskBytes: number;
 }
 export interface SetupProgress {

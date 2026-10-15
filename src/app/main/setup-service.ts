@@ -3,7 +3,7 @@ import { BgtError } from '../../core/errors';
 import { wantsOfOptions } from '../../core/setup/components';
 import type { HardwareInfo } from '../../core/setup/hardware';
 import type { installComponents, removeDamaged, uninstallComponents } from '../../core/setup/installer';
-import { buildPlan, componentInstalled } from '../../core/setup/plan';
+import { buildPlan, componentInstalled, requiredFreeBytes } from '../../core/setup/plan';
 import { defaultSettings, readSettings, writeSettings, type Settings } from '../../core/setup/settings';
 import { componentBytes, findComponent, type Lock, type LockComponent } from '../../core/tools/lock';
 import type {
@@ -25,6 +25,8 @@ export interface SetupServiceDeps {
   removeDamaged: typeof removeDamaged;
   freeBytes(dir: string): number;
   updateYtDlp(): Promise<string>;
+  /** True while a job runs: its programs and models are open, so they must not be removed. */
+  jobRunning(): boolean;
   emit(p: SetupProgress): void;
   log(message: string): void;
 }
@@ -85,6 +87,7 @@ export class SetupService {
       selection: sel,
       components: plan.required.map((c) => this.info(c)),
       missingBytes: plan.missingBytes,
+      requiredFreeBytes: requiredFreeBytes(plan.missing, this.d.resourcesDir),
       freeDiskBytes: this.d.freeBytes(this.d.resourcesDir),
     };
   }
@@ -104,6 +107,10 @@ export class SetupService {
   }
 
   start(sel: SetupSelection): void {
+    const before = readSettings(this.d.dataDir);
+    if (before?.setupCompleted && before.tier !== sel.tier && this.d.jobRunning()) {
+      throw new BgtError('InvalidInput', 'A job is running. Switching removes the programs it is using; wait for it to finish or cancel it first.');
+    }
     this.launch(async (signal) => {
       const before = readSettings(this.d.dataDir) ?? defaultSettings(sel.tier);
       const switching = before.setupCompleted && before.tier !== sel.tier;
@@ -123,6 +130,9 @@ export class SetupService {
   }
 
   repair(): void {
+    if (this.d.jobRunning()) {
+      throw new BgtError('InvalidInput', 'A job is running. Repair can delete files it is using; wait for it to finish or cancel it first.');
+    }
     this.launch(async (signal) => {
       const s = readSettings(this.d.dataDir);
       if (!s) throw new BgtError('InvalidInput', 'Nothing is set up yet.');

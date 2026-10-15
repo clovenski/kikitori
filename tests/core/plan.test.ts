@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { buildPlan, componentInstalled, ensureInstalled, entryInstalled } from '../../src/core/setup/plan';
+import { buildPlan, componentInstalled, ensureInstalled, entryInstalled, requiredFreeBytes } from '../../src/core/setup/plan';
 import { findComponent } from '../../src/core/tools/lock';
 import { fakeLock, installFake } from '../helpers/lock-fakes';
 
@@ -76,5 +76,19 @@ describe('ensureInstalled', () => {
     const lock = fakeLock();
     installFake(lock, res, ['yt-dlp', 'ffmpeg', 'vad', 'whisper-gpu', 'model-transcribe-gpu']);
     expect(() => ensureInstalled(lock, 'gpu', none, res)).not.toThrow();
+  });
+});
+
+describe('requiredFreeBytes', () => {
+  it('is what is left to download plus room to unpack the largest archive, minus partial downloads', () => {
+    const lock = fakeLock(100);
+    const parts = ['vad', 'whisper-gpu', 'model-transcribe-gpu'].map((id) => findComponent(lock, id));
+    // vad and the model are plain files, whisper-gpu is an archive: 300 left + 100 to unpack it
+    expect(requiredFreeBytes(parts, res)).toBe(400);
+    mkdirSync(path.join(res, 'models'), { recursive: true });
+    writeFileSync(path.join(res, 'models', 'model-transcribe-gpu.bin.part'), Buffer.alloc(40));
+    expect(requiredFreeBytes(parts, res)).toBe(360);
+    installFake(lock, res, ['vad', 'whisper-gpu', 'model-transcribe-gpu']);
+    expect(requiredFreeBytes(parts, res)).toBe(0);
   });
 });

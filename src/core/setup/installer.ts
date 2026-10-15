@@ -4,7 +4,7 @@ import { formatBytes } from '../bytes';
 import { BgtError } from '../errors';
 import { ChecksumError, fetchEntry, sha256File } from '../tools/fetch';
 import type { LockComponent, LockEntry } from '../tools/lock';
-import { entryInstalled } from './plan';
+import { entryInstalled, requiredFreeBytes } from './plan';
 
 export interface InstallProgress {
   componentId: string;
@@ -83,7 +83,7 @@ export async function installComponents(o: InstallOptions): Promise<void> {
   if (work.length === 0) return;
 
   const overallTotal = work.reduce((n, w) => n + w.f.size, 0);
-  const need = overallTotal + Math.max(...work.map((w) => w.f.size)); // unpacking needs room next to the archive
+  const need = requiredFreeBytes(o.components, o.resourcesDir);
   mkdirSync(o.resourcesDir, { recursive: true });
   const free = (o.freeBytes ?? freeDiskBytes)(o.resourcesDir);
   if (free < need) {

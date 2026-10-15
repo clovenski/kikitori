@@ -40,6 +40,7 @@ function setup(over: Partial<SetupServiceDeps> = {}) {
     removeDamaged: async () => [],
     freeBytes: () => 10 ** 12,
     updateYtDlp: async () => 'yt-dlp is up to date',
+    jobRunning: () => false,
     emit: (p) => emitted.push(p),
     log: () => {},
     ...over,
@@ -117,6 +118,24 @@ describe('SetupService', () => {
     expect(uninstalled[0]).not.toContain('yt-dlp');
     expect(installs).toEqual([['whisper-cpu', 'model-transcribe-cpu']]);
     expect(readSettings(data)).toMatchObject({ tier: 'cpu', setupCompleted: true });
+  });
+
+  it('refuses to switch tier or repair while a job is running, but still adds missing parts', async () => {
+    const { service, lock, uninstalled, installs } = setup({ jobRunning: () => true });
+    installFake(lock, res, ['yt-dlp', 'ffmpeg', 'vad', 'whisper-gpu', 'model-transcribe-gpu']);
+    writeSettings(data, { version: 1, tier: 'gpu', features: { translation: false, summaries: false }, setupCompleted: true });
+    expect(() => service.start(cpuNoLlm)).toThrow(expect.objectContaining({ code: 'InvalidInput', message: expect.stringContaining('job is running') }));
+    expect(() => service.repair()).toThrow(expect.objectContaining({ code: 'InvalidInput' }));
+    expect(uninstalled).toEqual([]);
+    expect(readSettings(data)?.tier).toBe('gpu');
+    service.start({ tier: 'gpu', features: { translation: true, summaries: false } });
+    await service.whenIdle();
+    expect(installs).toEqual([['llama-gpu', 'model-translate-gpu']]);
+  });
+
+  it('plan reports the space an install really needs (an archive needs room to unpack)', () => {
+    const { service } = setup();
+    expect(service.plan(cpuNoLlm).requiredFreeBytes).toBe(60); // 5 files of 10 bytes + one 10-byte archive to unpack
   });
 
   it('plan counts only the missing bytes and shows the free disk space', () => {

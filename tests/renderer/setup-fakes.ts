@@ -47,6 +47,7 @@ export function viewFor(s: SetupSelection, installed: string[] = [], freeDiskByt
     selection: s,
     components,
     missingBytes: components.filter((c) => !c.installed).reduce((n, c) => n + c.sizeBytes, 0),
+    requiredFreeBytes: components.filter((c) => !c.installed).reduce((n, c) => n + c.sizeBytes, 0),
     freeDiskBytes,
   };
 }

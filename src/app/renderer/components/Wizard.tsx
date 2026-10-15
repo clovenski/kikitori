@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { formatBytes } from '../../../core/bytes';
-import type { HardwareReport, SetupComponentInfo, SetupPlanView, Tier } from '../../shared/ipc';
+import type { HardwareReport, SetupPlanView, SetupState, Tier } from '../../shared/ipc';
 import { useApi, useSetupProgress } from '../lib/api';
 import { InstallProgress } from './InstallProgress';
 
@@ -15,7 +15,9 @@ export function Wizard({ onFinished }: Props) {
   const progress = useSetupProgress();
   const [step, setStep] = useState<Step>('welcome');
   const [hardware, setHardware] = useState<HardwareReport | null>(null);
-  const [all, setAll] = useState<SetupComponentInfo[]>([]);
+  // The saved setup, when there is one: a wizard shown again must not silently change it.
+  const [saved, setSaved] = useState<SetupState | null>(null);
+  const [confirmSwitch, setConfirmSwitch] = useState(false);
   const [tier, setTier] = useState<Tier>('gpu');
   const [translation, setTranslation] = useState(true);
   const [summaries, setSummaries] = useState(true);
@@ -27,13 +29,18 @@ export function Wizard({ onFinished }: Props) {
     let alive = true;
     void Promise.all([api.setup.detect(), api.setup.state()]).then(([hw, st]) => {
       if (!alive) return;
+      const keep = st.ok && st.value.completed ? st.value : null;
       if (hw.ok) {
         setHardware(hw.value);
-        setTier(hw.value.recommendedTier);
+        setTier(keep ? keep.tier : hw.value.recommendedTier);
       } else {
         setError(hw.error.message);
       }
-      if (st.ok) setAll(st.value.components);
+      if (st.ok) setSaved(st.value);
+      if (keep) {
+        setTranslation(keep.features.translation);
+        setSummaries(keep.features.summaries);
+      }
     });
     return () => {
       alive = false;
@@ -57,7 +64,8 @@ export function Wizard({ onFinished }: Props) {
     if (step === 'installing' && progress.phase === 'done') setStep('done');
   }, [step, progress.phase]);
 
-  const size = (id: string) => formatBytes(all.find((c) => c.id === id)?.sizeBytes ?? 0);
+  const size = (id: string) => formatBytes(saved?.components.find((c) => c.id === id)?.sizeBytes ?? 0);
+  const switching = saved?.completed === true && saved.tier !== tier;
   const selection = { tier, features: { translation, summaries } };
 
   const start = async () => {
@@ -91,8 +99,39 @@ export function Wizard({ onFinished }: Props) {
     );
   }
 
+  if (step === 'choose' && confirmSwitch && saved) {
+    const from = saved.tier === 'gpu' ? 'GPU' : 'CPU';
+    return (
+      <div className="wizard">
+        <h1>Switch hardware path?</h1>
+        <div className="card">
+          {`Switching removes the ${from} programs and models and downloads the ${tier === 'gpu' ? 'GPU' : 'CPU'} ones instead. Your videos, transcripts and settings are kept.`}
+        </div>
+        <div className="actions">
+          <button
+            onClick={() => {
+              setConfirmSwitch(false);
+              setTier(saved.tier);
+            }}
+          >
+            Keep current setup
+          </button>
+          <button
+            className="primary"
+            onClick={() => {
+              setConfirmSwitch(false);
+              void start();
+            }}
+          >
+            Switch
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (step === 'choose') {
-    const tooSmall = plan !== null && plan.freeDiskBytes < plan.missingBytes;
+    const tooSmall = plan !== null && plan.freeDiskBytes < plan.requiredFreeBytes;
     return (
       <div className="wizard">
         <h1>Choose what to install</h1>
@@ -140,7 +179,7 @@ export function Wizard({ onFinished }: Props) {
         {error && <div className="error">{error}</div>}
         <div className="actions">
           <button onClick={() => setStep('welcome')}>Back</button>
-          <button className="primary" disabled={!plan || tooSmall} onClick={() => void start()}>
+          <button className="primary" disabled={!plan || tooSmall} onClick={() => (switching ? setConfirmSwitch(true) : void start())}>
             {plan && plan.missingBytes === 0 ? 'Finish setup' : 'Download and install'}
           </button>
         </div>

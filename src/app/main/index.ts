@@ -159,6 +159,7 @@ void app.whenReady().then(() => runStartup(async () => {
     uninstall: uninstallComponents,
     removeDamaged,
     freeBytes: freeDiskBytes,
+    jobRunning: () => queue?.list().some((s) => s.state === 'running') ?? false,
     updateYtDlp: () => updateYtDlp(resolveTool('yt-dlp')),
     emit: (p) => broadcast(CHANNELS.setupProgress, p),
     log: (m) => console.log(m),

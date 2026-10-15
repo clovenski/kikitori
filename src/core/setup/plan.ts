@@ -16,6 +16,26 @@ export function entryInstalled(e: LockEntry, resources: string): boolean {
   return e.selfUpdates === true || statSync(file).size === e.size;
 }
 
+/** Where a download of this entry is kept until it is complete. */
+export const partialPath = (e: LockEntry, resources: string): string =>
+  e.kind === 'zip' ? path.join(resources, `${e.id}.zip.part`) : `${path.join(resources, e.dest)}.part`;
+
+/**
+ * Disk space an install of `components` needs: what is still to download (minus partial downloads already on disk)
+ * plus room to unpack the largest archive next to its zip.
+ */
+export function requiredFreeBytes(components: LockComponent[], resources: string): number {
+  const todo = components.flatMap((c) => c.files).filter((f) => !entryInstalled(f, resources));
+  if (todo.length === 0) return 0;
+  const partial = (f: LockEntry) => {
+    const part = partialPath(f, resources);
+    return existsSync(part) ? Math.min(statSync(part).size, f.size) : 0;
+  };
+  const left = todo.reduce((n, f) => n + f.size - partial(f), 0);
+  const largestArchive = Math.max(0, ...todo.filter((f) => f.kind === 'zip').map((f) => f.size));
+  return left + largestArchive;
+}
+
 export const componentInstalled = (c: LockComponent, resources: string): boolean =>
   c.files.every((f) => entryInstalled(f, resources));
 

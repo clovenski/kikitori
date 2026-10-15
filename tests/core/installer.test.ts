@@ -90,6 +90,17 @@ describe('installComponents', () => {
     expect(Object.keys(hits)).toHaveLength(0);
   });
 
+  it('needs only the bytes still to download: no spare room for plain files, and partial downloads count', async () => {
+    await installComponents({ components: [A(), B()], resourcesDir: res, freeBytes: () => 100_000 });
+    expect(entryInstalled(B().files[0], res)).toBe(true);
+    rmSync(path.join(res, 'models'), { recursive: true, force: true });
+    mkdirSync(path.join(res, 'models'), { recursive: true });
+    writeFileSync(path.join(res, 'models', 'a.bin.part'), bodies['/a.bin'].subarray(0, 30_000));
+    await installComponents({ components: [A(), B()], resourcesDir: res, freeBytes: () => 70_000 });
+    expect(entryInstalled(A().files[0], res)).toBe(true);
+    expect(entryInstalled(B().files[0], res)).toBe(true);
+  });
+
   it('downloads again once when the checksum does not match', async () => {
     corrupt['/a.bin'] = 1;
     await installComponents({ components: [A()], resourcesDir: res, freeBytes: plenty });

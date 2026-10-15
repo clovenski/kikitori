@@ -3,12 +3,12 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Wizard } from '../../src/app/renderer/components/Wizard';
 import { ApiProvider } from '../../src/app/renderer/lib/api';
-import { CPU_BOX, fakeSetupApi, GPU_BOX } from './setup-fakes';
+import { CPU_BOX, fakeSetupApi, GPU_BOX, stateFor } from './setup-fakes';
 
 afterEach(cleanup);
 
 function renderWizard(over: Parameters<typeof fakeSetupApi>[0] = {}) {
-  const fake = fakeSetupApi(over);
+  const fake = fakeSetupApi({ state: stateFor({ needsWizard: true, completed: false }), ...over });
   const onFinished = vi.fn();
   render(
     <ApiProvider api={fake.api}>
@@ -22,6 +22,41 @@ const toChoose = async () => {
   fireEvent.click(screen.getByText('Continue'));
   await screen.findByText(/Download size/);
 };
+
+describe('Wizard shown again after setup was finished (a required tool went missing)', () => {
+  const saved = stateFor({ needsWizard: true, completed: true, tier: 'cpu', features: { translation: false, summaries: true } });
+
+  it('starts from the saved tier and features, not from the hardware recommendation', async () => {
+    const t = renderWizard({ state: saved });
+    await toChoose();
+    expect((screen.getByLabelText(/CPU only/) as HTMLInputElement).checked).toBe(true);
+    expect((screen.getByLabelText(/Translation/) as HTMLInputElement).checked).toBe(false);
+    expect((screen.getByLabelText(/Summaries/) as HTMLInputElement).checked).toBe(true);
+    await waitFor(() => expect(t.setup.plan).toHaveBeenLastCalledWith({ tier: 'cpu', features: { translation: false, summaries: true } }));
+  });
+
+  it('asks before changing tier, because that removes the installed programs and models', async () => {
+    const t = renderWizard({ state: saved });
+    await toChoose();
+    fireEvent.click(screen.getByLabelText(/NVIDIA GPU/));
+    await waitFor(() => expect(t.setup.plan).toHaveBeenLastCalledWith({ tier: 'gpu', features: { translation: false, summaries: true } }));
+    fireEvent.click(screen.getByText('Download and install'));
+    expect(screen.getByText(/removes the CPU programs and models/)).toBeTruthy();
+    expect(t.setup.start).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText('Switch'));
+    await waitFor(() => expect(t.setup.start).toHaveBeenCalledWith({ tier: 'gpu', features: { translation: false, summaries: true } }));
+  });
+
+  it('keeping the current setup goes back to the saved tier', async () => {
+    const t = renderWizard({ state: saved });
+    await toChoose();
+    fireEvent.click(screen.getByLabelText(/NVIDIA GPU/));
+    fireEvent.click(screen.getByText('Download and install'));
+    fireEvent.click(screen.getByText('Keep current setup'));
+    expect((screen.getByLabelText(/CPU only/) as HTMLInputElement).checked).toBe(true);
+    expect(t.setup.start).not.toHaveBeenCalled();
+  });
+});
 
 describe('Wizard', () => {
   it('starts with a welcome that states what is downloaded and the personal-use terms', () => {
