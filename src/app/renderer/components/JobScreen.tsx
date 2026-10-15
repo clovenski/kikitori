@@ -119,12 +119,19 @@ export function JobScreen({ jobId, onBack }: Props) {
               <option value="large">Large</option>
             </select>
           </label>
-          <button onClick={() => void api.job.openOutputFolder(item.jobId)}>Open output folder</button>
           {youtubeUrl && !failure && <button onClick={() => window.open(youtubeUrl)}>Open on YouTube</button>}
           <button className="danger-outline" onClick={() => setConfirmDelete(true)}>
             Delete
           </button>
         </div>
+        {import.meta.env.DEV && (
+          <div className="toolbar dev-toolbar">
+            <button onClick={() => void api.job.openOutputFolder(item.jobId)}>Open output folder</button>
+            <span className="muted">
+              Files: <code>job-{item.jobId}.*</code>
+            </span>
+          </div>
+        )}
       </div>
       <div className="job-right">
         <div className="tabs" role="tablist">

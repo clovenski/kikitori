@@ -71,6 +71,8 @@ button.icon-danger:hover, button.icon-danger:focus-visible { background: color-m
 .job-right { display: grid; grid-template-rows: auto 1fr; min-height: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
 .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .player + .toolbar { margin-top: 10px; }
+.dev-toolbar { margin-top: 8px; }
+.dev-toolbar .muted { color: var(--muted); font-size: 12px; }
 .player { position: relative; aspect-ratio: 16 / 9; background: #000; border-radius: 8px; overflow: hidden; }
 .player.expanded { position: fixed; inset: 0; z-index: 20; aspect-ratio: auto; border-radius: 0; }
 .exit-expanded { position: absolute; top: 12px; right: 12px; z-index: 1; background: rgb(0 0 0 / 0.65); color: #fff; border-color: rgb(255 255 255 / 0.4); }

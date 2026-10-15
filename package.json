@@ -14,6 +14,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.web.json",
     "dev:app": "electron-vite dev",
+    "preview:app": "electron-vite build && electron-vite preview",
     "build:app": "electron-vite build",
     "smoke:app": "node scripts/smoke-app.mjs",
     "build:installer": "electron-vite build && electron-builder --config electron-builder.yml --win nsis --x64 --publish never",
