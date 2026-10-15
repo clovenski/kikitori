@@ -55,6 +55,40 @@ describe('Database adapter', () => {
     expect(db.prepare('SELECT COUNT(*) AS c FROM t').get()).toEqual({ c: 0 });
   });
 
+  it('rolls back only a nested transaction that threw and was caught, keeping the outer work', () => {
+    const db = new Database(':memory:');
+    db.exec('CREATE TABLE t (n INTEGER)');
+    const insert = (n: number) => db.prepare('INSERT INTO t VALUES (?)').run(n);
+    const failing = db.transaction((n: number) => {
+      insert(n);
+      throw new Error('inner failed');
+    });
+    const outer = db.transaction(() => {
+      insert(1);
+      try {
+        failing(2);
+      } catch {
+        /* the caller recovers */
+      }
+      insert(3);
+    });
+    outer();
+    expect(db.prepare('SELECT n FROM t ORDER BY n').all()).toEqual([{ n: 1 }, { n: 3 }]);
+  });
+
+  it('keeps working after a nested rollback (depth is restored)', () => {
+    const db = new Database(':memory:');
+    db.exec('CREATE TABLE t (n INTEGER)');
+    const failing = db.transaction(() => {
+      db.prepare('INSERT INTO t VALUES (9)').run();
+      throw new Error('x');
+    });
+    expect(() => failing()).toThrow('x'); // top level: plain rollback
+    const ok = db.transaction(() => db.prepare('INSERT INTO t VALUES (1)').run());
+    ok();
+    expect(db.prepare('SELECT n FROM t').all()).toEqual([{ n: 1 }]);
+  });
+
   it('opens a file read-only', () => {
     const dir = mkdtempSync(path.join(os.tmpdir(), 'bgt-sqlite-'));
     try {

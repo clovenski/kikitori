@@ -54,7 +54,22 @@ export class Database {
 
   transaction<A extends unknown[], R>(fn: (...args: A) => R): (...args: A) => R {
     return (...args: A) => {
-      if (this.depth > 0) return fn(...args); // nested: join the outer transaction
+      if (this.depth > 0) {
+        // Nested: a savepoint, so an inner failure the caller catches undoes only its own changes.
+        const name = `sp${this.depth}`;
+        this.db.exec(`SAVEPOINT ${name}`);
+        this.depth++;
+        try {
+          const result = fn(...args);
+          this.db.exec(`RELEASE ${name}`);
+          return result;
+        } catch (err) {
+          this.undo(`ROLLBACK TO ${name}`, `RELEASE ${name}`);
+          throw err;
+        } finally {
+          this.depth--;
+        }
+      }
       this.db.exec('BEGIN');
       this.depth++;
       try {
@@ -62,12 +77,21 @@ export class Database {
         this.db.exec('COMMIT');
         return result;
       } catch (err) {
-        this.db.exec('ROLLBACK');
+        this.undo('ROLLBACK');
         throw err;
       } finally {
         this.depth--;
       }
     };
+  }
+
+  /** Rolls back after a failure. A failing rollback must not replace the error that caused it. */
+  private undo(...statements: string[]): void {
+    try {
+      for (const sql of statements) this.db.exec(sql);
+    } catch {
+      /* the original error is the one worth reporting */
+    }
   }
 
   close(): void {
