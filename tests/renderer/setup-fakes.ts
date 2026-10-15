@@ -79,7 +79,7 @@ export function stateFor(over: Partial<SetupState> = {}, installed: string[] = [
     tier: 'gpu',
     features: { translation: true, summaries: true },
     components: Object.keys(SIZES).map((id) => info(id, installed.includes(id))),
-    resourcesDir: 'C:/Users/me/AppData/Roaming/BG Auto Translator/resources',
+    resourcesDir: 'C:/Users/me/AppData/Roaming/Kikitori/resources',
     ...over,
   };
 }

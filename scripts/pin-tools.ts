@@ -8,7 +8,7 @@ import { META } from './lock-meta';
 /** Gyan keeps a permanent release tag per version; bump by hand and run with --update. */
 const FFMPEG_TAG = '9.0.2';
 
-const headers = { 'User-Agent': 'bg-auto-translator', Accept: 'application/json' };
+const headers = { 'User-Agent': 'kikitori', Accept: 'application/json' };
 
 async function getJson<T>(url: string): Promise<T> {
   const res = await fetch(url, { headers });

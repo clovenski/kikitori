@@ -1,5 +1,5 @@
-appId: com.joeltengco.bgautotranslator
-productName: BG Auto Translator
+appId: com.joeltengco.kikitori
+productName: Kikitori
 copyright: Copyright (c) 2026 Joel Tengco
 directories:
   output: dist
@@ -20,12 +20,12 @@ win:
     - target: nsis
       arch: [x64]
   icon: build/icon.ico
-  artifactName: BG-Auto-Translator-Setup-${version}.exe
+  artifactName: Kikitori-Setup-${version}.exe
 nsis:
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: BG Auto Translator
+  shortcutName: Kikitori
   deleteAppDataOnUninstall: false

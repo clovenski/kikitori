@@ -33,14 +33,14 @@ function renderApp(needsWizard: boolean) {
 describe('App first-run gating', () => {
   it('shows the wizard instead of the library when setup is needed', async () => {
     renderApp(true);
-    expect(await screen.findByRole('heading', { name: 'Welcome to BG Auto Translator' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Welcome to Kikitori' })).toBeTruthy();
     expect(screen.queryByText('New job')).toBeNull();
   });
 
   it('shows the library when setup is done', async () => {
     renderApp(false);
     expect((await screen.findAllByText('New job')).length).toBeGreaterThan(0);
-    expect(screen.queryByRole('heading', { name: 'Welcome to BG Auto Translator' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Welcome to Kikitori' })).toBeNull();
   });
 
   it('keeps the wizard open until the user chooses to continue, then opens the new-job dialog', async () => {

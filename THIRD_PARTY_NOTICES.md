@@ -1,6 +1,6 @@
 # Third-party notices
 
-BG Auto Translator is MIT licensed (see `LICENSE`). The installer contains only the app. On first run the app
+Kikitori is MIT licensed (see `LICENSE`). The installer contains only the app. On first run the app
 **downloads** the programs and models below from their publishers; this project does not redistribute them.
 Each keeps its own licence. Exact versions and checksums are pinned in `tools.lock.json`.
 

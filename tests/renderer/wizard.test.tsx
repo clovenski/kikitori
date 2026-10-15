@@ -61,7 +61,7 @@ describe('Wizard shown again after setup was finished (a required tool went miss
 describe('Wizard', () => {
   it('starts with a welcome that states what is downloaded and the personal-use terms', () => {
     const t = renderWizard();
-    expect(screen.getByRole('heading', { name: 'Welcome to BG Auto Translator' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Welcome to Kikitori' })).toBeTruthy();
     expect(screen.getByText(/personal use/i)).toBeTruthy();
     fireEvent.click(screen.getByText('Licence notices'));
     expect(t.setup.openNotices).toHaveBeenCalled();

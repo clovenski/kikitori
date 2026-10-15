@@ -81,7 +81,7 @@ export function Wizard({ onFinished }: Props) {
   if (step === 'welcome') {
     return (
       <div className="wizard">
-        <h1>Welcome to BG Auto Translator</h1>
+        <h1>Welcome to Kikitori</h1>
         <div className="card">
           <p>It turns Japanese videos into English subtitles and summaries, entirely on this computer. Nothing you process is sent anywhere.</p>
           <p>

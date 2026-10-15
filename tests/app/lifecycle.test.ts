@@ -81,7 +81,7 @@ describe('shouldConfirmQuit', () => {
 describe('startup failures', () => {
   it('describes an error for the user', () => {
     expect(startupFailureMessage(new Error('database is locked'))).toEqual({
-      title: 'BG Auto Translator could not start',
+      title: 'Kikitori could not start',
       detail: 'database is locked',
     });
     expect(startupFailureMessage('plain string').detail).toBe('plain string');
@@ -98,7 +98,7 @@ describe('startup failures', () => {
       }, onFailure),
     ).toBe(false);
     expect(onFailure).toHaveBeenCalledTimes(1);
-    expect(onFailure).toHaveBeenCalledWith({ title: 'BG Auto Translator could not start', detail: 'migration failed' });
+    expect(onFailure).toHaveBeenCalledWith({ title: 'Kikitori could not start', detail: 'migration failed' });
   });
 });
 

@@ -50,7 +50,7 @@ export interface StartupFailure {
 
 export function startupFailureMessage(err: unknown): StartupFailure {
   const detail = err instanceof Error ? err.message : typeof err === 'string' ? err : 'An unknown error occurred.';
-  return { title: 'BG Auto Translator could not start', detail };
+  return { title: 'Kikitori could not start', detail };
 }
 
 /** Runs app initialisation; on failure reports it once (the app shows a dialog and exits) instead of dying silently. */

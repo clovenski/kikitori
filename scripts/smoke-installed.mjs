@@ -6,7 +6,7 @@ import { join } from 'node:path';
 
 const exe = process.argv[2];
 if (!exe || !existsSync(exe)) {
-  console.error('Usage: pnpm smoke:installed "<path to BG Auto Translator.exe>"');
+  console.error('Usage: pnpm smoke:installed "<path to Kikitori.exe>"');
   process.exit(2);
 }
 const profile = mkdtempSync(join(tmpdir(), 'bgt-profile-'));

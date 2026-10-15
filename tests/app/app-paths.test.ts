@@ -22,12 +22,12 @@ describe('resolveAppPaths', () => {
 
   it('a packaged app keeps tools and data in AppData, subtitles in Documents, and the lock file next to the app', () => {
     const p = resolveAppPaths({ ...base, packaged: true, env: {} });
-    const profile = path.join(base.appData, 'BG Auto Translator');
+    const profile = path.join(base.appData, 'Kikitori');
     expect(p).toEqual({
       projectRoot: base.resourcesPath,
       resourcesDir: path.join(profile, 'resources'),
       dataDir: path.join(profile, 'data'),
-      outDir: path.join(base.documents, 'BG Auto Translator'),
+      outDir: path.join(base.documents, 'Kikitori'),
       userData: profile,
     });
   });

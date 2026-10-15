@@ -47,7 +47,7 @@ export function App() {
     <div className="app">
       <header className="topbar">
         <button className="brand" onClick={() => setRoute({ name: 'library' })}>
-          BG Auto Translator
+          Kikitori
         </button>
         <div className="inline">
           <button onClick={() => setToolsOpen(true)}>Tools</button>

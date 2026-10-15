@@ -46,7 +46,7 @@ async function transfer(url: string, part: string, opts: DownloadOptions): Promi
     const res = await fetch(url, {
       redirect: 'follow',
       signal,
-      headers: { 'User-Agent': 'bg-auto-translator', ...(start > 0 ? { Range: `bytes=${start}-` } : {}) },
+      headers: { 'User-Agent': 'kikitori', ...(start > 0 ? { Range: `bytes=${start}-` } : {}) },
     });
     if (res.status === 416) {
       rmSync(part, { force: true });
