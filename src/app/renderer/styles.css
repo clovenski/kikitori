@@ -119,6 +119,7 @@ button.icon-danger:hover, button.icon-danger:focus-visible { background: color-m
 .channels .error { color: var(--bad); font-size: 12px; }
 .channel-list, .feed { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .channel-row { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.channel-row .inline { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 .channel-row .title { font-weight: 600; }
 .channel-row .sub { color: var(--muted); font-size: 12px; }
 .feed-item { display: grid; grid-template-columns: 160px 1fr auto; gap: 12px; align-items: center; padding: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }

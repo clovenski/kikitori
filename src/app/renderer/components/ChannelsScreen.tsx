@@ -91,13 +91,15 @@ export function ChannelsScreen({ channels, feed, onReload, onProcess, onOpenJob 
               {confirmRemove === c.id ? (
                 <div className="inline">
                   <span>{`Remove ${c.title} and its videos from the feed?`}</span>
-                  <button className="primary" onClick={() => void remove(c.id)}>
+                  <button className="danger" onClick={() => void remove(c.id)}>
                     Yes, remove
                   </button>
                   <button onClick={() => setConfirmRemove(null)}>Cancel</button>
                 </div>
               ) : (
-                <button onClick={() => setConfirmRemove(c.id)}>Remove</button>
+                <button className="danger-outline" onClick={() => setConfirmRemove(c.id)}>
+                  Remove
+                </button>
               )}
             </li>
           ))}
