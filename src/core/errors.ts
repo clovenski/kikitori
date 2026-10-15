@@ -5,7 +5,8 @@ export type ErrorCode =
   | 'OverCap'
   | 'InvalidInput'
   | 'LlmServerFailed'
-  | 'LlmFailed';
+  | 'LlmFailed'
+  | 'SetupRequired';
 
 export class BgtError extends Error {
   readonly code: ErrorCode;
