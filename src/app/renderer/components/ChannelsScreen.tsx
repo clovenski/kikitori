@@ -67,11 +67,18 @@ export function ChannelsScreen({ channels, feed, onReload, onProcess, onOpenJob 
           placeholder="@handle or https://www.youtube.com/@..."
           value={text}
           onChange={(e) => setText(e.target.value)}
+          disabled={adding}
         />
         <button className="primary" type="submit" disabled={adding}>
-          Follow
+          {adding && <span className="spinner" aria-hidden="true" />}
+          {adding ? 'Following...' : 'Follow'}
         </button>
       </form>
+      {adding && (
+        <p className="hint" role="status">
+          Fetching the channel and its latest videos. This can take a few seconds.
+        </p>
+      )}
       {error && <div className="error">{error}</div>}
 
       {channels.length === 0 ? (
@@ -109,6 +116,7 @@ export function ChannelsScreen({ channels, feed, onReload, onProcess, onOpenJob 
       <div className="toolbar">
         <h3>New videos</h3>
         <button disabled={refreshing || channels.length === 0} onClick={() => void refresh()}>
+          {refreshing && <span className="spinner" aria-hidden="true" />}
           {refreshing ? 'Checking...' : 'Refresh'}
         </button>
         <button disabled={feed.length === 0} onClick={() => void dismissAll()}>
