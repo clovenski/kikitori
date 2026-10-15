@@ -63,7 +63,7 @@ describe('Wizard', () => {
     const t = renderWizard();
     expect(screen.getByRole('heading', { name: 'Welcome to Kikitori' })).toBeTruthy();
     expect(screen.getByText(/personal use/i)).toBeTruthy();
-    fireEvent.click(screen.getByText('Licence notices'));
+    fireEvent.click(screen.getByText('License notices'));
     expect(t.setup.openNotices).toHaveBeenCalled();
   });
 

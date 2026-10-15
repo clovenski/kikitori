@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { formatBytes } from '../../../core/bytes';
 import type { SetupState, Tier } from '../../shared/ipc';
 import { useApi, useSetupProgress } from '../lib/api';
+import { closeOnBackdrop, useEscapeToClose } from '../lib/dismiss';
 import { InstallProgress } from './InstallProgress';
 
 interface Props {
@@ -14,6 +15,7 @@ interface Props {
 export function ToolsDialog({ state, onClose, onChanged }: Props) {
   const api = useApi();
   const progress = useSetupProgress();
+  useEscapeToClose(onClose);
   const [message, setMessage] = useState<string | null>(null);
   const [confirmSwitch, setConfirmSwitch] = useState(false);
   const busy = progress.phase === 'installing';
@@ -39,7 +41,7 @@ export function ToolsDialog({ state, onClose, onChanged }: Props) {
   };
 
   return (
-    <div className="dialog-backdrop" role="presentation">
+    <div className="dialog-backdrop" role="presentation" onMouseDown={closeOnBackdrop(onClose)}>
       <div className="dialog" role="dialog" aria-label="Tools">
         <h2>Tools</h2>
         <div className="hint">{`${state.tier === 'gpu' ? 'NVIDIA GPU' : 'CPU only'} setup - installed in ${state.resourcesDir}`}</div>
@@ -90,7 +92,7 @@ export function ToolsDialog({ state, onClose, onChanged }: Props) {
             <button disabled={busy} onClick={() => setConfirmSwitch(true)}>
               {`Switch to ${other === 'gpu' ? 'NVIDIA GPU' : 'CPU only'}`}
             </button>
-            <button onClick={() => void api.setup.openNotices()}>Licence notices</button>
+            <button onClick={() => void api.setup.openNotices()}>License notices</button>
           </div>
         )}
         <div className="actions">

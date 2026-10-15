@@ -3,6 +3,7 @@ import type { DragEvent } from 'react';
 import type { ProbeResult, SetupPlanView } from '../../shared/ipc';
 import { cleanSource } from '../../../core/source-text';
 import { useApi } from '../lib/api';
+import { closeOnBackdrop, useEscapeToClose } from '../lib/dismiss';
 import { formatClock, formatEta } from '../lib/format';
 import { buildSubmitRequest, type NewJobForm } from '../lib/newjob';
 import { SetupDownloadDialog } from './SetupDownloadDialog';
@@ -18,6 +19,7 @@ type ProbeState = { kind: 'idle' } | { kind: 'loading' } | { kind: 'ok'; info: P
 
 export function NewJobDialog({ onClose, onSubmitted, initialSource }: Props) {
   const api = useApi();
+  useEscapeToClose(onClose);
   const [form, setForm] = useState<NewJobForm>({
     source: initialSource ?? '',
     start: '',
@@ -162,7 +164,7 @@ export function NewJobDialog({ onClose, onSubmitted, initialSource }: Props) {
   };
 
   return (
-    <div className="dialog-backdrop" role="presentation">
+    <div className="dialog-backdrop" role="presentation" onMouseDown={closeOnBackdrop(onClose)}>
       <div className="dialog" role="dialog" aria-label="New job">
         <h2>New job</h2>
         <label>

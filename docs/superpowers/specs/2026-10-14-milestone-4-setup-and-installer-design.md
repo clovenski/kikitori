@@ -15,7 +15,7 @@ Builds on: Milestones 1 to 3, merged on `master`. Related: `docs/known-issues.md
   4. Translation and summaries can be skipped at setup and added later, on demand, the first time a job needs them.
   5. "Update yt-dlp" works from the app, and a failed download offers it.
   6. Tagging `vX.Y.Z` builds the installer in CI and attaches it with a SHA-256 file to a GitHub Release.
-  7. Every downloaded component is listed with its licence in `THIRD_PARTY_NOTICES.md`, and the project has a `LICENSE` (MIT).
+  7. Every downloaded component is listed with its license in `THIRD_PARTY_NOTICES.md`, and the project has a `LICENSE` (MIT).
 - **Non-goals:** app auto-update, code signing, AMD/Intel GPUs, macOS/Linux, the Gemini backend, channel watching, the polished README and demo GIF (Milestone 6).
 
 ## 2. Decisions
@@ -27,7 +27,7 @@ Builds on: Milestones 1 to 3, merged on `master`. Related: `docs/known-issues.md
 | Download scope | One "Recommended setup" button for the detected tier; Translation and Summaries are opt-outs that download on demand later |
 | Installer | One per-user NSIS installer from `electron-builder`; no admin rights; nothing but the app, the lock file and notices inside it |
 | Signing | None. The README documents the SmartScreen warning |
-| Licence | MIT, copyright "Joel Tengco" (confirmed) |
+| License | MIT, copyright "Joel Tengco" (confirmed) |
 | Packaged data location | `%APPDATA%\\Kikitori` for tools, models, database and settings; `Documents\\Kikitori` for subtitles and summaries |
 | Development | Unchanged: the project's `data/`, `resources/`, `output/`. The wizard stays out of the way if the needed components are already present |
 
@@ -99,10 +99,10 @@ The transcription model name used in jobs follows the tier: `large-v3` on GPU, `
 - **CI** (`.github/workflows`): `ci.yml` on push and pull request runs install (frozen lockfile), tests, typecheck, lint, `build:app` and the smoke test on `windows-latest` with Node 24; `release.yml` on tags `v*` additionally builds the installer, writes `SHA256SUMS.txt` and publishes with `gh release create --generate-notes` (`contents: write`). The integration tests that need models never run in CI.
 - No code signing; the README states the SmartScreen steps ("More info", "Run anyway").
 
-## 9. Licences and notices
+## 9. Licenses and notices
 
 - `LICENSE`: MIT.
-- `THIRD_PARTY_NOTICES.md` lists every downloaded component with version, licence, source and the fact that it is downloaded from its publisher rather than redistributed by this project: yt-dlp (Unlicense), ffmpeg Gyan essentials (GPLv3, source at the publisher), whisper.cpp (MIT), llama.cpp (MIT), CUDA runtime files inside the upstream CUDA archives (NVIDIA licence), Silero VAD (MIT), Whisper large-v3 (MIT), Hy-MT2 (Apache-2.0), Qwen3 (Apache-2.0); and, for the app itself, Electron and React (MIT).
+- `THIRD_PARTY_NOTICES.md` lists every downloaded component with version, license, source and the fact that it is downloaded from its publisher rather than redistributed by this project: yt-dlp (Unlicense), ffmpeg Gyan essentials (GPLv3, source at the publisher), whisper.cpp (MIT), llama.cpp (MIT), CUDA runtime files inside the upstream CUDA archives (NVIDIA license), Silero VAD (MIT), Whisper large-v3 (MIT), Hy-MT2 (Apache-2.0), Qwen3 (Apache-2.0); and, for the app itself, Electron and React (MIT).
 - A test fails when a component in `tools.lock.json` has no `license` field or is missing from the notices file.
 
 ## 10. Error handling
@@ -116,7 +116,7 @@ The transcription model name used in jobs follows the tier: `large-v3` on GPU, `
 
 ## 11. Testing
 
-- **Unit (Node):** `parseNvidiaSmi` and `decideTier` (no GPU, low VRAM, old driver, multi-GPU, malformed output); `buildPlan` and `requiredComponents` (tiers, features, already-installed parts, glossary skip rule); resumable download against a local HTTP server (full, resume from `.part`, server ignoring Range, stall, abort, redirect); installer sequencing with a fake downloader (checksum failure retry, disk-space refusal, extraction failure cleanup, cancel); settings atomic write and dev auto-detection; lock schema validation (sizes, licences, notices coverage); packaged path resolution.
+- **Unit (Node):** `parseNvidiaSmi` and `decideTier` (no GPU, low VRAM, old driver, multi-GPU, malformed output); `buildPlan` and `requiredComponents` (tiers, features, already-installed parts, glossary skip rule); resumable download against a local HTTP server (full, resume from `.part`, server ignoring Range, stall, abort, redirect); installer sequencing with a fake downloader (checksum failure retry, disk-space refusal, extraction failure cleanup, cancel); settings atomic write and dev auto-detection; lock schema validation (sizes, licenses, notices coverage); packaged path resolution.
 - **Component (jsdom):** wizard steps and transitions, opt-out sizes, tier switch warning, failure and retry, on-demand prompt, Tools page actions.
 - **Local build verification:** `build:installer`, silent install into a temp folder, launch with `BGT_USER_DATA` pointing at an empty folder and `--smoke`, confirm the wizard is the first screen.
 - **Real run (author's machine):** force the CPU tier with real downloads into an empty profile and run the wizard to completion, interrupt a download and resume it, corrupt a model and Repair, then transcribe, translate and summarize a short video with the CPU components. Repeat the GPU tier on the author's existing profile to confirm nothing regressed.

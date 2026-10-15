@@ -19,7 +19,7 @@
 - Packaged locations: tools and models `%APPDATA%\Kikitori\resources`, database/settings/work `%APPDATA%\Kikitori\data`, subtitles and summaries `Documents\Kikitori`; `BGT_USER_DATA` overrides the base folder; development keeps the project's `resources/`, `data/`, `output/`.
 - GPU tier about 14 GB, CPU tier about 4.5 GB; transcription model `large-v3` (GPU) and `large-v3-turbo-q5_0` (CPU); translation `Hy-MT2-7B` / `Hy-MT2-1.8B` Q4_K_M; general `Qwen3-8B` / `Qwen3-4B` Q4_K_M.
 - ffmpeg: Gyan `GyanD/codexffmpeg` tag `9.0.2`, asset `ffmpeg-9.0.2-essentials_build.zip`, downloaded on first run, not redistributed.
-- Licence MIT, copyright "Joel Tengco". Commit messages end with `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>` (pass it as a second `-m`).
+- License MIT, copyright "Joel Tengco". Commit messages end with `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>` (pass it as a second `-m`).
 - Tooling notes: the Bash tool eats backslashes in inline scripts, so create and edit files with the Write/Edit tools. Repo files mix CRLF and LF; the Edit tool matches exact text, so re-read a file if an edit does not match. Use absolute paths. Work on branch `milestone-4`; nothing is pushed.
 
 ## Review Focus
@@ -362,7 +362,7 @@ export interface ComponentMeta {
   homepage: string;
 }
 
-const NVIDIA_NOTE = ' (the CUDA archive also contains NVIDIA CUDA runtime files under the NVIDIA licence)';
+const NVIDIA_NOTE = ' (the CUDA archive also contains NVIDIA CUDA runtime files under the NVIDIA license)';
 
 /** Display order of the lock file. */
 export const META: ComponentMeta[] = [
@@ -3628,7 +3628,7 @@ describe('Wizard', () => {
     renderWizard();
     expect(screen.getByRole('heading', { name: 'Welcome to Kikitori' })).toBeTruthy();
     expect(screen.getByText(/personal use/i)).toBeTruthy();
-    fireEvent.click(screen.getByText('Licence notices'));
+    fireEvent.click(screen.getByText('License notices'));
   });
 
   it('recommends the GPU path for a capable NVIDIA card and shows the download size and free space', async () => {
@@ -3943,10 +3943,10 @@ export function Wizard({ onFinished }: Props) {
         <div className="card">
           <p>It turns Japanese videos into English subtitles and summaries, entirely on this computer. Nothing you process is sent anywhere.</p>
           <p>
-            To do that it downloads open-source tools and AI models from their publishers. They are not part of this app and keep their own licences.
+            To do that it downloads open-source tools and AI models from their publishers. They are not part of this app and keep their own licenses.
             This app is for your personal use; respect YouTube's terms and the rights of the people who made the videos.
           </p>
-          <button onClick={() => void api.setup.openNotices()}>Licence notices</button>
+          <button onClick={() => void api.setup.openNotices()}>License notices</button>
         </div>
         <div className="actions">
           <button className="primary" onClick={() => setStep('choose')}>
@@ -4259,9 +4259,9 @@ describe('ToolsDialog', () => {
     expect(t.onChanged).toHaveBeenCalled();
   });
 
-  it('opens the licence notices', () => {
+  it('opens the license notices', () => {
     const t = renderTools();
-    fireEvent.click(screen.getByText('Licence notices'));
+    fireEvent.click(screen.getByText('License notices'));
     expect(t.setup.openNotices).toHaveBeenCalled();
   });
 });
@@ -4554,7 +4554,7 @@ export function ToolsDialog({ state, onClose, onChanged }: Props) {
             <button disabled={busy} onClick={() => setConfirmSwitch(true)}>
               {`Switch to ${other === 'gpu' ? 'NVIDIA GPU' : 'CPU only'}`}
             </button>
-            <button onClick={() => void api.setup.openNotices()}>Licence notices</button>
+            <button onClick={() => void api.setup.openNotices()}>License notices</button>
           </div>
         )}
         <div className="actions">
@@ -4660,7 +4660,7 @@ git add -A && git commit -m "feat(renderer): Tools dialog, on-demand download pr
 
 ---
 
-## Task 12: Packaging, licences, notices and README
+## Task 12: Packaging, licenses, notices and README
 
 **Files:**
 - Create: `LICENSE`, `THIRD_PARTY_NOTICES.md`, `README.md`, `electron-builder.yml`, `scripts/make-icon.mjs`, `build/icon.ico`, `build/icon.png`, `scripts/smoke-installed.mjs`
@@ -4681,13 +4681,13 @@ import { projectRoot } from '../../src/core/tools/paths';
 
 const read = (name: string) => readFileSync(path.join(projectRoot(), name), 'utf8');
 
-describe('licences', () => {
+describe('licenses', () => {
   const notices = read('THIRD_PARTY_NOTICES.md');
 
-  it('lists every downloadable component with its licence and source', () => {
+  it('lists every downloadable component with its license and source', () => {
     for (const c of loadLock(path.join(projectRoot(), 'tools.lock.json')).components) {
       expect(notices, `${c.id} is missing from THIRD_PARTY_NOTICES.md`).toContain(`\`${c.id}\``);
-      expect(notices, `${c.id}: licence text differs from tools.lock.json`).toContain(c.license);
+      expect(notices, `${c.id}: license text differs from tools.lock.json`).toContain(c.license);
       expect(notices, `${c.id}: source link differs from tools.lock.json`).toContain(c.homepage);
     }
   });
@@ -4697,9 +4697,9 @@ describe('licences', () => {
   });
 
   it('the project itself is MIT licensed', () => {
-    const licence = read('LICENSE');
-    expect(licence).toContain('MIT License');
-    expect(licence).toContain('Joel Tengco');
+    const license = read('LICENSE');
+    expect(license).toContain('MIT License');
+    expect(license).toContain('Joel Tengco');
   });
 });
 ```
@@ -4739,18 +4739,18 @@ SOFTWARE.
 
 Kikitori is MIT licensed (see `LICENSE`). The installer contains only the app. On first run the app
 **downloads** the programs and models below from their publishers; this project does not redistribute them.
-Each keeps its own licence. Exact versions and checksums are pinned in `tools.lock.json`.
+Each keeps its own license. Exact versions and checksums are pinned in `tools.lock.json`.
 
-| Component id | What it is | Licence | Source |
+| Component id | What it is | License | Source |
 |---|---|---|---|
 | `yt-dlp` | yt-dlp, video downloader | Unlicense | https://github.com/yt-dlp/yt-dlp |
 | `ffmpeg` | ffmpeg, audio conversion (Gyan essentials build) | GPL-3.0-or-later | https://www.gyan.dev/ffmpeg/builds/ |
 | `vad` | Silero voice activity model | MIT | https://huggingface.co/ggml-org/whisper-vad |
-| `whisper-gpu` | whisper.cpp, speech recognition (NVIDIA GPU build) | MIT (the CUDA archive also contains NVIDIA CUDA runtime files under the NVIDIA licence) | https://github.com/ggml-org/whisper.cpp |
+| `whisper-gpu` | whisper.cpp, speech recognition (NVIDIA GPU build) | MIT (the CUDA archive also contains NVIDIA CUDA runtime files under the NVIDIA license) | https://github.com/ggml-org/whisper.cpp |
 | `whisper-cpu` | whisper.cpp, speech recognition (CPU build) | MIT | https://github.com/ggml-org/whisper.cpp |
 | `model-transcribe-gpu` | Whisper large-v3 model | MIT | https://huggingface.co/ggerganov/whisper.cpp |
 | `model-transcribe-cpu` | Whisper large-v3-turbo model (5-bit) | MIT | https://huggingface.co/ggerganov/whisper.cpp |
-| `llama-gpu` | llama.cpp, language model runtime (NVIDIA GPU build) | MIT (the CUDA archive also contains NVIDIA CUDA runtime files under the NVIDIA licence) | https://github.com/ggml-org/llama.cpp |
+| `llama-gpu` | llama.cpp, language model runtime (NVIDIA GPU build) | MIT (the CUDA archive also contains NVIDIA CUDA runtime files under the NVIDIA license) | https://github.com/ggml-org/llama.cpp |
 | `llama-cpu` | llama.cpp, language model runtime (CPU build) | MIT | https://github.com/ggml-org/llama.cpp |
 | `model-translate-gpu` | Tencent Hy-MT2 7B translation model | Apache-2.0 | https://huggingface.co/tencent/Hy-MT2-7B-GGUF |
 | `model-translate-cpu` | Tencent Hy-MT2 1.8B translation model | Apache-2.0 | https://huggingface.co/tencent/Hy-MT2-1.8B-GGUF |
@@ -4764,7 +4764,7 @@ redistribute it. Its source code is available from https://ffmpeg.org and https:
 
 ## What the installer contains
 
-- Electron and Chromium (MIT and other licences; the texts are in `LICENSE.electron.txt` and
+- Electron and Chromium (MIT and other licenses; the texts are in `LICENSE.electron.txt` and
   `LICENSES.chromium.html` in the installation folder)
 - React (MIT) and extract-zip (BSD-2-Clause), bundled into the app
 
@@ -4813,7 +4813,7 @@ pnpm build:installer       # dist/Kikitori-Setup-<version>.exe
 ```
 
 `BGT_USER_DATA=<folder>` runs the app against an empty profile (it then shows the first-run wizard).
-Third-party components and licences: `THIRD_PARTY_NOTICES.md`. Project licence: MIT.
+Third-party components and licenses: `THIRD_PARTY_NOTICES.md`. Project license: MIT.
 ````
 
 - [ ] **Step 6: `package.json`**
@@ -4988,7 +4988,7 @@ Expected: the three `Test-Path` lines print `True`; the smoke script prints `SMO
 
 ```bash
 git add -A && git status --short | head -30
-git commit -m "feat: per-user NSIS installer, MIT licence, third-party notices, README and placeholder icon" -m "Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+git commit -m "feat: per-user NSIS installer, MIT license, third-party notices, README and placeholder icon" -m "Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 ```
 
 ---
@@ -5226,7 +5226,7 @@ git add -A && git commit -m "docs: Milestone 4 known issues and spec status" -m 
 
 ## Self-review against the spec
 
-- Spec section 3 (tiers, components, model names): Tasks 1, 2, 3, 7. Section 4 (settings): Task 4. Section 5 (download manager, installer, free space, errors): Tasks 5, 6. Section 6 (packaged paths, service, IPC, on demand, yt-dlp update, gating): Tasks 8, 9, 11. Section 7 (wizard, Tools page, prompt, resume after unfinished setup): Tasks 10, 11 (resume covered by the Task 14 interrupt check). Section 8 (installer, CI): Tasks 12, 13. Section 9 (notices, licence, coverage test): Tasks 1, 12. Section 10 (error handling): Tasks 5, 6, 8. Section 11 (testing and real runs): each task plus Task 14. Known-issues housekeeping (quit twice, permanent yt-dlp errors): Tasks 7, 9.
+- Spec section 3 (tiers, components, model names): Tasks 1, 2, 3, 7. Section 4 (settings): Task 4. Section 5 (download manager, installer, free space, errors): Tasks 5, 6. Section 6 (packaged paths, service, IPC, on demand, yt-dlp update, gating): Tasks 8, 9, 11. Section 7 (wizard, Tools page, prompt, resume after unfinished setup): Tasks 10, 11 (resume covered by the Task 14 interrupt check). Section 8 (installer, CI): Tasks 12, 13. Section 9 (notices, license, coverage test): Tasks 1, 12. Section 10 (error handling): Tasks 5, 6, 8. Section 11 (testing and real runs): each task plus Task 14. Known-issues housekeeping (quit twice, permanent yt-dlp errors): Tasks 7, 9.
 - Deviations from the approved spec, all recorded in Task 0: 7500 MB VRAM threshold, no `installed` map in `settings.json`, `features` list and `selfUpdates` in the lock.
 - Types used across tasks: `Tier`, `LockComponent`, `Wants`, `SetupPlan` (core), `SetupSelection`, `SetupPlanView`, `SetupState`, `SetupProgress`, `InstallProgress` (shared), `SetupServiceDeps` (main); `createRealModelPool({ tier })` is introduced in Task 1 and used in Tasks 7 and 9.
 

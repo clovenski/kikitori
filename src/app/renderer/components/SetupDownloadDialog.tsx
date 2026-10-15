@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { formatBytes } from '../../../core/bytes';
 import type { SetupPlanView } from '../../shared/ipc';
 import { useApi, useSetupProgress } from '../lib/api';
+import { closeOnBackdrop, useEscapeToClose } from '../lib/dismiss';
 import { InstallProgress } from './InstallProgress';
 
 interface Props {
@@ -38,9 +39,10 @@ export function SetupDownloadDialog({ plan, onDone, onCancel }: Props) {
     if (running) await api.setup.cancel();
     onCancel();
   };
+  useEscapeToClose(() => void close());
 
   return (
-    <div className="dialog-backdrop" role="presentation">
+    <div className="dialog-backdrop" role="presentation" onMouseDown={closeOnBackdrop(() => void close())}>
       <div className="dialog" role="dialog" aria-label="Download needed">
         <h2>Download needed</h2>
         <div>This needs parts that are not installed yet:</div>

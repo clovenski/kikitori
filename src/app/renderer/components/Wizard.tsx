@@ -85,10 +85,10 @@ export function Wizard({ onFinished }: Props) {
         <div className="card">
           <p>It turns Japanese videos into English subtitles and summaries, entirely on this computer. Nothing you process is sent anywhere.</p>
           <p>
-            To do that it downloads open-source tools and AI models from their publishers. They are not part of this app and keep their own licences.
+            To do that it downloads open-source tools and AI models from their publishers. They are not part of this app and keep their own licenses.
             This app is for your personal use; respect YouTube's terms and the rights of the people who made the videos.
           </p>
-          <button onClick={() => void api.setup.openNotices()}>Licence notices</button>
+          <button onClick={() => void api.setup.openNotices()}>License notices</button>
         </div>
         <div className="actions">
           <button className="primary" onClick={() => setStep('choose')}>

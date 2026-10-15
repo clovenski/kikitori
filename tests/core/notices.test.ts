@@ -6,13 +6,13 @@ import { projectRoot } from '../../src/core/tools/paths';
 
 const read = (name: string) => readFileSync(path.join(projectRoot(), name), 'utf8');
 
-describe('licences', () => {
+describe('licenses', () => {
   const notices = read('THIRD_PARTY_NOTICES.md');
 
-  it('lists every downloadable component with its licence and source', () => {
+  it('lists every downloadable component with its license and source', () => {
     for (const c of loadLock(path.join(projectRoot(), 'tools.lock.json')).components) {
       expect(notices, `${c.id} is missing from THIRD_PARTY_NOTICES.md`).toContain(`\`${c.id}\``);
-      expect(notices, `${c.id}: licence text differs from tools.lock.json`).toContain(c.license);
+      expect(notices, `${c.id}: license text differs from tools.lock.json`).toContain(c.license);
       expect(notices, `${c.id}: source link differs from tools.lock.json`).toContain(c.homepage);
     }
   });
@@ -22,8 +22,8 @@ describe('licences', () => {
   });
 
   it('the project itself is MIT licensed', () => {
-    const licence = read('LICENSE');
-    expect(licence).toContain('MIT License');
-    expect(licence).toContain('Joel Tengco');
+    const license = read('LICENSE');
+    expect(license).toContain('MIT License');
+    expect(license).toContain('Joel Tengco');
   });
 });

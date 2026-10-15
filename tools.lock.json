@@ -72,7 +72,7 @@
         "transcription"
       ],
       "tier": "gpu",
-      "license": "MIT (the CUDA archive also contains NVIDIA CUDA runtime files under the NVIDIA licence)",
+      "license": "MIT (the CUDA archive also contains NVIDIA CUDA runtime files under the NVIDIA license)",
       "homepage": "https://github.com/ggml-org/whisper.cpp",
       "files": [
         {
@@ -157,7 +157,7 @@
         "summaries"
       ],
       "tier": "gpu",
-      "license": "MIT (the CUDA archive also contains NVIDIA CUDA runtime files under the NVIDIA licence)",
+      "license": "MIT (the CUDA archive also contains NVIDIA CUDA runtime files under the NVIDIA license)",
       "homepage": "https://github.com/ggml-org/llama.cpp",
       "files": [
         {

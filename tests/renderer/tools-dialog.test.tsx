@@ -29,6 +29,16 @@ describe('ToolsDialog', () => {
     expect(screen.queryByText('Title model-translate-cpu')).toBeNull();
   });
 
+  it('closes on Escape and on a press outside the dialog, but not on a press inside it', () => {
+    const t = renderTools();
+    fireEvent.mouseDown(screen.getByRole('dialog'));
+    expect(t.onClose).not.toHaveBeenCalled();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(t.onClose).toHaveBeenCalledTimes(1);
+    fireEvent.mouseDown(screen.getByRole('dialog').parentElement as HTMLElement);
+    expect(t.onClose).toHaveBeenCalledTimes(2);
+  });
+
   it('updates yt-dlp and shows what the updater said', async () => {
     const t = renderTools();
     fireEvent.click(screen.getByText('Update yt-dlp'));
@@ -76,9 +86,9 @@ describe('ToolsDialog', () => {
     expect(t.onChanged).toHaveBeenCalled();
   });
 
-  it('opens the licence notices', () => {
+  it('opens the license notices', () => {
     const t = renderTools();
-    fireEvent.click(screen.getByText('Licence notices'));
+    fireEvent.click(screen.getByText('License notices'));
     expect(t.setup.openNotices).toHaveBeenCalled();
   });
 });

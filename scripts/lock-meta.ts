@@ -9,7 +9,7 @@ export interface ComponentMeta {
   homepage: string;
 }
 
-const NVIDIA_NOTE = ' (the CUDA archive also contains NVIDIA CUDA runtime files under the NVIDIA licence)';
+const NVIDIA_NOTE = ' (the CUDA archive also contains NVIDIA CUDA runtime files under the NVIDIA license)';
 
 /** Display order of the lock file. */
 export const META: ComponentMeta[] = [
