@@ -27,7 +27,7 @@ Builds on: Milestones 1 to 3, merged on `master`. Related: `docs/known-issues.md
 | Download scope | One "Recommended setup" button for the detected tier; Translation and Summaries are opt-outs that download on demand later |
 | Installer | One per-user NSIS installer from `electron-builder`; no admin rights; nothing but the app, the lock file and notices inside it |
 | Signing | None. The README documents the SmartScreen warning |
-| Licence | MIT, copyright "Joel Tengco" (taken from the author's email; confirm at review) |
+| Licence | MIT, copyright "Joel Tengco" (confirmed) |
 | Packaged data location | `%APPDATA%\\BG Auto Translator` for tools, models, database and settings; `Documents\\BG Auto Translator` for subtitles and summaries |
 | Development | Unchanged: the project's `data/`, `resources/`, `output/`. The wizard stays out of the way if the needed components are already present |
 
@@ -127,4 +127,4 @@ The transcription model name used in jobs follows the tier: `large-v3` on GPU, `
 - **Hosting:** pinned URLs on GitHub, Hugging Face and Gyan's release page can disappear or be rate-limited. Checksums turn that into a clear error; the lock must be re-pinned when it happens.
 - **CPU tier quality and speed are unmeasured** until the real run; the wizard's wording must not promise numbers it has not seen.
 - **CUDA driver check** uses 551 as the threshold for the CUDA 12.4 builds; a machine that passes it can still fail at run time, which is why the CPU override and Repair exist.
-- **Open items for the author:** confirm the copyright holder name on the licence, supply or approve the app icon, create the GitHub repository and the first tag (nothing is pushed until asked).
+- **Open items for the author:** create the GitHub repository and the first tag (nothing is pushed until asked). The app icon is a generated placeholder, which the author accepted.
