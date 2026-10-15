@@ -12,6 +12,21 @@ along. It also works on audio and video files you already have.
 - **Made for long videos:** streams and long recordings are handled in chunks and can be resumed.
 - **Set up in one click:** the first-run wizard checks your hardware (NVIDIA GPU or plain CPU) and downloads what it needs.
 
+![Kikitori playing a video with Japanese and English subtitles next to a clickable transcript](docs/images/job.png)
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/summary.png" alt="A timestamped summary with clickable times"></td>
+    <td width="50%"><img src="docs/images/setup-wizard.png" alt="The first-run setup wizard"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>A timestamped summary; every time jumps the video there.</sub></td>
+    <td align="center"><sub>One-click first-run setup, matched to your hardware.</sub></td>
+  </tr>
+</table>
+
+<sub>The screenshots use a fictional cooking stream and a generated clip, not a real video.</sub>
+
 > Personal use only. Downloading videos may be against the terms of the site they come from, so follow them.
 > Never publish downloaded media or transcripts, and never commit them to a repository.
 
