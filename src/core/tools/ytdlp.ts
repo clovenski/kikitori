@@ -22,6 +22,8 @@ export function buildProbeArgs(url: string): string[] {
     '--encoding',
     'utf-8',
     '--print',
+    'live_status',
+    '--print',
     'duration',
     '--print',
     'title',
@@ -67,20 +69,35 @@ export async function probeVideo(a: {
   ytdlpPath: string;
   url: string;
   signal?: AbortSignal;
+  /** Injectable for tests. */
+  run?: typeof runProcess;
 }): Promise<{ durationMs: number; title: string | null }> {
-  const r = await runProcess(a.ytdlpPath, buildProbeArgs(a.url), { signal: a.signal });
+  const run = a.run ?? runProcess;
+  const r = await run(a.ytdlpPath, buildProbeArgs(a.url), { signal: a.signal });
   if (r.code !== 0) {
     throw new BgtError('DownloadFailed', `yt-dlp could not read the video: ${lastLine(r.stderr)}. ${HINT}`);
   }
   const lines = r.stdout.split(/\r?\n/).map((l) => l.trim());
-  const seconds = Number.parseFloat(lines[0] ?? '');
-  if (!Number.isFinite(seconds) || seconds <= 0) {
+  const liveStatus = lines[0] ?? '';
+  // A stream that just ended reports a real duration, but YouTube answers every audio fragment with
+  // HTTP 500 until it has processed the recording, which surfaces as "The downloaded file is empty".
+  if (liveStatus === 'post_live') {
+    throw new BgtError(
+      'DownloadFailed',
+      'YouTube is still processing this stream, so its audio cannot be downloaded yet. Try again later (usually within a few hours of the stream ending).',
+    );
+  }
+  if (liveStatus === 'is_upcoming') {
+    throw new BgtError('InvalidInput', 'This stream has not started yet.');
+  }
+  const seconds = Number.parseFloat(lines[1] ?? '');
+  if (liveStatus === 'is_live' || !Number.isFinite(seconds) || seconds <= 0) {
     throw new BgtError(
       'InvalidInput',
       'The video has no known duration (live streams are not supported yet).',
     );
   }
-  const title = lines.slice(1).join(' ').trim();
+  const title = lines.slice(2).join(' ').trim();
   return { durationMs: Math.round(seconds * 1000), title: title === '' || title === 'NA' ? null : title };
 }
 
